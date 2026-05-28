@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ITEMS } from './items.data';
-import { CartLine, NextItemResponse, TShirt } from './types';
+import { CartLine, FieldResponse, TShirt } from './types';
 
 // Probability a "passed" item is given one more chance to surface later.
 // 90% of passes → gone forever immediately. 10% → eligible to reappear once,
@@ -45,7 +45,7 @@ export class ShopService {
     return item;
   }
 
-  getNext(userId: string): NextItemResponse {
+  getField(userId: string, count: number): FieldResponse {
     const s = this.getState(userId);
 
     const fresh = ITEMS.filter(
@@ -55,31 +55,35 @@ export class ShopService {
         !s.shownLastChance.has(i.id) &&
         !s.cart.has(i.id),
     );
-
     const reprise = ITEMS.filter(
       (i) => s.lastChancePool.has(i.id) && !s.shownLastChance.has(i.id),
     );
 
-    const useReprise =
-      reprise.length > 0 &&
-      (fresh.length === 0 || Math.random() < LAST_CHANCE_SURFACE_RATE);
+    const items: (TShirt & { lastChance: boolean })[] = [];
 
-    let chosen: TShirt | undefined;
-    let lastChance = false;
-
-    if (useReprise) {
-      chosen = reprise[Math.floor(Math.random() * reprise.length)];
-      lastChance = true;
+    // Occasionally sneak one last-chance reprise into the batch.
+    if (reprise.length > 0 && this.rng() < LAST_CHANCE_SURFACE_RATE) {
+      const chosen = reprise[Math.floor(this.rng() * reprise.length)];
       s.lastChancePool.delete(chosen.id);
       s.shownLastChance.add(chosen.id);
-    } else if (fresh.length > 0) {
-      chosen = fresh[Math.floor(Math.random() * fresh.length)];
+      items.push({ ...chosen, lastChance: true });
     }
 
-    return {
-      item: chosen ? { ...chosen, lastChance } : null,
-      remaining: fresh.length + reprise.length - (chosen ? 1 : 0),
-    };
+    for (const item of this.shuffle([...fresh])) {
+      if (items.length >= count) break;
+      items.push({ ...item, lastChance: false });
+    }
+
+    const remaining = fresh.length + reprise.length - items.length;
+    return { items, remaining: Math.max(0, remaining) };
+  }
+
+  private shuffle<T>(arr: T[]): T[] {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(this.rng() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
   }
 
   pass(userId: string, itemId: string) {

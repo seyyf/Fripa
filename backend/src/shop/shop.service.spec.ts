@@ -20,3 +20,34 @@ describe('ShopService.pass dice', () => {
     expect(res).toEqual({ gone: true });
   });
 });
+
+describe('ShopService.getField', () => {
+  it('returns at most `count` items, none of them in the cart', () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    const res = s.getField('u1', 5);
+    expect(res.items.length).toBeLessThanOrEqual(5);
+    expect(res.items.some((i) => i.id === 't-001')).toBe(false);
+    expect(res.items.every((i) => i.lastChance === false)).toBe(true);
+  });
+
+  it('excludes passed items', () => {
+    const s = new ShopService();
+    (s as unknown as { rng: () => number }).rng = () => 0.9; // force "gone"
+    s.pass('u1', 't-002');
+    const res = s.getField('u1', 60);
+    expect(res.items.some((i) => i.id === 't-002')).toBe(false);
+  });
+
+  it('surfaces a last-chance reprise when the roll is below the surface rate', () => {
+    const s = new ShopService();
+    const store = s as unknown as { rng: () => number };
+    store.rng = () => 0.05; // < 0.1 → t-003 enters the last-chance pool
+    s.pass('u1', 't-003');
+    store.rng = () => 0.1; // < 0.2 surface rate → reprise surfaces
+    const res = s.getField('u1', 60);
+    const reprise = res.items.find((i) => i.id === 't-003');
+    expect(reprise).toBeDefined();
+    expect(reprise!.lastChance).toBe(true);
+  });
+});
