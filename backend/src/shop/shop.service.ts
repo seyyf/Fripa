@@ -22,6 +22,9 @@ interface UserState {
 export class ShopService {
   private states = new Map<string, UserState>();
 
+  // Injectable randomness so the 90/10 dice and field shuffle are testable.
+  private rng: () => number = Math.random;
+
   private getState(userId: string): UserState {
     let s = this.states.get(userId);
     if (!s) {
@@ -87,7 +90,7 @@ export class ShopService {
     if (s.shownLastChance.has(itemId)) return { gone: true };
 
     // Roll the dice: 10% chance it gets one reprise as last-chance.
-    if (Math.random() < LAST_CHANCE_PROBABILITY) {
+    if (this.rng() < LAST_CHANCE_PROBABILITY) {
       s.lastChancePool.add(itemId);
       return { gone: false, eligibleForReprise: true };
     }
