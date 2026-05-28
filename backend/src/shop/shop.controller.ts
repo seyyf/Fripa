@@ -13,9 +13,10 @@ import { ShopService } from './shop.service';
 export class ShopController {
   constructor(private readonly shop: ShopService) {}
 
-  @Get('items/next')
-  next(@Query('userId') userId: string) {
-    return this.shop.getNext(userId || 'anon');
+  @Get('items/field')
+  field(@Query('userId') userId: string, @Query('count') count?: string) {
+    const n = Math.min(Math.max(parseInt(count ?? '12', 10) || 12, 1), 60);
+    return this.shop.getField(userId || 'anon', n);
   }
 
   @Post('swipes/pass')
