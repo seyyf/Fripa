@@ -51,4 +51,9 @@ export class ShopController {
   reset(@Param('userId') userId: string) {
     return this.shop.reset(userId);
   }
+
+  @Post('session/:userId/reset-swipes')
+  resetSwipes(@Param('userId') userId: string) {
+    return this.shop.resetSwipes(userId);
+  }
 }

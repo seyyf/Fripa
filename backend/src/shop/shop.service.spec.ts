@@ -51,3 +51,26 @@ describe('ShopService.getField', () => {
     expect(reprise!.lastChance).toBe(true);
   });
 });
+
+describe('ShopService.resetSwipes', () => {
+  it('clears swipe history but preserves the cart', () => {
+    const s = new ShopService();
+    const store = s as unknown as { rng: () => number };
+    store.rng = () => 0.5; // force "gone"
+    s.pass('u1', 't-001');
+    store.rng = () => 0.05; // force reprise
+    s.pass('u1', 't-002');
+    s.addToCart('u1', 't-003');
+
+    s.resetSwipes('u1');
+
+    const cart = s.getCart('u1');
+    expect(cart.lines.some((l) => l.id === 't-003')).toBe(true);
+
+    // t-001 was "gone forever"; after resetSwipes it should be eligible again.
+    const res = s.getField('u1', 60);
+    expect(res.items.some((i) => i.id === 't-001')).toBe(true);
+    // No reprise ribbons surface — lastChancePool was also cleared.
+    expect(res.items.every((i) => i.lastChance === false)).toBe(true);
+  });
+});

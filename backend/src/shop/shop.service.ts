@@ -150,4 +150,14 @@ export class ShopService {
     this.states.delete(userId);
     return { ok: true };
   }
+
+  // Stock-refresh: keep the curated cart, wipe everything the swipe loop has
+  // touched. See docs/adr/0002-preserve-cart-on-stock-refresh.md.
+  resetSwipes(userId: string) {
+    const s = this.getState(userId);
+    s.passed.clear();
+    s.lastChancePool.clear();
+    s.shownLastChance.clear();
+    return { ok: true };
+  }
 }
