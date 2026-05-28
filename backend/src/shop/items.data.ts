@@ -4,7 +4,7 @@ import { TShirt } from './types';
 // Swap imageUrl values with real product photos when wiring up inventory.
 const img = (seed: string) => `https://picsum.photos/seed/${seed}/600/800`;
 
-export const ITEMS: TShirt[] = [
+const CURATED: TShirt[] = [
   {
     id: 't-001',
     title: 'Vintage Nike Swoosh',
@@ -198,3 +198,56 @@ export const ITEMS: TShirt[] = [
     seller: 'Bab Jedid',
   },
 ];
+
+// --- Generated filler stock so the floating field has real variety. ---
+// Deterministic combinations of brands, garment types, colours, sizes and
+// Tunisian sellers. Swap for real inventory later (stable picsum seeds).
+const BRANDS = [
+  'Nike', 'Adidas', 'Puma', "Levi's", 'Carhartt', 'Lacoste',
+  'Fila', 'Kappa', 'Umbro', 'Reebok', 'Diadora', 'Sergio Tacchini',
+];
+const TYPES: { t: string; c: TShirt['condition'] }[] = [
+  { t: 'Sweat à capuche', c: 'Comme neuf' },
+  { t: 'T-shirt vintage', c: 'Vintage' },
+  { t: 'Polo piqué', c: 'Très bon état' },
+  { t: 'Veste coupe-vent', c: 'Bon état' },
+  { t: 'Maillot rétro', c: 'Vintage' },
+  { t: 'Crewneck molleton', c: 'Comme neuf' },
+];
+const COLORS = [
+  'Noir', 'Blanc cassé', 'Bleu marine', 'Rouge',
+  'Vert bouteille', 'Beige', 'Gris chiné', 'Bordeaux',
+];
+const SIZES: TShirt['size'][] = ['S', 'M', 'L', 'XL', 'XXL'];
+const SELLERS = [
+  'Souk El Jemaa, Tunis', 'Fripa Sfax', 'Bab El Falla', 'Fripa La Marsa',
+  'Sousse Médina', 'Fripa Bardo', 'Fripa Ariana', 'Fripa Menzah',
+  'Fripa Lac 2', 'Fripa Hammamet', 'Fripa Kram', 'Bab Jedid',
+];
+
+function generateItems(n: number): TShirt[] {
+  const out: TShirt[] = [];
+  for (let i = 0; i < n; i++) {
+    const brand = BRANDS[i % BRANDS.length];
+    const type = TYPES[i % TYPES.length];
+    const color = COLORS[i % COLORS.length];
+    const size = SIZES[i % SIZES.length];
+    const seller = SELLERS[i % SELLERS.length];
+    const id = `g-${String(i + 1).padStart(3, '0')}`;
+    out.push({
+      id,
+      title: `${brand} ${type.t}`,
+      description: `${type.t} ${brand}, coloris ${color.toLowerCase()}. Pièce chinée, prête à repartir.`,
+      imageUrl: img(`fripa-${id}`),
+      price: 15 + ((i * 7) % 50),
+      size,
+      brand,
+      condition: type.c,
+      color,
+      seller,
+    });
+  }
+  return out;
+}
+
+export const ITEMS: TShirt[] = [...CURATED, ...generateItems(44)];
