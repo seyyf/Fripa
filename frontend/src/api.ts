@@ -1,4 +1,4 @@
-import type { CartResponse, NextItemResponse } from './types';
+import type { CartResponse, FieldResponse } from './types';
 
 const BASE = '/api';
 
@@ -22,8 +22,11 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   userId,
-  next: () => http<NextItemResponse>(`/items/next?userId=${userId()}`),
-  pass: (itemId: string) =>
+  field: (count: number) =>
+    http<FieldResponse>(`/items/field?userId=${userId()}&count=${count}`),
+  // Narrative trigger: the phantom crowd "snatches" a box off the field.
+  // Hits the unchanged /api/swipes/pass route which still rolls the 90/10 dice.
+  snatch: (itemId: string) =>
     http<{ gone: boolean }>(`/swipes/pass`, {
       method: 'POST',
       body: JSON.stringify({ userId: userId(), itemId }),
@@ -43,4 +46,6 @@ export const api = {
     ),
   reset: () =>
     http<{ ok: boolean }>(`/session/${userId()}/reset`, { method: 'POST' }),
+  resetSwipes: () =>
+    http<{ ok: boolean }>(`/session/${userId()}/reset-swipes`, { method: 'POST' }),
 };

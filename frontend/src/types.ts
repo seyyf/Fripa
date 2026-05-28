@@ -11,8 +11,12 @@ export interface TShirt {
   seller: string;
 }
 
-export interface NextItemResponse {
-  item: (TShirt & { lastChance: boolean }) | null;
+export interface FieldItem extends TShirt {
+  lastChance: boolean;
+}
+
+export interface FieldResponse {
+  items: FieldItem[];
   remaining: number;
 }
 
