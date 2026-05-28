@@ -1,8 +1,12 @@
 node_modules/
 dist/
 .superpowers/
+.claude/
 .env
 .env.local
 .DS_Store
 *.log
 .vite/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts

@@ -1,0 +1,9 @@
+# Preserve cart on stock-refresh
+
+With the floating-field UI and the phantom crowd snatching boxes every 4–8 seconds, the ~60-item catalog routinely exhausts in 4–6 minutes of play — exhaustion is the normal end-state of a session, not an edge case. The old `POST /api/session/:userId/reset` wipes the entire `UserState`, including the cart, which would force a user with a half-curated basket to either checkout immediately or lose what they grabbed. We added a second backend method, **`resetSwipes(userId)`**, that clears only `passed`, `lastChancePool`, and `shownLastChance` — the cart stays. `EmptyState` exposes it as the primary CTA ("Voir d'autres pièces"); the destructive full reset stays available as a secondary action. The scarcity narrative is preserved (the user has genuinely seen everything before stock refreshes; missed-then-recycled items return as fresh, not as Dernière chance reprises) and the curated cart survives.
+
+## Consequences
+
+- Two reset routes exist (`/reset` and `/reset-swipes`). A future reader sees this and might "consolidate"; this ADR is why they shouldn't.
+- Items the user explicitly removed from the cart (which `removeFromCart` marks as `passed`) **will** resurface after a stock-refresh. We treat this as desirable — a misclick on the cart shouldn't permanently banish a piece — but it's a deliberate behavior, not an accident.
+- `resetSwipes` clears all three swipe-history sets (`passed`, `lastChancePool`, `shownLastChance`). A reprise that was eligible to surface as Dernière chance before the refresh comes back as a fresh item, without the gold ribbon. We accept this loss of "you missed it once" memory as the cost of a clean refresh — the alternative (keeping `lastChancePool` across refreshes) would mix Dernière chance ribbons from a stale session into a "fresh stock" experience and confuse the promise.

@@ -10,31 +10,41 @@
 
 **Spec:** `docs/superpowers/specs/2026-05-26-floating-thrift-design.md`
 
+**Domain docs:** `CONTEXT.md` (glossary — Pass vs Snatch, Reprise, Stock-refresh, etc.), [ADR-0001](../../adr/0001-pass-vs-snatch-naming.md) (pass/snatch naming split), [ADR-0002](../../adr/0002-preserve-cart-on-stock-refresh.md) (preserve cart on stock-refresh).
+
+**Decisions resolved during the grill-with-docs session (2026-05-28):**
+1. **Reprise items are snatchable.** No safety filter in `pickSnatchTarget`. Brutal-fripa feel — a Dernière chance ribbon may flash and vanish.
+2. **`pass` = mechanism, `snatch` = trigger** ([ADR-0001](../../adr/0001-pass-vs-snatch-naming.md)). Frontend exposes `api.snatch(itemId)`. Route stays `/api/swipes/pass`.
+3. **Tap-on-another-box = focus swap.** `FloatingBox` MUST `e.stopPropagation()` on the outer `motion.button` click. Without it, React 18 batching makes the field's background-dismiss handler clobber the new focus state — a bug the original plan's prose mis-described.
+4. **↩ Reposer = just unfocus.** Same effect as empty-space tap. The button is a thumb-reachable affordance, not a separate semantic.
+5. **Stock-refresh preserves the cart** ([ADR-0002](../../adr/0002-preserve-cart-on-stock-refresh.md)). New backend method `resetSwipes`, new route, new `EmptyState` CTA.
+
 ---
 
 ## File Structure
 
 **Backend (`backend/`):**
 - `src/shop/items.data.ts` — MODIFY: keep 16 curated items, add a generator producing ~44 more (60 total).
-- `src/shop/shop.service.ts` — MODIFY: add `getField`, add injectable `rng`, remove `getNext`.
-- `src/shop/shop.controller.ts` — MODIFY: add `GET items/field`, remove `GET items/next`.
+- `src/shop/shop.service.ts` — MODIFY: add `getField`, add injectable `rng`, remove `getNext`, add `resetSwipes` (ADR-0002).
+- `src/shop/shop.controller.ts` — MODIFY: add `GET items/field`, remove `GET items/next`, add `POST session/:userId/reset-swipes`.
 - `src/shop/types.ts` — MODIFY: replace `NextItemResponse` with `FieldResponse`.
-- `src/shop/shop.service.spec.ts` — CREATE: unit tests for dice + `getField`.
+- `src/shop/shop.service.spec.ts` — CREATE: unit tests for dice + `getField` + `resetSwipes`.
 - `vitest.config.ts` — CREATE: node test config.
 
 **Frontend (`frontend/`):**
 - `src/types.ts` — MODIFY: replace `NextItemResponse` with `FieldItem` + `FieldResponse`.
-- `src/api.ts` — MODIFY: replace `next()` with `field(count)`.
+- `src/api.ts` — MODIFY: replace `next()` with `field(count)`; rename `pass` → `snatch` (ADR-0001); add `resetSwipes`.
 - `src/field/fieldLayout.ts` — CREATE: pure placement helpers + `FieldBox` type.
 - `src/field/pickSnatchTarget.ts` — CREATE: pure snatch-selection function.
 - `src/field/usePhantomCrowd.ts` — CREATE: snatch-timer hook.
-- `src/components/FloatingBox.tsx` — CREATE: one box (idle drift, reveal, grab).
+- `src/components/FloatingBox.tsx` — CREATE: one box (idle drift, reveal, grab); outer click MUST `stopPropagation` for focus swap.
 - `src/components/AmbientLayer.tsx` — CREATE: Three.js particle backdrop.
 - `src/components/FloatingField.tsx` — CREATE: the stage (renders boxes + ambient + crowd).
 - `src/components/SwipeCard.tsx` — DELETE.
-- `src/App.tsx` — MODIFY: own the deck/boxes/top-up, wire field ↔ cart.
+- `src/App.tsx` — MODIFY: own the deck/boxes/top-up, wire field ↔ cart, expose `stockRefresh` + `hardReset`.
 - `src/components/Cart.tsx` — MODIFY: update one swipe-era copy line.
-- `src/App.css` — MODIFY: add field/box/reveal/last-chance/perf-toggle styles.
+- `src/components/EmptyState.tsx` — MODIFY: dual CTA (stock-refresh primary, hard-reset secondary) per ADR-0002.
+- `src/App.css` — MODIFY: add field/box/reveal/last-chance/perf-toggle styles + `.btn--ghost`.
 - `src/field/fieldLayout.test.ts`, `src/field/pickSnatchTarget.test.ts`, `src/field/usePhantomCrowd.test.ts`, `src/components/FloatingBox.test.tsx` — CREATE.
 - `vitest.config.ts`, `src/test/setup.ts` — CREATE.
 
@@ -426,6 +436,90 @@ git commit -m "feat: expose GET /api/items/field, remove /api/items/next"
 
 ---
 
+## Task 4b: Backend `resetSwipes` for stock-refresh
+
+Background: see [ADR-0002](../../adr/0002-preserve-cart-on-stock-refresh.md). Exhaustion is a routine event in this UI (~5 min per session); destroying the cart at that moment would force the user to checkout or lose work. We add a second reset path that clears swipe history only.
+
+**Files:**
+- Modify: `backend/src/shop/shop.service.ts` (add `resetSwipes`)
+- Modify: `backend/src/shop/shop.controller.ts` (add `POST session/:userId/reset-swipes`)
+- Modify: `backend/src/shop/shop.service.spec.ts` (cover the new method)
+
+- [ ] **Step 1: Write the failing test**
+
+Append to `backend/src/shop/shop.service.spec.ts`:
+```ts
+describe('ShopService.resetSwipes', () => {
+  it('clears swipe history but preserves the cart', () => {
+    const s = new ShopService();
+    const store = s as unknown as { rng: () => number };
+    store.rng = () => 0.5; // force "gone"
+    s.pass('u1', 't-001');
+    store.rng = () => 0.05; // force reprise
+    s.pass('u1', 't-002');
+    s.addToCart('u1', 't-003');
+
+    s.resetSwipes('u1');
+
+    const cart = s.getCart('u1');
+    expect(cart.lines.some((l) => l.id === 't-003')).toBe(true);
+
+    // t-001 was "gone forever"; after resetSwipes it should be eligible again.
+    const res = s.getField('u1', 60);
+    expect(res.items.some((i) => i.id === 't-001')).toBe(true);
+    // No reprise ribbons surface — lastChancePool was also cleared.
+    expect(res.items.every((i) => i.lastChance === false)).toBe(true);
+  });
+});
+```
+
+Run (in `backend/`): `npm test`
+Expected: FAIL — `resetSwipes` is not a function.
+
+- [ ] **Step 2: Implement `resetSwipes`**
+
+In `backend/src/shop/shop.service.ts`, add this method to the class (next to `reset`):
+```ts
+  // Stock-refresh: keep the curated cart, wipe everything the swipe loop has
+  // touched. See docs/adr/0002-preserve-cart-on-stock-refresh.md.
+  resetSwipes(userId: string) {
+    const s = this.getState(userId);
+    s.passed.clear();
+    s.lastChancePool.clear();
+    s.shownLastChance.clear();
+    return { ok: true };
+  }
+```
+
+Run: `npm test` — all tests pass.
+
+- [ ] **Step 3: Expose the route**
+
+In `backend/src/shop/shop.controller.ts`, add a handler next to the existing reset:
+```ts
+  @Post('session/:userId/reset-swipes')
+  resetSwipes(@Param('userId') userId: string) {
+    return this.shop.resetSwipes(userId);
+  }
+```
+
+- [ ] **Step 4: Smoke check**
+
+Run (in `backend/`): `npm run build`, then start the dev server and:
+```bash
+curl -X POST "http://localhost:3001/api/session/demo/reset-swipes"
+```
+Expected: `{"ok":true}`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/src/shop/shop.service.ts backend/src/shop/shop.controller.ts backend/src/shop/shop.service.spec.ts
+git commit -m "feat: resetSwipes endpoint preserves cart on stock-refresh"
+```
+
+---
+
 ## Task 5: Frontend types + API client
 
 **Files:**
@@ -460,6 +554,31 @@ with:
 ```ts
   field: (count: number) =>
     http<FieldResponse>(`/items/field?userId=${userId()}&count=${count}`),
+```
+
+Also rename the existing `pass:` entry to `snatch:` (the floating-field UI only ever fires this from the phantom-crowd handler, never from a user action — see [ADR-0001](../../adr/0001-pass-vs-snatch-naming.md)). Find:
+```ts
+  pass: (itemId: string) =>
+    http<{ gone: boolean }>(`/swipes/pass`, {
+      method: 'POST',
+      body: JSON.stringify({ userId: userId(), itemId }),
+    }),
+```
+and replace with:
+```ts
+  // Narrative trigger: the phantom crowd "snatches" a box off the field.
+  // Hits the unchanged /api/swipes/pass route which still rolls the 90/10 dice.
+  snatch: (itemId: string) =>
+    http<{ gone: boolean }>(`/swipes/pass`, {
+      method: 'POST',
+      body: JSON.stringify({ userId: userId(), itemId }),
+    }),
+```
+
+And add a `resetSwipes` entry next to the existing `reset` entry (see Task 4b for the backend route, and [ADR-0002](../../adr/0002-preserve-cart-on-stock-refresh.md) for the why):
+```ts
+  resetSwipes: () =>
+    http<{ ok: boolean }>(`/session/${userId()}/reset-swipes`, { method: 'POST' }),
 ```
 
 - [ ] **Step 3: Verify types compile**
@@ -889,6 +1008,22 @@ describe('FloatingBox', () => {
     await userEvent.click(screen.getByRole('button', { name: /Ajouter/i }));
     expect(onGrab).toHaveBeenCalledWith(box);
   });
+
+  it('does not bubble the click to a wrapping background handler (focus swap)', async () => {
+    // Simulates the FloatingField wrapper: tapping an unfocused box must
+    // call onReveal but NOT the background's dismiss handler. Without
+    // stopPropagation, React 18 batching makes the dismiss win.
+    const onReveal = vi.fn();
+    const onBackground = vi.fn();
+    render(
+      <div onClick={onBackground}>
+        <FloatingBox box={box} focused={false} reducedMotion onReveal={onReveal} onDismiss={noop} onGrab={noop} />
+      </div>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Nike Sweat à capuche/i }));
+    expect(onReveal).toHaveBeenCalledWith('g-001-1');
+    expect(onBackground).not.toHaveBeenCalled();
+  });
 });
 ```
 
@@ -931,7 +1066,14 @@ export function FloatingBox({ box, focused, reducedMotion, onReveal, onDismiss, 
       className={`fbox ${focused ? 'fbox--focused' : ''} ${item.lastChance ? 'fbox--last-chance' : ''}`}
       style={{ left: `${box.xPct}%`, top: `${box.yPct}%`, zIndex: focused ? 40 : 1 }}
       aria-label={focused ? `${item.title} — détails` : item.title}
-      onClick={() => (focused ? undefined : onReveal(box.boxKey))}
+      onClick={(e) => {
+        // Without stopPropagation, the box click bubbles to .field's
+        // onClick={() => setFocusedKey(null)}, and React 18 batching makes
+        // the dismiss win — focus swap silently breaks. The intended
+        // behaviour: tap on any box (focused or not) is handled here only.
+        e.stopPropagation();
+        if (!focused) onReveal(box.boxKey);
+      }}
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{
         opacity: 1,
@@ -1189,7 +1331,7 @@ export function FloatingField({ boxes, reducedMotion, minFieldSize, onGrab, onSn
 }
 ```
 
-> Note: the field-background `onClick` dismisses the focused box. `FloatingBox` stops propagation on its panel and the box click reveals, so a click that bubbles to `.field` only fires when the user taps empty space.
+> Note: `FloatingBox` calls `e.stopPropagation()` on its outer click (Task 9), and the focused-state panel ALSO stops propagation. So `.field`'s `onClick` only fires on truly empty-space taps — both unfocused-box taps (focus swap to that box) and Ajouter taps (grab) are handled by their own handlers without bubbling. This is what makes tap-on-another-box behave as a focus swap rather than a dismiss-then-nothing — see the focus-swap test added in Task 9.
 
 - [ ] **Step 2: Type-check**
 
@@ -1312,16 +1454,22 @@ export default function App() {
     if (!box) return;
     removeBox(boxKey);
     try {
-      await api.pass(box.item.id);
+      // The phantom crowd "snatches" — hits the backend pass mechanic.
+      // See ADR-0001 for the naming split.
+      await api.snatch(box.item.id);
     } catch (e) {
-      console.error('pass failed', e);
+      console.error('snatch failed', e);
     }
     if (Math.random() < 0.35) flash('Quelqu’un l’a pris… 👀');
     void topUp();
   }
 
-  async function reset() {
-    await api.reset();
+  async function refresh(opts: { keepCart: boolean }) {
+    if (opts.keepCart) {
+      await api.resetSwipes(); // ADR-0002
+    } else {
+      await api.reset();
+    }
     deck.current = [];
     onScreen.current = new Set();
     setBoxes([]);
@@ -1331,16 +1479,27 @@ export default function App() {
     await topUp();
   }
 
+  const stockRefresh = () => refresh({ keepCart: true });
+  const hardReset = () => refresh({ keepCart: false });
+
   const cartCount = cart.lines.reduce((a, l) => a + l.quantity, 0);
   const showEmpty = exhausted && boxes.length === 0;
 
   return (
     <div className="app app--field">
-      <Header cartCount={cartCount} onCart={() => setCartOpen(true)} onReset={reset} />
+      <Header cartCount={cartCount} onCart={() => setCartOpen(true)} onReset={hardReset} />
 
       <main className="stage stage--field">
         {showEmpty ? (
-          <EmptyState onReset={reset} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} />
+          // EmptyState exposes the stock-refresh (preserves cart) as primary,
+          // hard reset as secondary. See ADR-0002. The component needs a
+          // small prop addition — see Task 12 Step 3b below.
+          <EmptyState
+            onStockRefresh={stockRefresh}
+            onHardReset={hardReset}
+            onOpenCart={() => setCartOpen(true)}
+            cartCount={cartCount}
+          />
         ) : (
           <FloatingField
             boxes={boxes}
@@ -1369,6 +1528,50 @@ export default function App() {
 
 ```bash
 git rm frontend/src/components/SwipeCard.tsx
+```
+
+- [ ] **Step 2b: Update `EmptyState` to expose stock-refresh as primary CTA**
+
+See [ADR-0002](../../adr/0002-preserve-cart-on-stock-refresh.md). Replace `frontend/src/components/EmptyState.tsx` with:
+
+```tsx
+interface Props {
+  onStockRefresh: () => void;
+  onHardReset: () => void;
+  onOpenCart: () => void;
+  cartCount: number;
+}
+
+export function EmptyState({ onStockRefresh, onHardReset, onOpenCart, cartCount }: Props) {
+  return (
+    <div className="empty">
+      <div className="empty__emoji">🪙</div>
+      <h2>Tu as tout vu.</h2>
+      <p>
+        Toute la fripa est passée devant tes yeux. On peut rouvrir le rayon —
+        ton panier reste comme tu l'as laissé.
+      </p>
+      <div className="empty__actions">
+        {cartCount > 0 && (
+          <button className="btn btn--add" onClick={onOpenCart}>
+            Voir mon panier ({cartCount})
+          </button>
+        )}
+        <button className="btn btn--add btn--wide" onClick={onStockRefresh}>
+          ✨ Voir d'autres pièces
+        </button>
+        <button className="btn btn--pass btn--ghost" onClick={onHardReset}>
+          Tout recommencer (vide le panier)
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+If `btn--ghost` doesn't exist in `App.css`, add a tiny rule alongside the field styles:
+```css
+.btn--ghost { background: transparent; color: var(--muted); text-decoration: underline; box-shadow: none; }
 ```
 
 - [ ] **Step 3: Fix the swipe-era copy in `Cart.tsx`**
@@ -1541,10 +1744,14 @@ Confirm each:
 - Field loads ~9 (narrow window) blurry boxes drifting over kraft paper; warm dust motes visible behind them.
 - Hover (desktop) or tap (use devtools mobile emulation) a box → it sharpens, scales up, shows title/brand/price/chips/seller + **Ajouter**.
 - Tapping empty space re-blurs the box.
+- **Focus swap:** with one box focused, tapping a different (unfocused) box dismisses the first and focuses the second in a single tap (not two taps, not "tap does nothing"). This is the test that catches the React 18 batching bug — if the focus-swap test in Task 9 passes but this manual check fails, something else added a bubbling click handler.
+- The ↩ Reposer button in the panel just unfocuses (returns the box to drift). It does NOT fire any backend call.
 - Clicking **Ajouter** adds to cart (badge increments, toast shows) and a replacement drifts in.
 - Within ~4–8s, an un-focused box gets snatched (slides up + fades); occasionally the *Quelqu'un l'a pris…* toast appears. The focused box is never snatched.
-- After enough snatches, a *Dernière chance* box eventually drifts back with a gold pulse ribbon. (To force it quickly, lower `LAST_CHANCE_PROBABILITY`/`LAST_CHANCE_SURFACE_RATE` temporarily, or pass several boxes.)
-- Cart drawer, checkout, and the `↻` reset button all still work; reset repopulates the field.
+- After enough snatches, a *Dernière chance* box eventually drifts back with a gold pulse ribbon. (To force it quickly, lower `LAST_CHANCE_PROBABILITY`/`LAST_CHANCE_SURFACE_RATE` temporarily, or trigger several snatches.) **It can be re-snatched by the crowd before you focus it** — this is intentional (see grill-with-docs session decision #1).
+- Cart drawer and checkout still work.
+- **Stock-refresh:** play until the field exhausts (EmptyState appears). Click **✨ Voir d'autres pièces** — field repopulates, cart count is preserved. Then click **Tout recommencer** — cart empties too.
+- The `↻` Header button still hard-resets (same as **Tout recommencer**).
 
 - [ ] **Step 3: Verify the reduced-motion fallback**
 
@@ -1574,14 +1781,21 @@ git commit -m "chore: floating-field verification pass"
 - Floating field, Friperie douce look → Tasks 9, 11, 12 (CSS), 10 (ambient). ✓
 - Mobile-first tap reveal, hover bonus → FloatingBox click + CSS hover-agnostic reveal; `isMobile` density. ✓
 - Hover/tap reveal, click grab, crowd snatches rest → Tasks 7, 9, 11, 12. ✓
-- Snatch reuses 90/10 dice; 10% drift back as Dernière chance → `handleSnatch` → `api.pass`; `getField` reprise surfacing (Task 3); ribbon/glow CSS (Task 12). ✓
+- Snatch reuses 90/10 dice; 10% drift back as Dernière chance → `handleSnatch` → `api.snatch` (Task 5); `getField` reprise surfacing (Task 3); ribbon/glow CSS (Task 12). ✓
 - Simulated crowd, single-player backend → `usePhantomCrowd` client-side; backend unchanged in model. ✓
 - ~60-item catalog → Task 2. ✓
 - Batch `GET /api/items/field`, remove `getNext` → Tasks 3, 4. ✓
 - Hybrid architecture (DOM boxes + Three.js ambient) → Tasks 9, 10. ✓
 - Perf/a11y: lazy images, capped pixelRatio, pause on hidden, reduced-motion, focusable buttons, calm toggle → Tasks 9, 10, 11, 13. ✓
-- Stays: Header, Cart, EmptyState, scarcity logic, palette/French → preserved; Cart copy updated. ✓
-- Testing: getField + dice (backend), usePhantomCrowd/pickSnatchTarget/fieldLayout/FloatingBox (frontend) → Tasks 1, 3, 7, 8, 9. ✓
+- Stays: Header, Cart, EmptyState (now with stock-refresh CTA), scarcity logic, palette/French → preserved; Cart copy updated. ✓
+- Testing: getField + dice + resetSwipes (backend), usePhantomCrowd/pickSnatchTarget/fieldLayout/FloatingBox + focus-swap (frontend) → Tasks 1, 3, 4b, 7, 8, 9. ✓
+
+**Grill-with-docs decisions covered (2026-05-28):**
+- Reprise snatchable → no filter added to `pickSnatchTarget`. ✓
+- `pass` vs `snatch` naming → `api.snatch` in Task 5; `handleSnatch` calls `api.snatch` in Task 12; route unchanged. ADR-0001. ✓
+- Focus swap → `e.stopPropagation()` in Task 9; focus-swap test added; Task 11 note clarified; manual check in Task 13. ✓
+- ↩ Reposer = unfocus → no change to FloatingBox dismiss wiring; verification step in Task 13. ✓
+- Stock-refresh preserves cart → new Task 4b (backend `resetSwipes`); `api.resetSwipes` added in Task 5; App split into `stockRefresh` / `hardReset` in Task 12; EmptyState redesigned in Task 12 Step 2b. ADR-0002. ✓
 
 **Placeholder scan:** No TBDs, no "implement later", no vague error-handling steps. Every code step shows complete code.
 
