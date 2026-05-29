@@ -1,3 +1,5 @@
+import { NavLink } from 'react-router-dom';
+
 interface Props {
   cartCount: number;
   favCount: number;
@@ -9,13 +11,30 @@ interface Props {
 export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Props) {
   return (
     <header className="app-header">
-      <div className="logo">
+      <NavLink to="/" className="logo">
         <span className="logo__mark">FR</span>
         <div>
           <h1>Fripa</h1>
           <p>Le swipe du fripier · 🇹🇳</p>
         </div>
-      </div>
+      </NavLink>
+
+      <nav className="app-nav">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
+        >
+          Accueil
+        </NavLink>
+        <NavLink
+          to="/shop"
+          className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
+        >
+          Boutique
+        </NavLink>
+      </nav>
+
       <div className="header-actions">
         <button className="ghost-btn" onClick={onReset} title="Recommencer la session">
           ↻

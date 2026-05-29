@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import { api } from './api';
 import type { CartResponse, FavoritesResponse, FieldItem } from './types';
 import { SwipeDeck } from './components/SwipeDeck';
+import { HomePage } from './components/HomePage';
 import { Cart } from './components/Cart';
 import { FavoritesDrawer } from './components/FavoritesDrawer';
 import { Header } from './components/Header';
@@ -162,29 +164,37 @@ export default function App() {
         onReset={hardReset}
       />
 
-      <main className="stage">
-        {showEmpty ? (
-          <EmptyState
-            onStockRefresh={stockRefresh}
-            onHardReset={hardReset}
-            onOpenCart={() => setCartOpen(true)}
-            cartCount={cartCount}
-          />
-        ) : (
-          <SwipeDeck
-            deck={deck}
-            reducedMotion={reducedMotion}
-            onKeep={handleKeep}
-            onPass={handlePass}
-            onFavorite={handleFavorite}
-          />
-        )}
-        {!showEmpty && (
-          <p className="hint">
-            ← Passer · → Garder · ↑ Favori · ou utilise les boutons.
-          </p>
-        )}
-      </main>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/shop"
+          element={
+            <main className="stage">
+              {showEmpty ? (
+                <EmptyState
+                  onStockRefresh={stockRefresh}
+                  onHardReset={hardReset}
+                  onOpenCart={() => setCartOpen(true)}
+                  cartCount={cartCount}
+                />
+              ) : (
+                <SwipeDeck
+                  deck={deck}
+                  reducedMotion={reducedMotion}
+                  onKeep={handleKeep}
+                  onPass={handlePass}
+                  onFavorite={handleFavorite}
+                />
+              )}
+              {!showEmpty && (
+                <p className="hint">
+                  ← Passer · → Garder · ↑ Favori · ou utilise les boutons.
+                </p>
+              )}
+            </main>
+          }
+        />
+      </Routes>
 
       <Cart open={cartOpen} onClose={() => setCartOpen(false)} cart={cart} refresh={refreshCart} />
       <FavoritesDrawer
