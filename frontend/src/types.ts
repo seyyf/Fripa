@@ -28,3 +28,7 @@ export interface CartResponse {
   lines: CartLine[];
   total: number;
 }
+
+export interface FavoritesResponse {
+  lines: TShirt[];
+}

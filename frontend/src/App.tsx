@@ -1,120 +1,147 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import type { CartResponse, FieldItem } from './types';
-import { type FieldBox, makeBox } from './field/fieldLayout';
-import { FloatingField } from './components/FloatingField';
+import type { CartResponse, FavoritesResponse, FieldItem } from './types';
+import { SwipeDeck } from './components/SwipeDeck';
 import { Cart } from './components/Cart';
+import { FavoritesDrawer } from './components/FavoritesDrawer';
 import { Header } from './components/Header';
 import { EmptyState } from './components/EmptyState';
 
-const isMobile = window.matchMedia('(max-width: 600px)').matches;
-const TARGET = isMobile ? 9 : 16;
-const DECK_FETCH = 60;
+const BATCH = 60; // how many items we ask the backend for per refill
+const LOW_WATER = 6; // refill the deck when it drops to this many cards
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function App() {
-  const [boxes, setBoxes] = useState<FieldBox[]>([]);
+  const [deck, setDeck] = useState<FieldItem[]>([]);
   const [cart, setCart] = useState<CartResponse>({ lines: [], total: 0 });
+  const [favorites, setFavorites] = useState<FavoritesResponse>({ lines: [] });
   const [cartOpen, setCartOpen] = useState(false);
+  const [favOpen, setFavOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [exhausted, setExhausted] = useState(false);
 
-  const deck = useRef<FieldItem[]>([]);
-  const onScreen = useRef<Set<string>>(new Set());
+  const deckRef = useRef<FieldItem[]>([]);
+  const fetching = useRef(false);
+  useEffect(() => {
+    deckRef.current = deck;
+  }, [deck]);
 
   function flash(msg: string) {
     setToast(msg);
     setTimeout(() => setToast((t) => (t === msg ? null : t)), 2200);
   }
 
-  const refillDeck = useCallback(async () => {
-    const res = await api.field(DECK_FETCH);
-    for (const item of res.items) {
-      if (onScreen.current.has(item.id)) continue;
-      if (deck.current.some((d) => d.id === item.id)) continue;
-      deck.current.push(item);
-    }
-    return res.remaining;
-  }, []);
+  const refreshCart = useCallback(async () => setCart(await api.cart()), []);
+  const refreshFavorites = useCallback(async () => setFavorites(await api.favorites()), []);
 
+  // Fetch a fresh batch and append any cards we don't already hold, but only
+  // when the deck is running low. The backend already excludes passed / cart /
+  // favorited items and mixes in any "Dernière chance" reprise.
   const topUp = useCallback(async () => {
-    const next: FieldBox[] = [];
-    while (true) {
-      if (deck.current.length === 0) {
-        const remaining = await refillDeck();
-        if (deck.current.length === 0) {
-          if (remaining === 0) setExhausted(true);
-          break;
-        }
-      }
-      const item = deck.current.shift()!;
-      const box = makeBox(item);
-      onScreen.current.add(item.id);
-      next.push(box);
-      // Stop once we've queued enough to reach the target.
-      if (onScreen.current.size >= TARGET) break;
+    if (fetching.current || deckRef.current.length > LOW_WATER) return;
+    fetching.current = true;
+    try {
+      const res = await api.field(BATCH);
+      setDeck((prev) => {
+        const have = new Set(prev.map((i) => i.id));
+        const add = res.items.filter((i) => !have.has(i.id));
+        const nextDeck = [...prev, ...add];
+        if (nextDeck.length === 0 && res.remaining === 0) setExhausted(true);
+        return nextDeck;
+      });
+    } catch (e) {
+      console.error('topUp failed', e);
+    } finally {
+      fetching.current = false;
     }
-    if (next.length) setBoxes((prev) => [...prev, ...next]);
-  }, [refillDeck]);
-
-  const refreshCart = useCallback(async () => {
-    setCart(await api.cart());
   }, []);
 
   useEffect(() => {
-    void (async () => {
-      await refillDeck();
-      await topUp();
-    })();
+    void topUp();
     void refreshCart();
-  }, [refillDeck, topUp, refreshCart]);
+    void refreshFavorites();
+  }, [topUp, refreshCart, refreshFavorites]);
 
-  function removeBox(boxKey: string) {
-    setBoxes((prev) => {
-      const leaving = prev.find((b) => b.boxKey === boxKey);
-      if (leaving) onScreen.current.delete(leaving.item.id);
-      return prev.filter((b) => b.boxKey !== boxKey);
-    });
+  function dropTop(itemId: string) {
+    setDeck((prev) => prev.filter((i) => i.id !== itemId));
   }
 
-  async function handleGrab(box: FieldBox) {
-    removeBox(box.boxKey);
+  function restore(item: FieldItem) {
+    setDeck((prev) => (prev.some((i) => i.id === item.id) ? prev : [item, ...prev]));
+  }
+
+  async function handleKeep(item: FieldItem) {
+    dropTop(item.id);
     try {
-      setCart(await api.add(box.item.id));
-      flash(`Ajouté au panier — ${box.item.title}`);
+      setCart(await api.add(item.id));
+      flash(`Ajouté au panier — ${item.title}`);
     } catch (e) {
-      console.error('add failed', e);
+      console.error('keep failed', e);
+      restore(item);
+      flash('Oups, réessaie.');
+      return;
     }
     void topUp();
   }
 
-  async function handleSnatch(boxKey: string) {
-    const box = boxes.find((b) => b.boxKey === boxKey);
-    if (!box) return;
-    removeBox(boxKey);
+  async function handlePass(item: FieldItem) {
+    dropTop(item.id);
     try {
-      // The phantom crowd "snatches" — hits the backend pass mechanic.
-      // See ADR-0001 for the naming split.
-      await api.snatch(box.item.id);
+      await api.pass(item.id);
     } catch (e) {
-      console.error('snatch failed', e);
+      console.error('pass failed', e);
+      restore(item);
+      flash('Oups, réessaie.');
+      return;
     }
-    if (Math.random() < 0.35) flash('Quelqu’un l’a pris… 👀');
+    if (item.lastChance) flash('Parti pour de bon. 👋');
     void topUp();
+  }
+
+  async function handleFavorite(item: FieldItem) {
+    dropTop(item.id);
+    try {
+      setFavorites(await api.favorite(item.id));
+      flash(`Gardé pour plus tard — ${item.title} ⭐`);
+    } catch (e) {
+      console.error('favorite failed', e);
+      restore(item);
+      flash('Oups, réessaie.');
+      return;
+    }
+    void topUp();
+  }
+
+  async function moveFavoriteToCart(itemId: string) {
+    try {
+      const res = await api.favoriteToCart(itemId);
+      setCart(res.cart);
+      setFavorites(res.favorites);
+      flash('Déplacé au panier. 🛒');
+    } catch (e) {
+      console.error('move to cart failed', e);
+    }
+  }
+
+  async function removeFavorite(itemId: string) {
+    try {
+      setFavorites(await api.unfavorite(itemId));
+    } catch (e) {
+      console.error('unfavorite failed', e);
+    }
   }
 
   async function refresh(opts: { keepCart: boolean }) {
     if (opts.keepCart) {
-      await api.resetSwipes(); // ADR-0002
+      await api.resetSwipes(); // ADR-0002 — preserves cart and favorites
     } else {
       await api.reset();
     }
-    deck.current = [];
-    onScreen.current = new Set();
-    setBoxes([]);
+    deckRef.current = [];
+    setDeck([]);
     setExhausted(false);
     await refreshCart();
-    await refillDeck();
+    await refreshFavorites();
     await topUp();
   }
 
@@ -122,16 +149,21 @@ export default function App() {
   const hardReset = () => refresh({ keepCart: false });
 
   const cartCount = cart.lines.reduce((a, l) => a + l.quantity, 0);
-  const showEmpty = exhausted && boxes.length === 0;
+  const favCount = favorites.lines.length;
+  const showEmpty = exhausted && deck.length === 0;
 
   return (
-    <div className="app app--field">
-      <Header cartCount={cartCount} onCart={() => setCartOpen(true)} onReset={hardReset} />
+    <div className="app">
+      <Header
+        cartCount={cartCount}
+        favCount={favCount}
+        onCart={() => setCartOpen(true)}
+        onFavorites={() => setFavOpen(true)}
+        onReset={hardReset}
+      />
 
-      <main className="stage stage--field">
+      <main className="stage">
         {showEmpty ? (
-          // EmptyState exposes the stock-refresh (preserves cart) as primary,
-          // hard reset as secondary. See ADR-0002.
           <EmptyState
             onStockRefresh={stockRefresh}
             onHardReset={hardReset}
@@ -139,20 +171,29 @@ export default function App() {
             cartCount={cartCount}
           />
         ) : (
-          <FloatingField
-            boxes={boxes}
+          <SwipeDeck
+            deck={deck}
             reducedMotion={reducedMotion}
-            minFieldSize={Math.min(4, TARGET)}
-            onGrab={handleGrab}
-            onSnatch={handleSnatch}
+            onKeep={handleKeep}
+            onPass={handlePass}
+            onFavorite={handleFavorite}
           />
         )}
         {!showEmpty && (
-          <p className="hint">Survole ou tape une pièce pour la révéler. Les autres chinent aussi…</p>
+          <p className="hint">
+            ← Passer · → Garder · ↑ Favori · ou utilise les boutons.
+          </p>
         )}
       </main>
 
       <Cart open={cartOpen} onClose={() => setCartOpen(false)} cart={cart} refresh={refreshCart} />
+      <FavoritesDrawer
+        open={favOpen}
+        onClose={() => setFavOpen(false)}
+        favorites={favorites}
+        onMoveToCart={moveFavoriteToCart}
+        onRemove={removeFavorite}
+      />
 
       {toast && <div className="toast">{toast}</div>}
     </div>

@@ -1,53 +1,48 @@
 # Fripa
 
-The thrift-shop ("fripa" / "friperie") swipe app. A field of clothing pieces drifts on screen; the user reveals and grabs what they want; a simulated crowd ("phantom shoppers") snatches the rest, creating the scarcity feeling of a real Tunisian souk fripa.
+The thrift-shop ("fripa" / "friperie") swipe app. A Tinder/Bumble-style deck of clothing cards: the user swipes each card right to keep, left to pass, or up to save for later — recreating the snap decisions of a real Tunisian souk fripa, where the brutal 90/10 dice means a passed piece is usually gone for good.
+
+> History: an earlier iteration replaced this deck with a "floating field" of drifting boxes plus a simulated phantom crowd. That direction was reverted — see [ADR-0003](docs/adr/0003-revert-to-swipe-deck-add-favorites.md). The floating-field vocabulary (Field, Box, Reveal, Grab, Snatch, Phantom crowd) is **retired**.
 
 ## Language
 
-### Field & boxes
+### The deck & cards
 
-**Field**:
-The on-screen stage where clothing boxes drift. Holds roughly 9 boxes on mobile / 16 on desktop, drawn from a larger client-side deck.
-_Avoid_: stage, board, grid (the field is specifically a soft drifting layout, not a grid).
+**Deck**:
+The stack of clothing cards the user swipes through, one at a time. Fed client-side from a larger batch (`GET /api/items/field`) and topped up as it runs low.
 
-**Box**:
-A single drifting clothing item on the field. Idle = blurred and small; focused = sharp and scaled up with a detail panel.
-_Avoid_: card, tile (we retired the swipe card; "card" refers to that older model).
+**Swipe card** (a.k.a. card):
+A single clothing item presented full-size in the deck. Draggable in three directions; on-screen buttons mirror each gesture for mouse/desktop and accessibility.
 
-**Reveal**:
-The act of focusing a box — by tap (mobile) or hover (desktop). Blur → sharp, scale up, drift pauses for that one box.
+**Garder** (swipe right →):
+The keep action — adds the item to the cart.
 
-**Grab**:
-The user's commit action on a focused box: adds it to the cart. The only way a user removes an item from the field of their own accord.
+**Passer** (swipe left ←):
+The user's pass. Fires the 90/10 dice (see **Pass**). This is a genuine user action again (the floating field had removed it; [ADR-0003](docs/adr/0003-revert-to-swipe-deck-add-favorites.md) brought it back).
+
+**Favori** (swipe up ↑):
+Save-for-later. Adds the item to the **favorites** list — separate from the cart. From the favorites drawer the user can move an item to the cart or remove it. Removing a favorite is a decision: it does not resurface in the deck.
 
 ### The dice mechanic
 
-**Pass** (code-only, mechanical):
-The backend event in which an item exits the field and the 90/10 dice rolls — 90% gone forever, 10% lands in the last-chance pool for one possible reprise. Lives in `shop.service.ts::pass()`. See [ADR-0001](docs/adr/0001-pass-vs-snatch-naming.md) for the naming split.
-_Avoid_: using "pass" in user-facing copy or to describe a user action — the user no longer triggers passes in this UI.
-
-**Snatch** (narrative trigger):
-The phantom crowd taking an unfocused box off the field. Fires the backend `pass` mechanic. The only trigger for `pass` in the floating-field UI.
-_Avoid_: "swipe-pass", "auto-pass".
+**Pass** (`shop.service.ts::pass()`):
+The backend event in which a swiped-left item exits and the 90/10 dice rolls — 90% gone forever, 10% lands in the last-chance pool for one possible reprise. Triggered directly by the user's swipe-left (`api.pass`). The route is `/api/swipes/pass`.
+_Avoid_: "snatch" (the retired phantom-crowd trigger from ADR-0001).
 
 **Reprise** (a.k.a. Dernière chance):
-A previously-snatched item that the 90/10 dice put in the last-chance pool, drifting back into the field with a gold ribbon. Surfaces at a tunable rate (`LAST_CHANCE_SURFACE_RATE = 0.2`). Treated like any other box by the crowd — it can be snatched again before the user notices, in which case it's gone forever (this is intentional: brutal-fripa feel).
+A previously-passed item that the 90/10 dice put in the last-chance pool, surfacing once more in the deck with a gold pulsing banner. Surfaces at a tunable rate (`LAST_CHANCE_SURFACE_RATE = 0.2`). Once shown, it never returns again.
 _Avoid_: "second chance", "redemption" — the French brand word is "Dernière chance".
 
 ### Sessions
 
 **Stock-refresh** (a.k.a. "Voir d'autres pièces"):
-Clears the user's swipe history (`passed`, `lastChancePool`, `shownLastChance`) **without** touching the cart. Triggered from `EmptyState` when the field is exhausted. The catalog becomes browseable again; items previously snatched (including reprises that never surfaced) return as fresh, without ribbons. See [ADR-0002](docs/adr/0002-preserve-cart-on-stock-refresh.md).
-_Avoid_: "reset" (which is the destructive variant that also wipes the cart).
+Clears the user's swipe history (`passed`, `lastChancePool`, `shownLastChance`) **without** touching the cart **or the favorites**. Triggered from `EmptyState` when the deck is exhausted. See [ADR-0002](docs/adr/0002-preserve-cart-on-stock-refresh.md).
+_Avoid_: "reset" (the destructive variant that also wipes the cart).
 
 **Reset** (destructive):
-Wipes the entire `UserState`, cart included. The secondary, hard-restart action.
+Wipes the entire `UserState` — cart and favorites included. The secondary, hard-restart action (header `↻`).
 
 ### Actors
-
-**Phantom crowd**:
-The simulated other shoppers. A client-side timer (`usePhantomCrowd`) that periodically picks one un-focused box and calls `onSnatch`. There are no real other users — this is single-player with simulated pressure.
-_Avoid_: "other users", "bots".
 
 **User**:
 The single human using the app. Identified by a `userId` generated client-side and stored in `localStorage`. No auth.

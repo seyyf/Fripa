@@ -1,11 +1,12 @@
 # Fripa — le swipe du fripier tunisien 🇹🇳
 
 Un MVP **ReactJS + NestJS** d'une fripa en ligne pour le marché tunisien.
-On swipe à gauche pour passer, on tape 🛒 pour garder. Une fois passé,
-**90% du temps, l'article disparaît pour toujours**. Les 10% restants reviennent
-**une seule fois** avec un bandeau **« Dernière chance »** — exactement comme
-quand tu retournes dans une vraie fripa et que tu pries pour que personne
-n'ait pris la pièce.
+Un deck à la Tinder/Bumble : on **swipe à droite pour garder** (panier),
+**à gauche pour passer**, **vers le haut pour mettre en favori** (gardé pour
+plus tard, séparé du panier). Une fois passé, **90% du temps, l'article
+disparaît pour toujours**. Les 10% restants reviennent **une seule fois**
+avec un bandeau **« Dernière chance »** — exactement comme quand tu retournes
+dans une vraie fripa et que tu pries pour que personne n'ait pris la pièce.
 
 ## Architecture
 
@@ -14,7 +15,8 @@ efrez/
 ├── backend/         NestJS API (REST, état en mémoire)
 │   └── src/shop/    items.data.ts · service · controller
 └── frontend/        React + Vite + framer-motion
-    └── src/         App, SwipeCard, Cart, Header, EmptyState
+    └── src/         App, SwipeDeck, SwipeCard, Cart, FavoritesDrawer,
+                     Header, EmptyState · swipe/decideSwipe
 ```
 
 ## Lancer en local
@@ -46,7 +48,7 @@ Ouvre http://localhost:5173.
 - `LAST_CHANCE_PROBABILITY = 0.1` — quand l'utilisateur passe un article,
   on lance les dés : 90% il part dans `passed` (gone forever), 10% dans
   `lastChancePool` (éligible à une seule réapparition).
-- `LAST_CHANCE_SURFACE_RATE = 0.2` — quand on tire l'article suivant, s'il
+- `LAST_CHANCE_SURFACE_RATE = 0.2` — quand on tire un lot pour le deck, s'il
   y a des pièces en attente dans `lastChancePool`, 20% du temps on en
   remonte une, flaggée `lastChance: true`. Le front affiche alors le
   bandeau doré qui pulse, l'utilisateur sait qu'il joue sa dernière main.
@@ -61,13 +63,18 @@ recommencer une session.
 
 | Méthode | Route | Description |
 |---|---|---|
-| `GET` | `/api/items/next?userId=X` | Tire la prochaine pièce à swiper (avec flag `lastChance`) |
-| `POST` | `/api/swipes/pass` | Body `{ userId, itemId }` — applique la roulette 90/10 |
-| `POST` | `/api/cart` | Body `{ userId, itemId }` — ajoute au panier |
+| `GET` | `/api/items/field?userId=X&count=N` | Tire un lot de pièces pour le deck (chaque item porte un flag `lastChance`) |
+| `POST` | `/api/swipes/pass` | Body `{ userId, itemId }` — swipe gauche, applique la roulette 90/10 |
+| `POST` | `/api/cart` | Body `{ userId, itemId }` — swipe droite, ajoute au panier |
 | `GET` | `/api/cart/:userId` | Récupère le panier (`lines`, `total`) |
 | `DELETE` | `/api/cart/:userId/:itemId` | Retire un article |
 | `POST` | `/api/cart/:userId/checkout` | Valide la commande (démo : vide le panier) |
-| `POST` | `/api/session/:userId/reset` | Réinitialise la session de swipe |
+| `POST` | `/api/favorites` | Body `{ userId, itemId }` — swipe haut, met en favori |
+| `GET` | `/api/favorites/:userId` | Récupère les favoris |
+| `DELETE` | `/api/favorites/:userId/:itemId` | Retire un favori |
+| `POST` | `/api/favorites/:userId/:itemId/to-cart` | Déplace un favori vers le panier |
+| `POST` | `/api/session/:userId/reset` | Réinitialise tout (panier + favoris compris) |
+| `POST` | `/api/session/:userId/reset-swipes` | Rouvre le stock en gardant panier **et** favoris |
 
 ## Pour aller plus loin
 

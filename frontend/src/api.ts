@@ -1,4 +1,4 @@
-import type { CartResponse, FieldResponse } from './types';
+import type { CartResponse, FavoritesResponse, FieldResponse } from './types';
 
 const BASE = '/api';
 
@@ -24,10 +24,10 @@ export const api = {
   userId,
   field: (count: number) =>
     http<FieldResponse>(`/items/field?userId=${userId()}&count=${count}`),
-  // Narrative trigger: the phantom crowd "snatches" a box off the field.
-  // Hits the unchanged /api/swipes/pass route which still rolls the 90/10 dice.
-  snatch: (itemId: string) =>
-    http<{ gone: boolean }>(`/swipes/pass`, {
+  // Swipe-left: the user passes. Rolls the 90/10 dice on /api/swipes/pass —
+  // 90% gone forever, 10% resurfaces once as a "Dernière chance" card.
+  pass: (itemId: string) =>
+    http<{ gone: boolean; eligibleForReprise?: boolean }>(`/swipes/pass`, {
       method: 'POST',
       body: JSON.stringify({ userId: userId(), itemId }),
     }),
@@ -39,6 +39,20 @@ export const api = {
   cart: () => http<CartResponse>(`/cart/${userId()}`),
   remove: (itemId: string) =>
     http<CartResponse>(`/cart/${userId()}/${itemId}`, { method: 'DELETE' }),
+  // Swipe-up: save for later. Separate from the cart.
+  favorite: (itemId: string) =>
+    http<FavoritesResponse>(`/favorites`, {
+      method: 'POST',
+      body: JSON.stringify({ userId: userId(), itemId }),
+    }),
+  favorites: () => http<FavoritesResponse>(`/favorites/${userId()}`),
+  unfavorite: (itemId: string) =>
+    http<FavoritesResponse>(`/favorites/${userId()}/${itemId}`, { method: 'DELETE' }),
+  favoriteToCart: (itemId: string) =>
+    http<{ cart: CartResponse; favorites: FavoritesResponse }>(
+      `/favorites/${userId()}/${itemId}/to-cart`,
+      { method: 'POST' },
+    ),
   checkout: () =>
     http<{ ok: boolean; message: string; orderTotal?: number }>(
       `/cart/${userId()}/checkout`,
