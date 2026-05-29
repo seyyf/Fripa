@@ -47,6 +47,32 @@ export class ShopController {
     return this.shop.checkout(userId);
   }
 
+  @Post('favorites')
+  addFavorite(@Body() body: { userId: string; itemId: string }) {
+    return this.shop.addFavorite(body.userId || 'anon', body.itemId);
+  }
+
+  @Get('favorites/:userId')
+  favorites(@Param('userId') userId: string) {
+    return this.shop.getFavorites(userId);
+  }
+
+  @Delete('favorites/:userId/:itemId')
+  removeFavorite(
+    @Param('userId') userId: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.shop.removeFavorite(userId, itemId);
+  }
+
+  @Post('favorites/:userId/:itemId/to-cart')
+  moveFavoriteToCart(
+    @Param('userId') userId: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.shop.moveFavoriteToCart(userId, itemId);
+  }
+
   @Post('session/:userId/reset')
   reset(@Param('userId') userId: string) {
     return this.shop.reset(userId);

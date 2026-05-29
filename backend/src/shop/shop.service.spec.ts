@@ -52,6 +52,62 @@ describe('ShopService.getField', () => {
   });
 });
 
+describe('ShopService favorites', () => {
+  it('addFavorite stores the item and getFavorites lists it', () => {
+    const s = new ShopService();
+    const res = s.addFavorite('u1', 't-001');
+    expect(res.lines.some((l) => l.id === 't-001')).toBe(true);
+    expect(s.getFavorites('u1').lines.some((l) => l.id === 't-001')).toBe(true);
+  });
+
+  it('addFavorite cancels a pending last-chance reprise', () => {
+    const s = new ShopService();
+    const store = s as unknown as { rng: () => number };
+    store.rng = () => 0.05; // < 0.1 → t-002 enters the last-chance pool
+    s.pass('u1', 't-002');
+    s.addFavorite('u1', 't-002');
+    // It is now a favorite, not a pending reprise.
+    store.rng = () => 0.1; // would surface a reprise if one existed
+    const res = s.getField('u1', 60);
+    expect(res.items.some((i) => i.id === 't-002' && i.lastChance)).toBe(false);
+  });
+
+  it('getField excludes favorited items', () => {
+    const s = new ShopService();
+    s.addFavorite('u1', 't-001');
+    const res = s.getField('u1', 60);
+    expect(res.items.some((i) => i.id === 't-001')).toBe(false);
+  });
+
+  it('removeFavorite drops it and it does not resurface in the deck', () => {
+    const s = new ShopService();
+    s.addFavorite('u1', 't-001');
+    const res = s.removeFavorite('u1', 't-001');
+    expect(res.lines.some((l) => l.id === 't-001')).toBe(false);
+    const field = s.getField('u1', 60);
+    expect(field.items.some((i) => i.id === 't-001')).toBe(false);
+  });
+
+  it('moveFavoriteToCart removes from favorites and adds to the cart', () => {
+    const s = new ShopService();
+    s.addFavorite('u1', 't-001');
+    const res = s.moveFavoriteToCart('u1', 't-001');
+    expect(res.favorites.lines.some((l) => l.id === 't-001')).toBe(false);
+    expect(res.cart.lines.some((l) => l.id === 't-001')).toBe(true);
+  });
+
+  it('resetSwipes preserves favorites; reset clears them', () => {
+    const s = new ShopService();
+    s.addFavorite('u1', 't-001');
+
+    s.resetSwipes('u1');
+    expect(s.getFavorites('u1').lines.some((l) => l.id === 't-001')).toBe(true);
+
+    s.reset('u1');
+    expect(s.getFavorites('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+  });
+});
+
 describe('ShopService.resetSwipes', () => {
   it('clears swipe history but preserves the cart', () => {
     const s = new ShopService();

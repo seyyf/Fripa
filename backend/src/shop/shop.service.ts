@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ITEMS } from './items.data';
-import { CartLine, FieldResponse, TShirt } from './types';
+import { CartLine, FavoritesResponse, FieldResponse, TShirt } from './types';
 
 // Probability a "passed" item is given one more chance to surface later.
 // 90% of passes → gone forever immediately. 10% → eligible to reappear once,
@@ -16,6 +16,8 @@ interface UserState {
   lastChancePool: Set<string>;
   shownLastChance: Set<string>;
   cart: Map<string, number>;
+  // Swipe-up "save for later". Separate from the cart; excluded from the deck.
+  favorites: Set<string>;
 }
 
 @Injectable()
@@ -33,6 +35,7 @@ export class ShopService {
         lastChancePool: new Set(),
         shownLastChance: new Set(),
         cart: new Map(),
+        favorites: new Set(),
       };
       this.states.set(userId, s);
     }
@@ -53,7 +56,8 @@ export class ShopService {
         !s.passed.has(i.id) &&
         !s.lastChancePool.has(i.id) &&
         !s.shownLastChance.has(i.id) &&
-        !s.cart.has(i.id),
+        !s.cart.has(i.id) &&
+        !s.favorites.has(i.id),
     );
     const reprise = ITEMS.filter(
       (i) => s.lastChancePool.has(i.id) && !s.shownLastChance.has(i.id),
@@ -128,6 +132,38 @@ export class ShopService {
     }));
     const total = lines.reduce((acc, l) => acc + l.price * l.quantity, 0);
     return { lines, total };
+  }
+
+  // --- Favorites (swipe-up / save for later) ---
+
+  addFavorite(userId: string, itemId: string): FavoritesResponse {
+    const s = this.getState(userId);
+    this.getItem(itemId); // validate
+    s.favorites.add(itemId);
+    // Like the cart, favoriting cancels any pending reprise.
+    s.lastChancePool.delete(itemId);
+    return this.getFavorites(userId);
+  }
+
+  removeFavorite(userId: string, itemId: string): FavoritesResponse {
+    const s = this.getState(userId);
+    s.favorites.delete(itemId);
+    // Removing a favorite is a decision — it does not resurface in the deck.
+    s.passed.add(itemId);
+    return this.getFavorites(userId);
+  }
+
+  moveFavoriteToCart(userId: string, itemId: string) {
+    const s = this.getState(userId);
+    s.favorites.delete(itemId);
+    const cart = this.addToCart(userId, itemId);
+    return { cart, favorites: this.getFavorites(userId) };
+  }
+
+  getFavorites(userId: string): FavoritesResponse {
+    const s = this.getState(userId);
+    const lines: TShirt[] = Array.from(s.favorites).map((id) => this.getItem(id));
+    return { lines };
   }
 
   checkout(userId: string) {

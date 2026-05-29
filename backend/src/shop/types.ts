@@ -19,3 +19,7 @@ export interface FieldResponse {
 export interface CartLine extends TShirt {
   quantity: number;
 }
+
+export interface FavoritesResponse {
+  lines: TShirt[];
+}
