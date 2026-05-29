@@ -1,6 +1,6 @@
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import type { FieldItem } from '../types';
-import { decideSwipe, type SwipeThresholds } from '../swipe/decideSwipe';
+import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
 
 interface Props {
   item: FieldItem;
@@ -10,22 +10,53 @@ interface Props {
   reducedMotion?: boolean;
 }
 
-const THRESHOLDS: SwipeThresholds = { right: 120, left: 120, up: 120 };
+const THRESHOLDS: SwipeThresholds = { right: 110, left: 110, up: 110 };
+// How far (in seconds) a release velocity is projected forward, so a quick
+// flick commits even when the finger didn't travel past the distance threshold.
+const VELOCITY_PROJECTION = 0.18;
+// Ease used for the fly-off — a gentle "out" curve so the card accelerates away.
+const FLY_EASE = [0.22, 1, 0.36, 1] as const;
 
 export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = false }: Props) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 220], [-16, 16]);
+  const rotate = useTransform(x, [-240, 240], [-14, 14]);
 
   // Overlay stamp opacities driven by drag distance in each direction.
-  const keepOpacity = useTransform(x, [40, 130], [0, 1]);
-  const passOpacity = useTransform(x, [-130, -40], [1, 0]);
-  const favoriteOpacity = useTransform(y, [-130, -40], [1, 0]);
+  const keepOpacity = useTransform(x, [40, 120], [0, 1]);
+  const passOpacity = useTransform(x, [-120, -40], [1, 0]);
+  const favoriteOpacity = useTransform(y, [-120, -40], [1, 0]);
 
-  function commit(action: ReturnType<typeof decideSwipe>) {
+  function fire(action: SwipeAction) {
     if (action === 'keep') onKeep(item);
     else if (action === 'pass') onPass(item);
-    else if (action === 'favorite') onFavorite(item);
+    else onFavorite(item);
+  }
+
+  // Smoothly throw the card off-screen in the committed direction, then report
+  // the decision (which removes it from the deck).
+  function flyOut(action: SwipeAction) {
+    const opts = { duration: reducedMotion ? 0 : 0.28, ease: FLY_EASE };
+    if (action === 'keep') animate(x, 1000, { ...opts, onComplete: () => fire(action) });
+    else if (action === 'pass') animate(x, -1000, { ...opts, onComplete: () => fire(action) });
+    else animate(y, -1100, { ...opts, onComplete: () => fire(action) });
+  }
+
+  function springBack() {
+    const t = { type: 'spring' as const, stiffness: 520, damping: 34 };
+    animate(x, 0, t);
+    animate(y, 0, t);
+  }
+
+  function handleDragEnd(_: unknown, info: PanInfo) {
+    // Project the release velocity forward so a flick counts as a swipe.
+    const projected = {
+      x: info.offset.x + info.velocity.x * VELOCITY_PROJECTION,
+      y: info.offset.y + info.velocity.y * VELOCITY_PROJECTION,
+    };
+    const action = decideSwipe(projected, THRESHOLDS);
+    if (action) flyOut(action);
+    else springBack();
   }
 
   return (
@@ -33,13 +64,11 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
       className={`swipe-card ${item.lastChance ? 'swipe-card--last-chance' : ''}`}
       style={{ x, y, rotate }}
       drag
-      dragSnapToOrigin
-      dragElastic={0.6}
-      onDragEnd={() => commit(decideSwipe({ x: x.get(), y: y.get() }, THRESHOLDS))}
-      initial={{ opacity: 0, scale: 0.92 }}
+      dragMomentum={false}
+      onDragEnd={handleDragEnd}
+      initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: reducedMotion ? 0 : 0.25 } }}
-      whileTap={{ cursor: 'grabbing' }}
+      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
     >
       {item.lastChance && (
         <div className="last-chance-banner">

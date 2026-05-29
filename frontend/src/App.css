@@ -327,7 +327,10 @@ body {
   touch-action: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  will-change: transform;
+  backface-visibility: hidden;
 }
+.swipe-card:active { cursor: grabbing; }
 .swipe-card--last-chance {
   outline: 3px solid var(--gold);
   outline-offset: -3px;
