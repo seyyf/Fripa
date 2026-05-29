@@ -48,7 +48,7 @@ export function Cart({ open, onClose, cart, refresh }: Props) {
         ) : cart.lines.length === 0 ? (
           <div className="drawer__empty">
             <p>Ton panier est vide.</p>
-            <p className="muted">Swipe à gauche pour passer, tape 🛒 pour garder.</p>
+            <p className="muted">Tape une pièce qui flotte, puis 🛒 pour la garder avant les autres.</p>
           </div>
         ) : (
           <>

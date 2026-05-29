@@ -1,17 +1,18 @@
 interface Props {
-  onReset: () => void;
+  onStockRefresh: () => void;
+  onHardReset: () => void;
   onOpenCart: () => void;
   cartCount: number;
 }
 
-export function EmptyState({ onReset, onOpenCart, cartCount }: Props) {
+export function EmptyState({ onStockRefresh, onHardReset, onOpenCart, cartCount }: Props) {
   return (
     <div className="empty">
       <div className="empty__emoji">🪙</div>
-      <h2>C'est fini pour aujourd'hui.</h2>
+      <h2>Tu as tout vu.</h2>
       <p>
-        Tu as parcouru toute la fripa. Les pièces que tu n'as pas prises sont
-        peut-être déjà parties chez quelqu'un d'autre.
+        Toute la fripa est passée devant tes yeux. On peut rouvrir le rayon —
+        ton panier reste comme tu l'as laissé.
       </p>
       <div className="empty__actions">
         {cartCount > 0 && (
@@ -19,8 +20,11 @@ export function EmptyState({ onReset, onOpenCart, cartCount }: Props) {
             Voir mon panier ({cartCount})
           </button>
         )}
-        <button className="btn btn--pass btn--wide" onClick={onReset}>
-          Recommencer la session
+        <button className="btn btn--add btn--wide" onClick={onStockRefresh}>
+          ✨ Voir d'autres pièces
+        </button>
+        <button className="btn btn--pass btn--ghost" onClick={onHardReset}>
+          Tout recommencer (vide le panier)
         </button>
       </div>
     </div>
