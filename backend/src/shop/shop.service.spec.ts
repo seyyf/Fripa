@@ -52,6 +52,46 @@ describe('ShopService.getField', () => {
   });
 });
 
+describe('ShopService.getField filters', () => {
+  it('filters by size', () => {
+    const s = new ShopService();
+    const res = s.getField('u1', 60, { sizes: ['S'] });
+    expect(res.items.length).toBeGreaterThan(0);
+    expect(res.items.every((i) => i.size === 'S')).toBe(true);
+  });
+
+  it('filters by max price', () => {
+    const s = new ShopService();
+    const res = s.getField('u1', 60, { maxPrice: 20 });
+    expect(res.items.length).toBeGreaterThan(0);
+    expect(res.items.every((i) => i.price <= 20)).toBe(true);
+  });
+
+  it('filters by condition', () => {
+    const s = new ShopService();
+    const res = s.getField('u1', 60, { conditions: ['Vintage'] });
+    expect(res.items.every((i) => i.condition === 'Vintage')).toBe(true);
+  });
+
+  it('filters by free-text query against title/brand', () => {
+    const s = new ShopService();
+    const res = s.getField('u1', 60, { q: 'nike' });
+    expect(res.items.length).toBeGreaterThan(0);
+    expect(
+      res.items.every((i) =>
+        `${i.title} ${i.brand} ${i.description} ${i.color}`.toLowerCase().includes('nike'),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns nothing when filters match no item', () => {
+    const s = new ShopService();
+    const res = s.getField('u1', 60, { q: 'zzz-no-such-thing' });
+    expect(res.items.length).toBe(0);
+    expect(res.remaining).toBe(0);
+  });
+});
+
 describe('ShopService favorites', () => {
   it('addFavorite stores the item and getFavorites lists it', () => {
     const s = new ShopService();
@@ -105,6 +145,60 @@ describe('ShopService favorites', () => {
 
     s.reset('u1');
     expect(s.getFavorites('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+  });
+});
+
+describe('ShopService.undo', () => {
+  it('undoing a pass makes the item eligible again', () => {
+    const s = withRng(0.5); // force "gone forever"
+    s.pass('u1', 't-001');
+    expect(s.getField('u1', 60).items.some((i) => i.id === 't-001')).toBe(false);
+
+    const res = s.undo('u1');
+    expect(res.undone?.action).toBe('pass');
+    expect(res.undone?.item.id).toBe('t-001');
+    expect(s.getField('u1', 60).items.some((i) => i.id === 't-001')).toBe(true);
+  });
+
+  it('undoing a keep removes it from the cart', () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(true);
+
+    const res = s.undo('u1');
+    expect(res.undone?.action).toBe('keep');
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+  });
+
+  it('undoing a favorite removes it from favorites', () => {
+    const s = new ShopService();
+    s.addFavorite('u1', 't-001');
+    const res = s.undo('u1');
+    expect(res.undone?.action).toBe('favorite');
+    expect(s.getFavorites('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+  });
+
+  it('returns null when there is nothing to undo', () => {
+    const s = new ShopService();
+    expect(s.undo('u1').undone).toBeNull();
+  });
+
+  it('undoes multiple actions in reverse order', () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    s.addFavorite('u1', 't-002');
+    expect(s.undo('u1').undone?.action).toBe('favorite');
+    expect(s.undo('u1').undone?.action).toBe('keep');
+    expect(s.undo('u1').undone).toBeNull();
+  });
+
+  it('moveFavoriteToCart is not an undoable swipe', () => {
+    const s = new ShopService();
+    s.addFavorite('u1', 't-001');
+    s.moveFavoriteToCart('u1', 't-001');
+    // The only undoable action is the original favorite, not the move.
+    expect(s.undo('u1').undone?.action).toBe('favorite');
+    expect(s.undo('u1').undone).toBeNull();
   });
 });
 

@@ -1,6 +1,26 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ITEMS } from './items.data';
-import { CartLine, FavoritesResponse, FieldResponse, TShirt } from './types';
+import {
+  CartLine,
+  FavoritesResponse,
+  FieldFilters,
+  FieldResponse,
+  TShirt,
+} from './types';
+
+// Does an item satisfy the active deck filters? An absent/empty filter matches all.
+function matchesFilters(item: TShirt, f: FieldFilters): boolean {
+  if (f.q) {
+    const haystack =
+      `${item.title} ${item.brand} ${item.description} ${item.color}`.toLowerCase();
+    if (!haystack.includes(f.q.toLowerCase())) return false;
+  }
+  if (f.sizes && f.sizes.length > 0 && !f.sizes.includes(item.size)) return false;
+  if (f.conditions && f.conditions.length > 0 && !f.conditions.includes(item.condition))
+    return false;
+  if (f.maxPrice != null && item.price > f.maxPrice) return false;
+  return true;
+}
 
 // Probability a "passed" item is given one more chance to surface later.
 // 90% of passes → gone forever immediately. 10% → eligible to reappear once,
@@ -11,6 +31,12 @@ const LAST_CHANCE_PROBABILITY = 0.1;
 // Tuned to feel like a real fripa: rare but jolting when it happens.
 const LAST_CHANCE_SURFACE_RATE = 0.2;
 
+type SwipeAction = 'pass' | 'keep' | 'favorite';
+interface HistoryEntry {
+  action: SwipeAction;
+  itemId: string;
+}
+
 interface UserState {
   passed: Set<string>;
   lastChancePool: Set<string>;
@@ -18,6 +44,8 @@ interface UserState {
   cart: Map<string, number>;
   // Swipe-up "save for later". Separate from the cart; excluded from the deck.
   favorites: Set<string>;
+  // Stack of undoable swipe actions, most recent last. Powers "Reviens !".
+  history: HistoryEntry[];
 }
 
 @Injectable()
@@ -36,6 +64,7 @@ export class ShopService {
         shownLastChance: new Set(),
         cart: new Map(),
         favorites: new Set(),
+        history: [],
       };
       this.states.set(userId, s);
     }
@@ -48,7 +77,7 @@ export class ShopService {
     return item;
   }
 
-  getField(userId: string, count: number): FieldResponse {
+  getField(userId: string, count: number, filters: FieldFilters = {}): FieldResponse {
     const s = this.getState(userId);
 
     const fresh = ITEMS.filter(
@@ -57,10 +86,14 @@ export class ShopService {
         !s.lastChancePool.has(i.id) &&
         !s.shownLastChance.has(i.id) &&
         !s.cart.has(i.id) &&
-        !s.favorites.has(i.id),
+        !s.favorites.has(i.id) &&
+        matchesFilters(i, filters),
     );
     const reprise = ITEMS.filter(
-      (i) => s.lastChancePool.has(i.id) && !s.shownLastChance.has(i.id),
+      (i) =>
+        s.lastChancePool.has(i.id) &&
+        !s.shownLastChance.has(i.id) &&
+        matchesFilters(i, filters),
     );
 
     const items: (TShirt & { lastChance: boolean })[] = [];
@@ -93,6 +126,7 @@ export class ShopService {
   pass(userId: string, itemId: string) {
     const s = this.getState(userId);
     this.getItem(itemId); // validate
+    s.history.push({ action: 'pass', itemId });
 
     // If it was already a last-chance show, the swipe seals it forever.
     if (s.shownLastChance.has(itemId)) return { gone: true };
@@ -107,13 +141,42 @@ export class ShopService {
     return { gone: true };
   }
 
-  addToCart(userId: string, itemId: string) {
-    const s = this.getState(userId);
-    this.getItem(itemId);
+  // Mutates the cart without recording an undoable swipe (shared by the
+  // swipe-keep and the move-from-favorites paths).
+  private cartAdd(s: UserState, itemId: string) {
     s.cart.set(itemId, (s.cart.get(itemId) || 0) + 1);
     // Once it's in the cart, drop any pending reprise.
     s.lastChancePool.delete(itemId);
+  }
+
+  addToCart(userId: string, itemId: string) {
+    const s = this.getState(userId);
+    this.getItem(itemId);
+    this.cartAdd(s, itemId);
+    s.history.push({ action: 'keep', itemId });
     return this.getCart(userId);
+  }
+
+  // Reverse the most recent swipe. Returns the restored item so the client can
+  // drop it back on top of the deck. See feature "Reviens !".
+  undo(userId: string): { undone: { action: SwipeAction; item: TShirt } | null } {
+    const s = this.getState(userId);
+    const last = s.history.pop();
+    if (!last) return { undone: null };
+    const { action, itemId } = last;
+    if (action === 'keep') {
+      const qty = (s.cart.get(itemId) || 0) - 1;
+      if (qty > 0) s.cart.set(itemId, qty);
+      else s.cart.delete(itemId);
+    } else if (action === 'favorite') {
+      s.favorites.delete(itemId);
+    } else {
+      // pass — make it eligible for the deck again, whatever the dice did.
+      s.passed.delete(itemId);
+      s.lastChancePool.delete(itemId);
+      s.shownLastChance.delete(itemId);
+    }
+    return { undone: { action, item: this.getItem(itemId) } };
   }
 
   removeFromCart(userId: string, itemId: string) {
@@ -142,6 +205,7 @@ export class ShopService {
     s.favorites.add(itemId);
     // Like the cart, favoriting cancels any pending reprise.
     s.lastChancePool.delete(itemId);
+    s.history.push({ action: 'favorite', itemId });
     return this.getFavorites(userId);
   }
 
@@ -155,9 +219,10 @@ export class ShopService {
 
   moveFavoriteToCart(userId: string, itemId: string) {
     const s = this.getState(userId);
+    this.getItem(itemId);
     s.favorites.delete(itemId);
-    const cart = this.addToCart(userId, itemId);
-    return { cart, favorites: this.getFavorites(userId) };
+    this.cartAdd(s, itemId); // not an undoable swipe
+    return { cart: this.getCart(userId), favorites: this.getFavorites(userId) };
   }
 
   getFavorites(userId: string): FavoritesResponse {
@@ -194,6 +259,7 @@ export class ShopService {
     s.passed.clear();
     s.lastChancePool.clear();
     s.shownLastChance.clear();
+    s.history = [];
     return { ok: true };
   }
 }

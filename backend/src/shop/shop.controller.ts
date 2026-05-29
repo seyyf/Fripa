@@ -14,14 +14,34 @@ export class ShopController {
   constructor(private readonly shop: ShopService) {}
 
   @Get('items/field')
-  field(@Query('userId') userId: string, @Query('count') count?: string) {
+  field(
+    @Query('userId') userId: string,
+    @Query('count') count?: string,
+    @Query('q') q?: string,
+    @Query('sizes') sizes?: string,
+    @Query('conditions') conditions?: string,
+    @Query('maxPrice') maxPrice?: string,
+  ) {
     const n = Math.min(Math.max(parseInt(count ?? '12', 10) || 12, 1), 60);
-    return this.shop.getField(userId || 'anon', n);
+    const csv = (v?: string) =>
+      v ? v.split(',').map((x) => x.trim()).filter(Boolean) : undefined;
+    const price = maxPrice ? parseInt(maxPrice, 10) : undefined;
+    return this.shop.getField(userId || 'anon', n, {
+      q: q?.trim() || undefined,
+      sizes: csv(sizes) as any,
+      conditions: csv(conditions) as any,
+      maxPrice: price != null && !Number.isNaN(price) ? price : undefined,
+    });
   }
 
   @Post('swipes/pass')
   pass(@Body() body: { userId: string; itemId: string }) {
     return this.shop.pass(body.userId || 'anon', body.itemId);
+  }
+
+  @Post('swipes/undo')
+  undo(@Body() body: { userId: string }) {
+    return this.shop.undo(body.userId || 'anon');
   }
 
   @Post('cart')
