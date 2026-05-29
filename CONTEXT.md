@@ -23,6 +23,12 @@ The user's pass. Fires the 90/10 dice (see **Pass**). This is a genuine user act
 **Favori** (swipe up ↑):
 Save-for-later. Adds the item to the **favorites** list — separate from the cart. From the favorites drawer the user can move an item to the cart or remove it. Removing a favorite is a decision: it does not resurface in the deck.
 
+**Reviens !** (undo):
+Reverses the most recent swipe and drops the piece back on top of the deck. Backed by a per-user **action-history** stack (`shop.service.ts::undo()`): a pass becomes eligible again (whatever the dice rolled), a keep leaves the cart, a favorite leaves the list. Repeatable in reverse order. `moveFavoriteToCart` is not an undoable swipe. Cleared by stock-refresh and reset.
+
+**Filtres** (Filtrer):
+Narrows the deck by free-text search (title/brand/description/colour), size, condition, and max price. Applied server-side in `getField`; changing filters resets the deck. An empty result shows a "Aucune pièce ne correspond" panel rather than the exhaustion state.
+
 ### The dice mechanic
 
 **Pass** (`shop.service.ts::pass()`):

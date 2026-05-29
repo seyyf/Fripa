@@ -449,6 +449,63 @@ body {
 .cart-line__fav-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
 .btn--sm { padding: 8px 12px; font-size: 13px; border-radius: 12px; }
 
+/* ---------- Shop toolbar (undo + filter) ---------- */
+.shop-toolbar {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.toolbar-btn {
+  border: 1px solid #eee2cf;
+  background: var(--paper);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.toolbar-btn--active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* ---------- Filter drawer ---------- */
+.filter-body {
+  padding: 12px 20px 4px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.filter-field { display: flex; flex-direction: column; gap: 8px; }
+.filter-label { font-size: 13px; font-weight: 700; color: var(--ink); }
+.filter-input {
+  border: 1px solid #eee2cf;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+}
+.filter-input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip--toggle {
+  border: 1px solid #eadbc4;
+  cursor: pointer;
+  background: #fff;
+  color: var(--muted);
+}
+.chip--toggle.chip--on {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.filter-foot { display: flex; gap: 10px; }
+.filter-foot .btn { flex: 1; }
+
 /* ---------- Home / landing ---------- */
 .home {
   width: 100%;

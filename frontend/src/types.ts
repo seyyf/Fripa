@@ -32,3 +32,10 @@ export interface CartResponse {
 export interface FavoritesResponse {
   lines: TShirt[];
 }
+
+export interface FieldFilters {
+  q?: string;
+  sizes?: TShirt['size'][];
+  conditions?: TShirt['condition'][];
+  maxPrice?: number;
+}

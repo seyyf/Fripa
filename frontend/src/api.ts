@@ -1,4 +1,11 @@
-import type { CartResponse, FavoritesResponse, FieldResponse } from './types';
+import type {
+  CartResponse,
+  FavoritesResponse,
+  FieldFilters,
+  FieldResponse,
+  TShirt,
+} from './types';
+import { buildFieldQuery } from './filters/fieldQuery';
 
 const BASE = '/api';
 
@@ -22,8 +29,12 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   userId,
-  field: (count: number) =>
-    http<FieldResponse>(`/items/field?userId=${userId()}&count=${count}`),
+  field: (count: number, filters: FieldFilters = {}) => {
+    const qs = buildFieldQuery(filters);
+    return http<FieldResponse>(
+      `/items/field?userId=${userId()}&count=${count}${qs ? `&${qs}` : ''}`,
+    );
+  },
   // Swipe-left: the user passes. Rolls the 90/10 dice on /api/swipes/pass —
   // 90% gone forever, 10% resurfaces once as a "Dernière chance" card.
   pass: (itemId: string) =>
@@ -31,6 +42,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ userId: userId(), itemId }),
     }),
+  // "Reviens !" — reverse the most recent swipe; returns the restored item.
+  undo: () =>
+    http<{ undone: { action: 'pass' | 'keep' | 'favorite'; item: TShirt } | null }>(
+      `/swipes/undo`,
+      { method: 'POST', body: JSON.stringify({ userId: userId() }) },
+    ),
   add: (itemId: string) =>
     http<CartResponse>(`/cart`, {
       method: 'POST',

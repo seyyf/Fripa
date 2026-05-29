@@ -63,8 +63,9 @@ recommencer une session.
 
 | Méthode | Route | Description |
 |---|---|---|
-| `GET` | `/api/items/field?userId=X&count=N` | Tire un lot de pièces pour le deck (chaque item porte un flag `lastChance`) |
+| `GET` | `/api/items/field?userId=X&count=N` | Tire un lot pour le deck. Filtres optionnels : `q`, `sizes`, `conditions`, `maxPrice` |
 | `POST` | `/api/swipes/pass` | Body `{ userId, itemId }` — swipe gauche, applique la roulette 90/10 |
+| `POST` | `/api/swipes/undo` | Body `{ userId }` — « Reviens ! » : annule le dernier swipe |
 | `POST` | `/api/cart` | Body `{ userId, itemId }` — swipe droite, ajoute au panier |
 | `GET` | `/api/cart/:userId` | Récupère le panier (`lines`, `total`) |
 | `DELETE` | `/api/cart/:userId/:itemId` | Retire un article |

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { api } from './api';
-import type { CartResponse, FavoritesResponse, FieldItem } from './types';
+import type { CartResponse, FavoritesResponse, FieldFilters, FieldItem } from './types';
+import { activeFilterCount } from './filters/fieldQuery';
 import { SwipeDeck } from './components/SwipeDeck';
 import { HomePage } from './components/HomePage';
 import { Cart } from './components/Cart';
 import { FavoritesDrawer } from './components/FavoritesDrawer';
+import { FilterDrawer } from './components/FilterDrawer';
 import { Header } from './components/Header';
 import { EmptyState } from './components/EmptyState';
 
@@ -17,16 +19,23 @@ export default function App() {
   const [deck, setDeck] = useState<FieldItem[]>([]);
   const [cart, setCart] = useState<CartResponse>({ lines: [], total: 0 });
   const [favorites, setFavorites] = useState<FavoritesResponse>({ lines: [] });
+  const [filters, setFilters] = useState<FieldFilters>({});
   const [cartOpen, setCartOpen] = useState(false);
   const [favOpen, setFavOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [exhausted, setExhausted] = useState(false);
+  const [outOfCards, setOutOfCards] = useState(false);
+  const [historyCount, setHistoryCount] = useState(0);
 
   const deckRef = useRef<FieldItem[]>([]);
+  const filtersRef = useRef<FieldFilters>({});
   const fetching = useRef(false);
   useEffect(() => {
     deckRef.current = deck;
   }, [deck]);
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
 
   function flash(msg: string) {
     setToast(msg);
@@ -36,19 +45,18 @@ export default function App() {
   const refreshCart = useCallback(async () => setCart(await api.cart()), []);
   const refreshFavorites = useCallback(async () => setFavorites(await api.favorites()), []);
 
-  // Fetch a fresh batch and append any cards we don't already hold, but only
-  // when the deck is running low. The backend already excludes passed / cart /
-  // favorited items and mixes in any "Dernière chance" reprise.
+  // Fetch a fresh batch (honouring the active filters) and append any cards we
+  // don't already hold, but only when the deck is running low.
   const topUp = useCallback(async () => {
     if (fetching.current || deckRef.current.length > LOW_WATER) return;
     fetching.current = true;
     try {
-      const res = await api.field(BATCH);
+      const res = await api.field(BATCH, filtersRef.current);
       setDeck((prev) => {
         const have = new Set(prev.map((i) => i.id));
         const add = res.items.filter((i) => !have.has(i.id));
         const nextDeck = [...prev, ...add];
-        if (nextDeck.length === 0 && res.remaining === 0) setExhausted(true);
+        if (nextDeck.length === 0 && res.remaining === 0) setOutOfCards(true);
         return nextDeck;
       });
     } catch (e) {
@@ -76,6 +84,7 @@ export default function App() {
     dropTop(item.id);
     try {
       setCart(await api.add(item.id));
+      setHistoryCount((c) => c + 1);
       flash(`Ajouté au panier — ${item.title}`);
     } catch (e) {
       console.error('keep failed', e);
@@ -90,6 +99,7 @@ export default function App() {
     dropTop(item.id);
     try {
       await api.pass(item.id);
+      setHistoryCount((c) => c + 1);
     } catch (e) {
       console.error('pass failed', e);
       restore(item);
@@ -104,6 +114,7 @@ export default function App() {
     dropTop(item.id);
     try {
       setFavorites(await api.favorite(item.id));
+      setHistoryCount((c) => c + 1);
       flash(`Gardé pour plus tard — ${item.title} ⭐`);
     } catch (e) {
       console.error('favorite failed', e);
@@ -112,6 +123,26 @@ export default function App() {
       return;
     }
     void topUp();
+  }
+
+  async function handleUndo() {
+    try {
+      const res = await api.undo();
+      if (!res.undone) {
+        setHistoryCount(0);
+        return;
+      }
+      const { action, item } = res.undone;
+      setHistoryCount((c) => Math.max(0, c - 1));
+      // The piece is available again — drop it back on top of the deck.
+      restore({ ...item, lastChance: false });
+      setOutOfCards(false);
+      if (action === 'keep') await refreshCart();
+      if (action === 'favorite') await refreshFavorites();
+      flash(`Reviens ! — ${item.title}`);
+    } catch (e) {
+      console.error('undo failed', e);
+    }
   }
 
   async function moveFavoriteToCart(itemId: string) {
@@ -133,6 +164,25 @@ export default function App() {
     }
   }
 
+  // Replace the deck with a fresh batch under a new filter set.
+  const reloadDeck = useCallback(
+    async (next: FieldFilters) => {
+      filtersRef.current = next;
+      setFilters(next);
+      deckRef.current = [];
+      setDeck([]);
+      setOutOfCards(false);
+      await topUp();
+    },
+    [topUp],
+  );
+
+  const applyFilters = (next: FieldFilters) => void reloadDeck(next);
+  const clearFilters = () => {
+    setFilterOpen(false);
+    void reloadDeck({});
+  };
+
   async function refresh(opts: { keepCart: boolean }) {
     if (opts.keepCart) {
       await api.resetSwipes(); // ADR-0002 — preserves cart and favorites
@@ -141,7 +191,8 @@ export default function App() {
     }
     deckRef.current = [];
     setDeck([]);
-    setExhausted(false);
+    setOutOfCards(false);
+    setHistoryCount(0);
     await refreshCart();
     await refreshFavorites();
     await topUp();
@@ -152,7 +203,9 @@ export default function App() {
 
   const cartCount = cart.lines.reduce((a, l) => a + l.quantity, 0);
   const favCount = favorites.lines.length;
-  const showEmpty = exhausted && deck.length === 0;
+  const filterCount = activeFilterCount(filters);
+  const showEmpty = outOfCards && deck.length === 0;
+  const filteredEmpty = showEmpty && filterCount > 0;
 
   return (
     <div className="app">
@@ -170,13 +223,44 @@ export default function App() {
           path="/shop"
           element={
             <main className="stage">
+              <div className="shop-toolbar">
+                <button
+                  type="button"
+                  className="toolbar-btn"
+                  onClick={handleUndo}
+                  disabled={historyCount === 0}
+                >
+                  ↩ Reviens
+                </button>
+                <button
+                  type="button"
+                  className={`toolbar-btn ${filterCount > 0 ? 'toolbar-btn--active' : ''}`}
+                  onClick={() => setFilterOpen(true)}
+                >
+                  ⚙ Filtrer{filterCount > 0 ? ` (${filterCount})` : ''}
+                </button>
+              </div>
+
               {showEmpty ? (
-                <EmptyState
-                  onStockRefresh={stockRefresh}
-                  onHardReset={hardReset}
-                  onOpenCart={() => setCartOpen(true)}
-                  cartCount={cartCount}
-                />
+                filteredEmpty ? (
+                  <div className="empty">
+                    <div className="empty__emoji">🔍</div>
+                    <h2>Aucune pièce ne correspond.</h2>
+                    <p>Essaie d'élargir tes filtres pour voir plus de pièces.</p>
+                    <div className="empty__actions">
+                      <button className="btn btn--add btn--wide" onClick={clearFilters}>
+                        Effacer les filtres
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    onStockRefresh={stockRefresh}
+                    onHardReset={hardReset}
+                    onOpenCart={() => setCartOpen(true)}
+                    cartCount={cartCount}
+                  />
+                )
               ) : (
                 <SwipeDeck
                   deck={deck}
@@ -203,6 +287,13 @@ export default function App() {
         favorites={favorites}
         onMoveToCart={moveFavoriteToCart}
         onRemove={removeFavorite}
+      />
+      <FilterDrawer
+        open={filterOpen}
+        filters={filters}
+        onApply={applyFilters}
+        onClear={clearFilters}
+        onClose={() => setFilterOpen(false)}
       />
 
       {toast && <div className="toast">{toast}</div>}
