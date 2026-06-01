@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { api } from '../api';
 import type { TShirt } from '../types';
+
+const MotionLink = motion(Link);
 
 const STEPS = [
   { icon: '→', label: 'Garder', desc: 'Swipe à droite : la pièce file dans ton panier.' },
@@ -45,8 +48,26 @@ const FAQ = [
   },
 ];
 
+const EASE = [0.22, 1, 0.36, 1] as const;
+const viewport = { once: true, amount: 0.2 } as const;
+
 export function HomePage() {
+  const reduce = useReducedMotion();
   const [preview, setPreview] = useState<TShirt[]>([]);
+
+  // Reduced-motion users get presence without movement.
+  const fadeUp: Variants = reduce
+    ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0, y: 26 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+      };
+  const stagger: Variants = {
+    hidden: {},
+    show: { transition: { staggerChildren: reduce ? 0 : 0.08 } },
+  };
+  const hover = reduce ? {} : { whileHover: { scale: 1.03 }, whileTap: { scale: 0.97 } };
+  const cardHover = reduce ? {} : { whileHover: { y: -5 } };
 
   useEffect(() => {
     let alive = true;
@@ -66,92 +87,151 @@ export function HomePage() {
   return (
     <div className="home">
       {/* Hero */}
-      <section className="home__hero">
-        <span className="home__badge">🇹🇳 Friperie en ligne</span>
-        <h1 className="home__title">Fripa</h1>
-        <p className="home__tagline">
+      <motion.section
+        className="home__hero"
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.span className="home__badge" variants={fadeUp}>
+          🇹🇳 Friperie en ligne
+        </motion.span>
+        <motion.h1 className="home__title" variants={fadeUp}>
+          Fripa
+        </motion.h1>
+        <motion.p className="home__tagline" variants={fadeUp}>
           Le vide-dressing tunisien qui file vite. Tu swipes, tu gardes, tu chines —
           mais attention : <strong>90% du temps, une pièce passée disparaît pour de bon.</strong>
-        </p>
-        <div className="home__hero-actions">
-          <Link to="/shop" className="btn btn--add btn--cta">
+        </motion.p>
+        <motion.div className="home__hero-actions" variants={fadeUp}>
+          <MotionLink to="/shop" className="btn btn--add btn--cta" {...hover}>
             Commencer à chiner →
-          </Link>
-          <a href="#how" className="btn btn--ghost btn--cta-ghost">
+          </MotionLink>
+          <motion.a href="#how" className="btn btn--ghost btn--cta-ghost" {...hover}>
             Comment ça marche
-          </a>
-        </div>
-      </section>
+          </motion.a>
+        </motion.div>
+      </motion.section>
 
       {/* Stats */}
-      <section className="home__stats" aria-label="Chiffres clés">
+      <motion.section
+        className="home__stats"
+        aria-label="Chiffres clés"
+        variants={stagger}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewport}
+      >
         {STATS.map((s) => (
-          <div key={s.label} className="home__stat">
+          <motion.div key={s.label} className="home__stat" variants={fadeUp}>
             <span className="home__stat-value">{s.value}</span>
             <span className="home__stat-label">{s.label}</span>
-          </div>
+          </motion.div>
         ))}
-      </section>
+      </motion.section>
 
       {/* How it works */}
-      <section className="home__how" id="how" aria-label="Comment ça marche">
+      <motion.section
+        className="home__how"
+        id="how"
+        aria-label="Comment ça marche"
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewport}
+      >
         <h2 className="home__section-title">Comment ça marche</h2>
-        <ul className="home__steps">
+        <motion.ul className="home__steps" variants={stagger}>
           {STEPS.map((s) => (
-            <li key={s.label} className="home__step">
+            <motion.li key={s.label} className="home__step" variants={fadeUp}>
               <span className="home__step-icon">{s.icon}</span>
               <div>
                 <strong className="home__step-label">{s.label}</strong>
                 <p className="home__step-desc">{s.desc}</p>
               </div>
-            </li>
+            </motion.li>
           ))}
-        </ul>
+        </motion.ul>
         <p className="home__note">
           Les 10% restants reviennent <strong>une seule fois</strong> avec un bandeau
           « Dernière chance ». Comme dans une vraie fripa.
         </p>
-      </section>
+      </motion.section>
 
       {/* Live preview */}
       {preview.length > 0 && (
         <section className="home__preview" aria-label="Pièces du moment">
-          <div className="home__preview-head">
+          <motion.div
+            className="home__preview-head"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={viewport}
+          >
             <h2 className="home__section-title">Pièces du moment</h2>
             <Link to="/shop" className="home__preview-all">
               Voir toutes les pièces →
             </Link>
-          </div>
-          <div className="preview-grid">
+          </motion.div>
+          <motion.div
+            className="preview-grid"
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={viewport}
+          >
             {preview.map((item) => (
-              <Link key={item.id} to="/shop" className="preview-card">
-                <span
-                  className="preview-card__img"
-                  style={{ backgroundImage: `url(${item.imageUrl})` }}
-                />
-                <span className="preview-card__title">{item.title}</span>
-                <span className="preview-card__price">{item.price} TND</span>
-              </Link>
+              <motion.div key={item.id} variants={fadeUp} {...cardHover}>
+                <Link to="/shop" className="preview-card">
+                  <span
+                    className="preview-card__img"
+                    style={{ backgroundImage: `url(${item.imageUrl})` }}
+                  />
+                  <span className="preview-card__title">{item.title}</span>
+                  <span className="preview-card__price">{item.price} TND</span>
+                </Link>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </section>
       )}
 
       {/* Testimonials */}
       <section className="home__testimonials" aria-label="Témoignages">
-        <h2 className="home__section-title">Ils chinent déjà</h2>
-        <div className="testimonial-grid">
+        <motion.h2
+          className="home__section-title"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewport}
+        >
+          Ils chinent déjà
+        </motion.h2>
+        <motion.div
+          className="testimonial-grid"
+          variants={stagger}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewport}
+        >
           {TESTIMONIALS.map((t) => (
-            <figure key={t.author} className="testimonial">
+            <motion.figure key={t.author} className="testimonial" variants={fadeUp}>
               <blockquote className="testimonial__quote">« {t.quote} »</blockquote>
               <figcaption className="testimonial__author">— {t.author}</figcaption>
-            </figure>
+            </motion.figure>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       {/* FAQ */}
-      <section className="home__faq" aria-label="Questions fréquentes">
+      <motion.section
+        className="home__faq"
+        aria-label="Questions fréquentes"
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewport}
+      >
         <h2 className="home__section-title">Questions fréquentes</h2>
         <div className="faq-list">
           {FAQ.map((f) => (
@@ -161,18 +241,24 @@ export function HomePage() {
             </details>
           ))}
         </div>
-      </section>
+      </motion.section>
 
       {/* Final CTA band */}
-      <section className="home__cta-band">
+      <motion.section
+        className="home__cta-band"
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewport}
+      >
         <h2 className="home__cta-title">Prête à chiner ?</h2>
         <p className="home__cta-text">
           Des centaines de pièces uniques t'attendent. Mais elles ne t'attendent pas longtemps.
         </p>
-        <Link to="/shop" className="btn btn--cta home__cta-btn">
+        <MotionLink to="/shop" className="btn btn--cta home__cta-btn" {...hover}>
           Swiper maintenant →
-        </Link>
-      </section>
+        </MotionLink>
+      </motion.section>
 
       {/* Footer */}
       <footer className="home__footer">
