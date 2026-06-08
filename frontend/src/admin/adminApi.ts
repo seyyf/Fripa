@@ -132,6 +132,11 @@ export const adminApi = {
     http<AdminItem>(`/admin/items/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteItem: (id: string) =>
     http<{ ok: true }>(`/admin/items/${id}`, { method: 'DELETE' }),
+  bulkItems: (ids: string[], action: string) =>
+    http<{ ok: true; count: number }>('/admin/items/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ ids, action }),
+    }),
   listOrders: () => http<AdminOrder[]>('/admin/orders'),
   updateOrderStatus: (id: string, status: string) =>
     http<AdminOrder>(`/admin/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),

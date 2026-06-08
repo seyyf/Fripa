@@ -27,6 +27,13 @@ export class AdminItemsController {
     return this.items.create(body);
   }
 
+  // Bulk status change / delete. Declared on a distinct sub-path so it never
+  // collides with the :id routes.
+  @Post('bulk')
+  bulk(@Body() body: { ids: string[]; action: string }) {
+    return this.items.bulk(body?.ids, body?.action);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: Partial<ItemInput>) {
     return this.items.update(id, body);

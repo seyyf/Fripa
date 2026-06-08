@@ -198,6 +198,41 @@
   text-align: center;
 }
 
+/* ---------- Bulk actions ---------- */
+.admin-bulkbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #1a1f2b;
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.admin-bulkbar__count {
+  font-size: 14px;
+  font-weight: 700;
+}
+.admin-bulkbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-check-col {
+  width: 36px;
+  text-align: center;
+}
+.admin-check-col input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.admin-row--sel td {
+  background: #eef3ff;
+}
+
 /* ---------- Table ---------- */
 .admin-table-wrap {
   background: #fff;

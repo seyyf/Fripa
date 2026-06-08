@@ -35,6 +35,23 @@ function makeService(seed: Array<{ id: string }> = []) {
         const idx = store.findIndex((i) => i.id === where.id);
         return store.splice(idx, 1)[0];
       }),
+      updateMany: vi.fn(async ({ where, data }: any) => {
+        let count = 0;
+        for (const item of store) {
+          if (where.id.in.includes(item.id)) {
+            Object.assign(item, data);
+            count++;
+          }
+        }
+        return { count };
+      }),
+      deleteMany: vi.fn(async ({ where }: any) => {
+        const before = store.length;
+        for (let i = store.length - 1; i >= 0; i--) {
+          if (where.id.in.includes(store[i].id)) store.splice(i, 1);
+        }
+        return { count: before - store.length };
+      }),
     },
   } as unknown as PrismaService;
   const loader = { reload: vi.fn(async () => {}) } as unknown as CatalogueLoader;
@@ -118,5 +135,36 @@ describe('AdminItemsService.list', () => {
     ]);
     const items = await svc.list();
     expect(items).toHaveLength(2);
+  });
+});
+
+describe('AdminItemsService.bulk', () => {
+  const seed = () => [
+    { id: 'a', status: 'active' } as any,
+    { id: 'b', status: 'active' } as any,
+    { id: 'c', status: 'active' } as any,
+  ];
+
+  it('bulk-updates the status of the selected items and reloads', async () => {
+    const { svc, loader, store } = makeService(seed());
+    const res = await svc.bulk(['a', 'b'], 'archived');
+    expect(res).toEqual({ ok: true, count: 2 });
+    expect(store.find((i) => i.id === 'a').status).toBe('archived');
+    expect(store.find((i) => i.id === 'c').status).toBe('active'); // untouched
+    expect(loader.reload).toHaveBeenCalledOnce();
+  });
+
+  it('bulk-deletes the selected items', async () => {
+    const { svc, store } = makeService(seed());
+    const res = await svc.bulk(['a', 'c'], 'delete');
+    expect(res.count).toBe(2);
+    expect(store.map((i) => i.id)).toEqual(['b']);
+  });
+
+  it('rejects an empty selection or an invalid action', async () => {
+    const { svc, loader } = makeService(seed());
+    await expect(svc.bulk([], 'archived')).rejects.toThrow();
+    await expect(svc.bulk(['a'], 'frobnicate')).rejects.toThrow();
+    expect(loader.reload).not.toHaveBeenCalled();
   });
 });

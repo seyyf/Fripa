@@ -24,6 +24,7 @@ export function AdminItems({ onAuthError }: Props) {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   function handleError(err: unknown) {
     if (err instanceof AdminAuthError) {
@@ -64,10 +65,52 @@ export function AdminItems({ onAuthError }: Props) {
     setPage(1);
   }, [query, statusFilter]);
 
+  // Drop selected ids that no longer exist (after deletions/refresh).
+  useEffect(() => {
+    setSelected((s) => {
+      const present = new Set(items.map((i) => i.id));
+      const next = new Set([...s].filter((id) => present.has(id)));
+      return next.size === s.size ? s : next;
+    });
+  }, [items]);
+
   const pageCount = Math.max(1, Math.ceil(shown.length / PER_PAGE));
   const currentPage = Math.min(page, pageCount); // clamp (e.g. after deletions)
   const start = (currentPage - 1) * PER_PAGE;
   const paged = shown.slice(start, start + PER_PAGE);
+
+  const pageIds = paged.map((i) => i.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+
+  function toggleOne(id: string) {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+  function togglePage() {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (allPageSelected) pageIds.forEach((id) => n.delete(id));
+      else pageIds.forEach((id) => n.add(id));
+      return n;
+    });
+  }
+  async function bulk(action: string) {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (action === 'delete' && !window.confirm(`Supprimer ${ids.length} pièce(s) ? Définitif.`))
+      return;
+    try {
+      await adminApi.bulkItems(ids, action);
+      setSelected(new Set());
+      await refresh();
+    } catch (err) {
+      handleError(err);
+    }
+  }
 
   async function save(input: ItemInput) {
     if (editing?.mode === 'edit') {
@@ -146,10 +189,30 @@ export function AdminItems({ onAuthError }: Props) {
         <p className="muted admin-items__empty">Aucune pièce ne correspond.</p>
       ) : (
         <>
+        {selected.size > 0 && (
+          <div className="admin-bulkbar">
+            <span className="admin-bulkbar__count">{selected.size} sélectionnée{selected.size > 1 ? 's' : ''}</span>
+            <div className="admin-bulkbar__actions">
+              <button className="admin-btn" onClick={() => bulk('active')}>Activer</button>
+              <button className="admin-btn" onClick={() => bulk('draft')}>Brouillon</button>
+              <button className="admin-btn" onClick={() => bulk('archived')}>Archiver</button>
+              <button className="admin-btn admin-btn--danger" onClick={() => bulk('delete')}>Supprimer</button>
+              <button className="admin-btn" onClick={() => setSelected(new Set())}>Désélectionner</button>
+            </div>
+          </div>
+        )}
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
+                <th className="admin-check-col">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={togglePage}
+                    aria-label="Tout sélectionner"
+                  />
+                </th>
                 <th></th>
                 <th>Pièce</th>
                 <th>Taille</th>
@@ -161,7 +224,18 @@ export function AdminItems({ onAuthError }: Props) {
             </thead>
             <tbody>
               {paged.map((item) => (
-                <tr key={item.id} className={item.status !== 'active' ? 'admin-row--dim' : ''}>
+                <tr
+                  key={item.id}
+                  className={`${item.status !== 'active' ? 'admin-row--dim' : ''} ${selected.has(item.id) ? 'admin-row--sel' : ''}`}
+                >
+                  <td className="admin-check-col">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(item.id)}
+                      onChange={() => toggleOne(item.id)}
+                      aria-label={`Sélectionner ${item.title}`}
+                    />
+                  </td>
                   <td>
                     <span
                       className="admin-thumb"

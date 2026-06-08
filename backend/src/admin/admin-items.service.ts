@@ -68,6 +68,27 @@ export class AdminItemsService {
     return { ok: true };
   }
 
+  // Apply one action to many items in a single DB call, then reload once.
+  // `action` is either 'delete' or one of the lifecycle statuses.
+  async bulk(ids: string[], action: string): Promise<{ ok: true; count: number }> {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Aucune pièce sélectionnée.');
+    }
+    let count: number;
+    if (action === 'delete') {
+      ({ count } = await this.prisma.item.deleteMany({ where: { id: { in: ids } } }));
+    } else if ((ITEM_STATUSES as readonly string[]).includes(action)) {
+      ({ count } = await this.prisma.item.updateMany({
+        where: { id: { in: ids } },
+        data: { status: action },
+      }));
+    } else {
+      throw new BadRequestException('Action groupée invalide.');
+    }
+    await this.loader.reload();
+    return { ok: true, count };
+  }
+
   private async getOrThrow(id: string): Promise<Item> {
     const item = await this.prisma.item.findUnique({ where: { id } });
     if (!item) throw new NotFoundException(`Item ${id} introuvable.`);
