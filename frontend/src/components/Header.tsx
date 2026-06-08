@@ -24,6 +24,7 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
 
   return (
     <header className="app-header">
+      <div className="app-header__inner">
       <NavLink to="/" className="logo">
         <span className="logo__mark">FR</span>
         <div>
@@ -81,6 +82,7 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
             )}
           </AnimatePresence>
         </button>
+      </div>
       </div>
     </header>
   );

@@ -51,8 +51,18 @@ body {
   flex-direction: column;
 }
 
-/* Header */
+/* Header — sticky so the cart/favorites stay reachable while scrolling. */
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  width: 100%;
+  background: rgba(255, 248, 241, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(240, 228, 210, 0.7);
+}
+.app-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -61,7 +71,7 @@ body {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 18px 24px 8px;
+  padding: 12px 24px;
 }
 .logo {
   display: flex;
@@ -1711,8 +1721,8 @@ body {
 /* ---------- Responsive: small screens ---------- */
 @media (max-width: 600px) {
   /* Header — keep it to two compact rows */
-  .app-header {
-    padding: 12px 14px 6px;
+  .app-header__inner {
+    padding: 10px 14px;
     gap: 6px 8px;
   }
   .logo p {
