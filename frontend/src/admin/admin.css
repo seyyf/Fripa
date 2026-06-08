@@ -94,7 +94,7 @@
   color: #1a1f2b;
 }
 .admin__nav-link--on {
-  background: #1a1f2b;
+  background: var(--accent);
   color: #fff;
 }
 .admin__bar-actions {
