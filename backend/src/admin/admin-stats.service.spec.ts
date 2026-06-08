@@ -31,6 +31,8 @@ describe('AdminStatsService.summary', () => {
     expect(s.orders.revenueToday).toBe(50);
     expect(s.ordersByStatus.Nouvelle).toBe(1);
     expect(s.ordersByStatus.Livrée).toBe(1);
+    // delivered = only the "Livrée" order (30 TND), distinct from total revenue (80)
+    expect(s.delivered).toEqual({ count: 1, revenue: 30 });
     // sorted by count desc
     expect(s.topCategories[0]).toEqual({ category: 'T-shirts', count: 20 });
   });

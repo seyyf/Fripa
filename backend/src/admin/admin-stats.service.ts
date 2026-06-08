@@ -6,6 +6,8 @@ import { ORDER_STATUSES } from './admin-orders.service';
 export interface AdminStats {
   items: { total: number } & Record<string, number>;
   orders: { total: number; revenue: number; today: number; revenueToday: number };
+  // Realized sales: orders confirmed delivered (status "Livrée").
+  delivered: { count: number; revenue: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
 }
@@ -34,6 +36,7 @@ export class AdminStatsService {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const todays = orders.filter((o) => o.createdAt >= startOfToday);
+    const deliveredOrders = orders.filter((o) => o.status === 'Livrée');
 
     const ordersByStatus: Record<string, number> = {};
     for (const s of ORDER_STATUSES) ordersByStatus[s] = orders.filter((o) => o.status === s).length;
@@ -49,6 +52,10 @@ export class AdminStatsService {
         revenue: orders.reduce((sum, o) => sum + o.total, 0),
         today: todays.length,
         revenueToday: todays.reduce((sum, o) => sum + o.total, 0),
+      },
+      delivered: {
+        count: deliveredOrders.length,
+        revenue: deliveredOrders.reduce((sum, o) => sum + o.total, 0),
       },
       ordersByStatus,
       topCategories,

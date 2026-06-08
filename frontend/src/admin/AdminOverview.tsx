@@ -35,7 +35,17 @@ export function AdminOverview({ onAuthError }: Props) {
   const cards = [
     { label: 'Pièces actives', value: stats.items.active ?? 0, sub: `${stats.items.total} au total` },
     { label: 'Commandes', value: stats.orders.total, sub: `${stats.orders.today} aujourd’hui` },
-    { label: 'Ventes', value: `${stats.orders.revenue} TND`, sub: `${stats.orders.revenueToday} TND aujourd’hui` },
+    {
+      label: 'Ventes (total)',
+      value: `${stats.orders.revenue} TND`,
+      sub: `${stats.orders.revenueToday} TND aujourd’hui`,
+    },
+    {
+      label: 'Livrées',
+      value: `${stats.delivered.revenue} TND`,
+      sub: `${stats.delivered.count} commande${stats.delivered.count > 1 ? 's' : ''} livrée${stats.delivered.count > 1 ? 's' : ''}`,
+      accent: true,
+    },
     { label: 'Vendues', value: stats.items.sold ?? 0, sub: `${stats.items.draft ?? 0} brouillons` },
   ];
 
@@ -45,7 +55,7 @@ export function AdminOverview({ onAuthError }: Props) {
 
       <div className="admin-kpis">
         {cards.map((c) => (
-          <div key={c.label} className="admin-kpi">
+          <div key={c.label} className={`admin-kpi ${c.accent ? 'admin-kpi--accent' : ''}`}>
             <span className="admin-kpi__value">{c.value}</span>
             <span className="admin-kpi__label">{c.label}</span>
             <span className="admin-kpi__sub">{c.sub}</span>

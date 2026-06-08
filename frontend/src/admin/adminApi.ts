@@ -60,6 +60,7 @@ export const ORDER_STATUSES = [
 export interface AdminStats {
   items: { total: number } & Record<string, number>;
   orders: { total: number; revenue: number; today: number; revenueToday: number };
+  delivered: { count: number; revenue: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
 }
