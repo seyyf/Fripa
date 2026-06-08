@@ -21,6 +21,7 @@ export function AdminOrders({ onAuthError }: Props) {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -39,6 +40,14 @@ export function AdminOrders({ onAuthError }: Props) {
   }, []);
 
   const revenue = orders.reduce((sum, o) => sum + o.total, 0);
+
+  const shown = orders.filter((o) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return `${o.ref} ${o.customerName} ${o.customerPhone} ${o.customerEmail}`
+      .toLowerCase()
+      .includes(q);
+  });
 
   async function changeStatus(order: AdminOrder, status: string) {
     const prev = order.status;
@@ -63,15 +72,28 @@ export function AdminOrders({ onAuthError }: Props) {
         </div>
       </div>
 
+      {orders.length > 0 && (
+        <div className="admin-items__filters">
+          <input
+            className="filter-input admin-items__search"
+            placeholder="Rechercher (réf, client, téléphone…)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
+
       {error && <div className="checkout__error admin-items__error">{error}</div>}
 
       {loading ? (
         <p className="muted admin-items__empty">Chargement…</p>
       ) : orders.length === 0 ? (
         <p className="muted admin-items__empty">Aucune commande pour l’instant.</p>
+      ) : shown.length === 0 ? (
+        <p className="muted admin-items__empty">Aucune commande ne correspond.</p>
       ) : (
         <div className="admin-orders__list">
-          {orders.map((o) => (
+          {shown.map((o) => (
             <article key={o.id} className="admin-order">
               <header className="admin-order__head">
                 <div>

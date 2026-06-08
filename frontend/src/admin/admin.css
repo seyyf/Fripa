@@ -256,6 +256,14 @@
   border-bottom: 1px solid #eceef1;
   background: #fafbfc;
 }
+.admin-th-sort {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.admin-th-sort:hover {
+  color: #1a1f2b;
+}
 .admin-table td {
   padding: 10px 14px;
   border-bottom: 1px solid #f1f2f4;

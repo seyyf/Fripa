@@ -13,6 +13,8 @@ interface Props {
 }
 
 type Editing = { mode: 'create' } | { mode: 'edit'; item: AdminItem } | null;
+type SortKey = 'title' | 'price' | 'category' | 'status';
+type Sort = { key: SortKey; dir: 'asc' | 'desc' };
 
 const PER_PAGE = 10;
 
@@ -25,6 +27,7 @@ export function AdminItems({ onAuthError }: Props) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<Sort | null>(null);
 
   function handleError(err: unknown) {
     if (err instanceof AdminAuthError) {
@@ -60,10 +63,30 @@ export function AdminItems({ onAuthError }: Props) {
     });
   }, [items, query, statusFilter]);
 
-  // Back to the first page whenever the filtered set changes.
+  const sorted = useMemo(() => {
+    if (!sort) return shown;
+    const arr = [...shown];
+    arr.sort((a, b) => {
+      const cmp =
+        sort.key === 'price'
+          ? a.price - b.price
+          : String(a[sort.key]).localeCompare(String(b[sort.key]), 'fr');
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+  }, [shown, sort]);
+
+  function toggleSort(key: SortKey) {
+    setSort((s) =>
+      s && s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' },
+    );
+  }
+  const sortCaret = (key: SortKey) => (sort?.key === key ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : '');
+
+  // Back to the first page whenever the filtered/sorted set changes.
   useEffect(() => {
     setPage(1);
-  }, [query, statusFilter]);
+  }, [query, statusFilter, sort]);
 
   // Drop selected ids that no longer exist (after deletions/refresh).
   useEffect(() => {
@@ -74,10 +97,10 @@ export function AdminItems({ onAuthError }: Props) {
     });
   }, [items]);
 
-  const pageCount = Math.max(1, Math.ceil(shown.length / PER_PAGE));
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
   const currentPage = Math.min(page, pageCount); // clamp (e.g. after deletions)
   const start = (currentPage - 1) * PER_PAGE;
-  const paged = shown.slice(start, start + PER_PAGE);
+  const paged = sorted.slice(start, start + PER_PAGE);
 
   const pageIds = paged.map((i) => i.id);
   const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
@@ -214,11 +237,19 @@ export function AdminItems({ onAuthError }: Props) {
                   />
                 </th>
                 <th></th>
-                <th>Pièce</th>
+                <th className="admin-th-sort" onClick={() => toggleSort('title')}>
+                  Pièce{sortCaret('title')}
+                </th>
                 <th>Taille</th>
-                <th>Prix</th>
-                <th>Catégorie</th>
-                <th>Statut</th>
+                <th className="admin-th-sort" onClick={() => toggleSort('price')}>
+                  Prix{sortCaret('price')}
+                </th>
+                <th className="admin-th-sort" onClick={() => toggleSort('category')}>
+                  Catégorie{sortCaret('category')}
+                </th>
+                <th className="admin-th-sort" onClick={() => toggleSort('status')}>
+                  Statut{sortCaret('status')}
+                </th>
                 <th></th>
               </tr>
             </thead>
