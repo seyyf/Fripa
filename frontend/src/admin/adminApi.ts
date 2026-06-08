@@ -151,6 +151,11 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ ids, action }),
     }),
+  importItems: (csv: string) =>
+    http<{ created: number; errors: string[] }>('/admin/items/import', {
+      method: 'POST',
+      body: JSON.stringify({ csv }),
+    }),
   listOrders: () => http<AdminOrder[]>('/admin/orders'),
   updateOrder: (id: string, patch: OrderPatch) =>
     http<AdminOrder>(`/admin/orders/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AdminItemsService, ItemInput } from './admin-items.service';
+import { AdminItemsService, ItemInput, parseCsv } from './admin-items.service';
 import type { PrismaService } from '../shop/prisma.service';
 import type { CatalogueLoader } from '../shop/catalogue.loader';
 
@@ -142,6 +142,39 @@ describe('AdminItemsService.list', () => {
     ]);
     const items = await svc.list();
     expect(items).toHaveLength(2);
+  });
+});
+
+describe('parseCsv', () => {
+  it('handles quoted fields with commas and escaped quotes', () => {
+    const rows = parseCsv('a,b\n"x, y","he said ""hi"""\n');
+    expect(rows).toEqual([
+      ['a', 'b'],
+      ['x, y', 'he said "hi"'],
+    ]);
+  });
+});
+
+describe('AdminItemsService.importCsv', () => {
+  const header =
+    'title,description,imageUrl,price,size,brand,condition,color,seller,category';
+  it('creates valid rows and reports per-row errors', async () => {
+    const { svc, store, loader } = makeService();
+    const csv = [
+      header,
+      'Tee A,desc,http://x,20,M,Nike,Bon état,Noir,Tunis,T-shirts',
+      'Tee B,desc,http://x,-5,M,Nike,Bon état,Noir,Tunis,T-shirts',
+    ].join('\n');
+    const res = await svc.importCsv(csv);
+    expect(res.created).toBe(1);
+    expect(res.errors).toHaveLength(1);
+    expect(store).toHaveLength(1);
+    expect(loader.reload).toHaveBeenCalledOnce();
+  });
+
+  it('rejects a CSV with no data rows', async () => {
+    const { svc } = makeService();
+    await expect(svc.importCsv(header)).rejects.toThrow();
   });
 });
 

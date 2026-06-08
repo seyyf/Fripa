@@ -28,6 +28,44 @@ const STRING_FIELDS = [
   'seller',
 ] as const;
 
+// Minimal RFC-4180-ish CSV parser: handles quoted fields, escaped quotes, commas
+// and CRLF/LF line breaks.
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let quoted = false;
+  const t = text.replace(/^﻿/, '');
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (quoted) {
+      if (c === '"') {
+        if (t[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else quoted = false;
+      } else field += c;
+    } else if (c === '"') {
+      quoted = true;
+    } else if (c === ',') {
+      row.push(field);
+      field = '';
+    } else if (c === '\n') {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else if (c !== '\r') {
+      field += c;
+    }
+  }
+  if (field !== '' || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
+
 // Admin CRUD over the item catalogue. Every mutation refreshes the in-memory
 // catalogue (CatalogueLoader.reload) so the shopper deck reflects changes live.
 @Injectable()
@@ -43,12 +81,56 @@ export class AdminItemsService {
   }
 
   async create(input: ItemInput): Promise<Item> {
-    const data = this.validate(input, { partial: false });
-    const item = await this.prisma.item.create({
-      data: { id: this.generateId(), status: 'active', ...data } as Prisma.ItemUncheckedCreateInput,
-    });
+    const item = await this.createRaw(input);
     await this.loader.reload();
     return item;
+  }
+
+  // Validate + persist a single item without reloading the catalogue (so batch
+  // imports reload only once at the end).
+  private createRaw(input: ItemInput): Promise<Item> {
+    const data = this.validate(input, { partial: false });
+    return this.prisma.item.create({
+      data: { id: this.generateId(), status: 'active', ...data } as Prisma.ItemUncheckedCreateInput,
+    });
+  }
+
+  // Bulk-create items from a CSV (header row maps columns to fields). Returns a
+  // count of created rows and per-row errors; reloads the catalogue once.
+  async importCsv(csv: string): Promise<{ created: number; errors: string[] }> {
+    const rows = parseCsv(csv);
+    if (rows.length < 2) throw new BadRequestException('CSV vide ou sans ligne d’en-tête.');
+    const headers = rows[0].map((h) => h.trim());
+    const errors: string[] = [];
+    let created = 0;
+    for (let r = 1; r < rows.length; r++) {
+      const cells = rows[r];
+      if (cells.every((c) => c.trim() === '')) continue; // skip blank lines
+      const o: Record<string, string> = {};
+      headers.forEach((h, i) => (o[h] = (cells[i] ?? '').trim()));
+      const input: ItemInput = {
+        title: o.title,
+        description: o.description,
+        imageUrl: o.imageUrl,
+        price: Number(o.price),
+        salePrice: o.salePrice === '' || o.salePrice == null ? null : Number(o.salePrice),
+        size: o.size,
+        brand: o.brand,
+        condition: o.condition,
+        color: o.color,
+        seller: o.seller,
+        category: o.category,
+        status: o.status || undefined,
+      };
+      try {
+        await this.createRaw(input);
+        created++;
+      } catch (e) {
+        errors.push(`Ligne ${r + 1}: ${e instanceof Error ? e.message : 'invalide'}`);
+      }
+    }
+    await this.loader.reload();
+    return { created, errors };
   }
 
   async update(id: string, input: Partial<ItemInput>): Promise<Item> {
@@ -96,10 +178,11 @@ export class AdminItemsService {
     return item;
   }
 
+  private idSeq = 0;
   private generateId(): string {
-    return `adm-${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)
-      .toString(36)
-      .padStart(3, '0')}`;
+    return `adm-${Date.now().toString(36)}${(this.idSeq++).toString(36)}${Math.floor(
+      Math.random() * 36 ** 3,
+    ).toString(36)}`;
   }
 
   // Validate + trim. With `partial: true` (updates), absent fields are skipped;

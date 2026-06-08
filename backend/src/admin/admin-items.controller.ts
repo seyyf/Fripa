@@ -34,6 +34,11 @@ export class AdminItemsController {
     return this.items.bulk(body?.ids, body?.action);
   }
 
+  @Post('import')
+  importCsv(@Body() body: { csv: string }) {
+    return this.items.importCsv(body?.csv ?? '');
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: Partial<ItemInput>) {
     return this.items.update(id, body);

@@ -139,6 +139,11 @@
   gap: 16px;
   margin-bottom: 18px;
 }
+.admin-items__head-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
 .admin-items__title {
   margin: 0;
   font-size: 26px;

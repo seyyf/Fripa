@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { adminApi, AdminAuthError, ORDER_STATUSES, type AdminOrder } from './adminApi';
 import { OrderDetail } from './OrderDetail';
+import { downloadCsv } from './csv';
 
 // Normalises accented status to a CSS-class-safe suffix (e.g. "Expédiée" → "expediee").
 const statusKey = (s: string) =>
@@ -78,6 +79,31 @@ export function AdminOrders({ onAuthError }: Props) {
             {orders.length} commande{orders.length > 1 ? 's' : ''} · {revenue} TND de ventes
           </p>
         </div>
+        {orders.length > 0 && (
+          <button
+            className="admin-btn"
+            onClick={() =>
+              downloadCsv(
+                'fripa-commandes.csv',
+                ['ref', 'date', 'statut', 'encaissee', 'client', 'telephone', 'email', 'adresse', 'total', 'pieces'],
+                shown.map((o) => [
+                  o.ref,
+                  new Date(o.createdAt).toISOString(),
+                  o.status,
+                  o.paid ? 'oui' : 'non',
+                  o.customerName,
+                  o.customerPhone,
+                  o.customerEmail,
+                  o.customerAddress,
+                  o.total,
+                  o.lines.map((l) => l.title).join(' | '),
+                ]),
+              )
+            }
+          >
+            ⤓ CSV
+          </button>
+        )}
       </div>
 
       {orders.length > 0 && (

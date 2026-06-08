@@ -7,6 +7,7 @@ import {
   type ItemInput,
 } from './adminApi';
 import { ItemForm } from './ItemForm';
+import { downloadCsv } from './csv';
 
 interface Props {
   onAuthError: () => void;
@@ -179,9 +180,48 @@ export function AdminItems({ onAuthError }: Props) {
             {counts.active} actives · {items.length} au total
           </p>
         </div>
-        <button className="btn btn--add" onClick={() => setEditing({ mode: 'create' })}>
-          + Nouvelle pièce
-        </button>
+        <div className="admin-items__head-actions">
+          <label className="admin-btn admin-upload-btn">
+            ⤒ Importer
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              hidden
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                try {
+                  const res = await adminApi.importItems(await file.text());
+                  await refresh();
+                  setError(
+                    res.errors.length
+                      ? `${res.created} importée(s) · ${res.errors.length} erreur(s) : ${res.errors.slice(0, 3).join(' ; ')}`
+                      : null,
+                  );
+                  if (!res.errors.length) window.alert(`${res.created} pièce(s) importée(s).`);
+                } catch (err) {
+                  handleError(err);
+                }
+              }}
+            />
+          </label>
+          <button
+            className="admin-btn"
+            onClick={() =>
+              downloadCsv(
+                'fripa-pieces.csv',
+                ['id', 'title', 'description', 'imageUrl', 'price', 'salePrice', 'size', 'brand', 'condition', 'color', 'seller', 'category', 'status'],
+                items.map((i) => [i.id, i.title, i.description, i.imageUrl, i.price, i.salePrice ?? '', i.size, i.brand, i.condition, i.color, i.seller, i.category, i.status]),
+              )
+            }
+          >
+            ⤓ CSV
+          </button>
+          <button className="btn btn--add" onClick={() => setEditing({ mode: 'create' })}>
+            + Nouvelle pièce
+          </button>
+        </div>
       </div>
 
       <div className="admin-items__filters">
