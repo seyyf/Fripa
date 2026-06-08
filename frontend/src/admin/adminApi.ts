@@ -23,6 +23,7 @@ export interface AdminItem {
   description: string;
   imageUrl: string;
   price: number;
+  salePrice?: number | null;
   size: string;
   brand: string;
   condition: string;

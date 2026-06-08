@@ -1,5 +1,5 @@
 import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
-import type { FieldItem } from '../types';
+import { effectivePrice, isOnSale, type FieldItem } from '../types';
 import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
 
 interface Props {
@@ -121,7 +121,11 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         >
           FAVORI
         </motion.span>
-        <span className="swipe-card__price">{item.price} TND</span>
+        {isOnSale(item) && <span className="swipe-card__sale-badge">Soldes</span>}
+        <span className="swipe-card__price">
+          {isOnSale(item) && <span className="swipe-card__price-old">{item.price}</span>}
+          {effectivePrice(item)} TND
+        </span>
       </div>
 
       <div className="swipe-card__body">

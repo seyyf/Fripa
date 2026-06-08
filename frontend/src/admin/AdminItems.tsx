@@ -280,7 +280,16 @@ export function AdminItems({ onAuthError }: Props) {
                     </span>
                   </td>
                   <td>{item.size}</td>
-                  <td className="admin-price">{item.price} TND</td>
+                  <td className="admin-price">
+                    {item.salePrice != null && item.salePrice < item.price ? (
+                      <>
+                        <span className="admin-price__old">{item.price}</span>{' '}
+                        <span className="admin-price__sale">{item.salePrice} TND</span>
+                      </>
+                    ) : (
+                      `${item.price} TND`
+                    )}
+                  </td>
                   <td>{item.category}</td>
                   <td>
                     <select

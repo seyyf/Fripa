@@ -19,6 +19,7 @@ model Item {
   description String
   imageUrl    String
   price       Int
+  salePrice   Int? // optional discounted price; treated as a sale only when < price
   size        String // S | M | L | XL | XXL
   brand       String
   condition   String // Comme neuf | Très bon état | Bon état | Vintage

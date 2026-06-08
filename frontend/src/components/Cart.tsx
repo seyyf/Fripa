@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
+import { effectivePrice, isOnSale } from '../types';
 import { holdState, formatHold } from '../cart/holdTimer';
 import { CheckoutForm } from './CheckoutForm';
 
@@ -68,7 +69,10 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
               <div className="cart-line__info">
                 <strong>{line.title}</strong>
                 <span className="muted">{line.size} · {line.condition}</span>
-                <span className="cart-line__price">{line.price} TND</span>
+                <span className="cart-line__price">
+                  {isOnSale(line) && <span className="price-old">{line.price}</span>}
+                  {effectivePrice(line)} TND
+                </span>
                 <span
                   className={`cart-line__hold ${phase === 'warning' ? 'cart-line__hold--warn' : ''}`}
                 >

@@ -535,6 +535,48 @@ body {
   font-size: 14px;
   backdrop-filter: blur(4px);
 }
+.swipe-card__price-old {
+  text-decoration: line-through;
+  opacity: 0.7;
+  font-weight: 600;
+  font-size: 12px;
+  margin-right: 6px;
+}
+.swipe-card__sale-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+/* Shared sale price treatment for catalogue / detail / cart. */
+.price-old {
+  text-decoration: line-through;
+  color: var(--muted);
+  font-weight: 500;
+  margin-right: 6px;
+}
+.sale-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
 
 /* Drag overlay stamps */
 .stamp {

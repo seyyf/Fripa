@@ -9,6 +9,7 @@ export interface ItemInput {
   description: string;
   imageUrl: string;
   price: number;
+  salePrice?: number | null;
   size: string;
   brand: string;
   condition: string;
@@ -127,6 +128,18 @@ export class AdminItemsService {
         throw new BadRequestException('Le prix doit être un entier positif.');
       }
       out.price = p;
+    }
+
+    // salePrice: undefined → leave as-is; null → clear the sale; number → validate.
+    if (input.salePrice !== undefined) {
+      const sp = input.salePrice;
+      if (sp === null) {
+        out.salePrice = null;
+      } else if (typeof sp !== 'number' || !Number.isInteger(sp) || sp < 0) {
+        throw new BadRequestException('Le prix soldé doit être un entier positif ou vide.');
+      } else {
+        out.salePrice = sp;
+      }
     }
 
     const oneOf = (key: string, value: unknown, allowed: readonly string[]) => {

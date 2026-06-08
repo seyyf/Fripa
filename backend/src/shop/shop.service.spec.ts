@@ -1,7 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { ShopService, MAX_CART_HOLDS } from './shop.service';
+import { effectivePrice } from './types';
 
 const id = (n: number) => `t-${String(n).padStart(3, '0')}`;
+
+describe('effectivePrice', () => {
+  it('charges the sale price only when it is below the regular price', () => {
+    expect(effectivePrice({ price: 50 })).toBe(50);
+    expect(effectivePrice({ price: 50, salePrice: null })).toBe(50);
+    expect(effectivePrice({ price: 50, salePrice: 30 })).toBe(30);
+    expect(effectivePrice({ price: 50, salePrice: 60 })).toBe(50); // not a real discount
+  });
+});
 
 function withRng(value: number): ShopService {
   const s = new ShopService();

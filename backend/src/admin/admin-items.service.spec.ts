@@ -75,6 +75,13 @@ describe('AdminItemsService.create', () => {
     expect(item.status).toBe('draft');
   });
 
+  it('accepts a valid sale price and rejects a negative one', async () => {
+    const { svc } = makeService();
+    const item = await svc.create({ ...VALID, salePrice: 15 });
+    expect(item.salePrice).toBe(15);
+    await expect(svc.create({ ...VALID, salePrice: -1 })).rejects.toThrow();
+  });
+
   it.each([
     ['bad category', { ...VALID, category: 'Chaussures' }],
     ['bad size', { ...VALID, size: 'XXXL' }],

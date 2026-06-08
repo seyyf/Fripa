@@ -20,6 +20,7 @@ const EMPTY: ItemInput = {
   description: '',
   imageUrl: '',
   price: 0,
+  salePrice: null,
   size: 'M',
   brand: '',
   condition: 'Bon état',
@@ -37,6 +38,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
           description: initial.description,
           imageUrl: initial.imageUrl,
           price: initial.price,
+          salePrice: initial.salePrice ?? null,
           size: initial.size,
           brand: initial.brand,
           condition: initial.condition,
@@ -76,7 +78,11 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
     setError(null);
     setBusy(true);
     try {
-      await onSave({ ...form, price: Number(form.price) });
+      await onSave({
+        ...form,
+        price: Number(form.price),
+        salePrice: form.salePrice == null ? null : Number(form.salePrice),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Échec de l’enregistrement.');
       setBusy(false);
@@ -113,6 +119,20 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
                 min={0}
                 value={form.price}
                 onChange={(e) => set('price', e.target.valueAsNumber || 0)}
+              />
+            </label>
+
+            <label className="field">
+              <span className="field__label">Prix soldé (TND)</span>
+              <input
+                className="filter-input"
+                type="number"
+                min={0}
+                value={form.salePrice ?? ''}
+                placeholder="— (aucune solde)"
+                onChange={(e) =>
+                  set('salePrice', e.target.value === '' ? null : e.target.valueAsNumber || 0)
+                }
               />
             </label>
 

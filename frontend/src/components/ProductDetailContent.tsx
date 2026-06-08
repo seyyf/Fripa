@@ -1,4 +1,5 @@
 import type { ItemStatus, TShirt } from '../types';
+import { effectivePrice, isOnSale } from '../types';
 
 interface Props {
   item: TShirt;
@@ -21,7 +22,11 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
           <h1 className="pd__title">{item.title}</h1>
           <span className="pd__brand">{item.brand}</span>
         </div>
-        <div className="pd__price">{item.price} TND</div>
+        <div className="pd__price">
+          {isOnSale(item) && <span className="price-old">{item.price} TND</span>}
+          {effectivePrice(item)} TND
+          {isOnSale(item) && <span className="sale-badge">Soldes</span>}
+        </div>
 
         <div className="pd__chips">
           <span className="chip">Taille {item.size}</span>

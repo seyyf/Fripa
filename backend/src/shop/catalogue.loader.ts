@@ -13,6 +13,7 @@ function toTShirt(row: Item): TShirt {
     description: row.description,
     imageUrl: row.imageUrl,
     price: row.price,
+    salePrice: row.salePrice,
     size: row.size as TShirt['size'],
     brand: row.brand,
     condition: row.condition as TShirt['condition'],

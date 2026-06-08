@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { api } from '../api';
 import type { CatalogueItem, Category, FieldFilters, TShirt } from '../types';
+import { effectivePrice, isOnSale } from '../types';
 import { activeFilterCount } from '../filters/fieldQuery';
 import { formatHold } from '../cart/holdTimer';
 import { usePhantomCrowd } from '../crowd/usePhantomCrowd';
@@ -267,7 +268,10 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
                         <span className="cat-card__title">{item.title}</span>
                         <span className="cat-card__meta">
                           <span className="cat-card__brand">{item.brand}</span>
-                          <span className="cat-card__price">{item.price} TND</span>
+                          <span className="cat-card__price">
+                            {isOnSale(item) && <span className="price-old">{item.price}</span>}
+                            {effectivePrice(item)} TND
+                          </span>
                         </span>
                       </span>
                     </div>
@@ -310,7 +314,10 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
                       <span className="cat-card__title">{item.title}</span>
                       <span className="cat-card__meta">
                         <span className="cat-card__brand">{item.brand}</span>
-                        <span className="cat-card__price">{item.price} TND</span>
+                        <span className="cat-card__price">
+                          {isOnSale(item) && <span className="price-old">{item.price}</span>}
+                          {effectivePrice(item)} TND
+                        </span>
                       </span>
                     </span>
                   </Link>

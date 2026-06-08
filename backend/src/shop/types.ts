@@ -32,12 +32,20 @@ export interface TShirt {
   description: string;
   imageUrl: string;
   price: number;
+  // Optional discounted price. Treated as a sale only when set and below `price`.
+  salePrice?: number | null;
   size: 'S' | 'M' | 'L' | 'XL' | 'XXL';
   brand: string;
   condition: 'Comme neuf' | 'Très bon état' | 'Bon état' | 'Vintage';
   color: string;
   seller: string;
   category: Category;
+}
+
+// The price actually charged: the sale price when it's a real discount, else the
+// regular price. Single source of truth for cart totals and order snapshots.
+export function effectivePrice(item: { price: number; salePrice?: number | null }): number {
+  return item.salePrice != null && item.salePrice < item.price ? item.salePrice : item.price;
 }
 
 export interface FieldResponse {

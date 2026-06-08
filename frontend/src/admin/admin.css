@@ -297,6 +297,14 @@
   font-weight: 700;
   white-space: nowrap;
 }
+.admin-price__old {
+  color: var(--muted);
+  text-decoration: line-through;
+  font-weight: 500;
+}
+.admin-price__sale {
+  color: var(--accent);
+}
 .admin-status {
   border: 1px solid #e0e2e8;
   border-radius: 999px;

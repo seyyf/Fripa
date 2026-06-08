@@ -5,6 +5,7 @@ import {
   CatalogueResponse,
   Category,
   CATEGORIES,
+  effectivePrice,
   FavoritesResponse,
   FieldFilters,
   FieldResponse,
@@ -324,7 +325,7 @@ export class ShopService {
       }
       lines.push({ ...item, quantity: 1, expiresAt: reservedAt + CART_TTL_MS });
     }
-    const total = lines.reduce((acc, l) => acc + l.price * l.quantity, 0);
+    const total = lines.reduce((acc, l) => acc + effectivePrice(l) * l.quantity, 0);
     return { lines, total };
   }
 

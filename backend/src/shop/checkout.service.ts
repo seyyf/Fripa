@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CatalogueLoader } from './catalogue.loader';
 import { ShopService } from './shop.service';
-import { CustomerInfo } from './types';
+import { CustomerInfo, effectivePrice } from './types';
 
 export interface CheckoutResult {
   ok: boolean;
@@ -68,7 +68,7 @@ export class CheckoutService {
                 itemId: l.id,
                 title: l.title,
                 brand: l.brand,
-                price: l.price,
+                price: effectivePrice(l), // snapshot the price actually paid
                 size: l.size,
                 imageUrl: l.imageUrl,
               })),
