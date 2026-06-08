@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  adminApi,
   CATEGORIES,
   CONDITIONS,
   SIZES,
@@ -48,9 +49,26 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   function set<K extends keyof ItemInput>(key: K, value: ItemInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      set('imageUrl', url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Échec du téléversement.');
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function submit(e: React.FormEvent) {
@@ -144,10 +162,27 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
               <input className="filter-input" value={form.seller} onChange={(e) => set('seller', e.target.value)} />
             </label>
 
-            <label className="field admin-form__wide">
-              <span className="field__label">URL de l’image</span>
-              <input className="filter-input" value={form.imageUrl} onChange={(e) => set('imageUrl', e.target.value)} placeholder="https://…" />
-            </label>
+            <div className="field admin-form__wide">
+              <span className="field__label">Image</span>
+              <div className="admin-form__upload">
+                <label className={`admin-btn admin-upload-btn ${uploading ? 'is-busy' : ''}`}>
+                  {uploading ? 'Téléversement…' : '⤓ Téléverser'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    disabled={uploading}
+                    onChange={onPickFile}
+                  />
+                </label>
+                <input
+                  className="filter-input"
+                  value={form.imageUrl}
+                  onChange={(e) => set('imageUrl', e.target.value)}
+                  placeholder="…ou colle une URL https://"
+                />
+              </div>
+            </div>
 
             <label className="field admin-form__wide">
               <span className="field__label">Description</span>

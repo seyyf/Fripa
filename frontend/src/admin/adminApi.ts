@@ -117,4 +117,31 @@ export const adminApi = {
   deleteItem: (id: string) =>
     http<{ ok: true }>(`/admin/items/${id}`, { method: 'DELETE' }),
   listOrders: () => http<AdminOrder[]>('/admin/orders'),
+
+  // Multipart upload — can't go through `http` (which forces a JSON content-type;
+  // the browser must set the multipart boundary itself).
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const token = getToken();
+    const res = await fetch(`${BASE}/admin/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (res.status === 401) {
+      clearToken();
+      throw new AdminAuthError();
+    }
+    if (!res.ok) {
+      let message: string | undefined;
+      try {
+        message = (await res.json())?.message;
+      } catch {
+        /* ignore */
+      }
+      throw new Error(message || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
 };

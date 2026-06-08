@@ -390,6 +390,24 @@
   resize: vertical;
   font-family: inherit;
 }
+.admin-form__upload {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.admin-form__upload .filter-input {
+  flex: 1;
+}
+.admin-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.admin-upload-btn.is-busy {
+  opacity: 0.6;
+  cursor: progress;
+}
 .admin-form__preview {
   margin-top: 14px;
   display: flex;
