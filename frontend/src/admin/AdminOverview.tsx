@@ -46,6 +46,12 @@ export function AdminOverview({ onAuthError }: Props) {
       sub: `${stats.delivered.count} commande${stats.delivered.count > 1 ? 's' : ''} livrée${stats.delivered.count > 1 ? 's' : ''}`,
       accent: true,
     },
+    {
+      label: 'Encaissé',
+      value: `${stats.collected.revenue} TND`,
+      sub: `${stats.collected.count} commande${stats.collected.count > 1 ? 's' : ''} payée${stats.collected.count > 1 ? 's' : ''}`,
+      accent: true,
+    },
     { label: 'Vendues', value: stats.items.sold ?? 0, sub: `${stats.items.draft ?? 0} brouillons` },
   ];
 

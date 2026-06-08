@@ -656,10 +656,45 @@
   border-color: #bfe6cf;
   background: #ecf9f1;
 }
+.admin-order-status--retournee {
+  color: #b45309;
+  border-color: #f5d9b0;
+  background: #fdf3e3;
+}
 .admin-order-status--annulee {
   color: var(--accent);
   border-color: #f1d3d0;
   background: #fdeceb;
+}
+.admin-paid-badge {
+  background: #ecf9f1;
+  color: #0f7b46;
+  border: 1px solid #bfe6cf;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.admin-btn--paid {
+  background: #ecf9f1;
+  border-color: #bfe6cf;
+  color: #0f7b46;
+}
+.admin-order-detail__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.admin-order-detail__controls {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-bottom: 4px;
+}
+.admin-order-detail__controls .field {
+  flex: 1;
 }
 .admin-order__customer {
   display: flex;

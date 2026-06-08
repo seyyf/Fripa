@@ -6,8 +6,8 @@ describe('AdminStatsService.summary', () => {
   it('aggregates item counts, orders, revenue (incl. today), and top categories', async () => {
     const now = new Date();
     const orders = [
-      { total: 50, status: 'Nouvelle', createdAt: now },
-      { total: 30, status: 'Livrée', createdAt: new Date('2020-01-01T00:00:00Z') },
+      { total: 50, status: 'Nouvelle', paid: false, createdAt: now },
+      { total: 30, status: 'Livrée', paid: true, createdAt: new Date('2020-01-01T00:00:00Z') },
     ];
     const byStatus: Record<string, number> = { active: 58, draft: 1, sold: 1, archived: 0 };
     const prisma = {
@@ -33,6 +33,8 @@ describe('AdminStatsService.summary', () => {
     expect(s.ordersByStatus.Livrée).toBe(1);
     // delivered = only the "Livrée" order (30 TND), distinct from total revenue (80)
     expect(s.delivered).toEqual({ count: 1, revenue: 30 });
+    expect(s.collected).toEqual({ count: 1, revenue: 30 }); // only the paid order
+
     // sorted by count desc
     expect(s.topCategories[0]).toEqual({ category: 'T-shirts', count: 20 });
   });

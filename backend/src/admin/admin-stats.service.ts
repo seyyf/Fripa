@@ -8,6 +8,8 @@ export interface AdminStats {
   orders: { total: number; revenue: number; today: number; revenueToday: number };
   // Realized sales: orders confirmed delivered (status "Livrée").
   delivered: { count: number; revenue: number };
+  // Cash actually in hand: orders flagged paid (COD collected).
+  collected: { count: number; revenue: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
 }
@@ -22,7 +24,7 @@ export class AdminStatsService {
       Promise.all(
         ITEM_STATUSES.map(async (s) => [s, await this.prisma.item.count({ where: { status: s } })] as const),
       ),
-      this.prisma.order.findMany({ select: { total: true, status: true, createdAt: true } }),
+      this.prisma.order.findMany({ select: { total: true, status: true, paid: true, createdAt: true } }),
       this.prisma.item.groupBy({
         by: ['category'],
         where: { status: 'active' },
@@ -37,6 +39,7 @@ export class AdminStatsService {
     startOfToday.setHours(0, 0, 0, 0);
     const todays = orders.filter((o) => o.createdAt >= startOfToday);
     const deliveredOrders = orders.filter((o) => o.status === 'Livrée');
+    const collectedOrders = orders.filter((o) => o.paid);
 
     const ordersByStatus: Record<string, number> = {};
     for (const s of ORDER_STATUSES) ordersByStatus[s] = orders.filter((o) => o.status === s).length;
@@ -56,6 +59,10 @@ export class AdminStatsService {
       delivered: {
         count: deliveredOrders.length,
         revenue: deliveredOrders.reduce((sum, o) => sum + o.total, 0),
+      },
+      collected: {
+        count: collectedOrders.length,
+        revenue: collectedOrders.reduce((sum, o) => sum + o.total, 0),
       },
       ordersByStatus,
       topCategories,

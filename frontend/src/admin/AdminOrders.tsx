@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi, AdminAuthError, ORDER_STATUSES, type AdminOrder } from './adminApi';
+import { OrderDetail } from './OrderDetail';
 
 // Normalises accented status to a CSS-class-safe suffix (e.g. "Expédiée" → "expediee").
 const statusKey = (s: string) =>
@@ -22,6 +23,7 @@ export function AdminOrders({ onAuthError }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -49,17 +51,23 @@ export function AdminOrders({ onAuthError }: Props) {
       .includes(q);
   });
 
+  function applyUpdate(updated: AdminOrder) {
+    setOrders((list) => list.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)));
+  }
+
   async function changeStatus(order: AdminOrder, status: string) {
     const prev = order.status;
     setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status } : o))); // optimistic
     try {
-      await adminApi.updateOrderStatus(order.id, status);
+      await adminApi.updateOrder(order.id, { status });
     } catch (err) {
       setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status: prev } : o)));
       if (err instanceof AdminAuthError) onAuthError();
       else setError(err instanceof Error ? err.message : 'Échec de la mise à jour.');
     }
   }
+
+  const detail = orders.find((o) => o.id === detailId) ?? null;
 
   return (
     <section className="admin-orders">
@@ -101,6 +109,7 @@ export function AdminOrders({ onAuthError }: Props) {
                   <span className="admin-order__date">{dateFmt.format(new Date(o.createdAt))}</span>
                 </div>
                 <div className="admin-order__head-right">
+                  {o.paid && <span className="admin-paid-badge">Encaissée</span>}
                   <select
                     className={`admin-status admin-order-status--${statusKey(o.status)}`}
                     value={o.status}
@@ -111,6 +120,9 @@ export function AdminOrders({ onAuthError }: Props) {
                     ))}
                   </select>
                   <span className="admin-order__total">{o.total} TND</span>
+                  <button className="admin-btn" onClick={() => setDetailId(o.id)}>
+                    Détails
+                  </button>
                 </div>
               </header>
 
@@ -143,6 +155,15 @@ export function AdminOrders({ onAuthError }: Props) {
             </article>
           ))}
         </div>
+      )}
+
+      {detail && (
+        <OrderDetail
+          order={detail}
+          onClose={() => setDetailId(null)}
+          onChanged={applyUpdate}
+          onAuthError={onAuthError}
+        />
       )}
     </section>
   );

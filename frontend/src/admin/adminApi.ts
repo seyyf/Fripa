@@ -54,13 +54,24 @@ export const ORDER_STATUSES = [
   'Confirmée',
   'Expédiée',
   'Livrée',
+  'Retournée',
   'Annulée',
 ] as const;
+
+export interface OrderPatch {
+  status?: string;
+  paid?: boolean;
+  customerName?: string;
+  customerEmail?: string;
+  customerAddress?: string;
+  customerPhone?: string;
+}
 
 export interface AdminStats {
   items: { total: number } & Record<string, number>;
   orders: { total: number; revenue: number; today: number; revenueToday: number };
   delivered: { count: number; revenue: number };
+  collected: { count: number; revenue: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
 }
@@ -75,6 +86,7 @@ export interface AdminOrder {
   customerPhone: string;
   total: number;
   status: string;
+  paid: boolean;
   createdAt: string;
   lines: AdminOrderLine[];
 }
@@ -140,8 +152,10 @@ export const adminApi = {
       body: JSON.stringify({ ids, action }),
     }),
   listOrders: () => http<AdminOrder[]>('/admin/orders'),
-  updateOrderStatus: (id: string, status: string) =>
-    http<AdminOrder>(`/admin/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updateOrder: (id: string, patch: OrderPatch) =>
+    http<AdminOrder>(`/admin/orders/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  returnOrder: (id: string) =>
+    http<AdminOrder>(`/admin/orders/${id}/return`, { method: 'POST' }),
   stats: () => http<AdminStats>('/admin/stats'),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;

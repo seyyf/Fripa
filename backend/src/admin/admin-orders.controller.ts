@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AdminGuard } from './admin.guard';
-import { AdminOrdersService } from './admin-orders.service';
+import { AdminOrdersService, OrderPatch } from './admin-orders.service';
 
 @Controller('admin/orders')
 @UseGuards(AdminGuard)
@@ -13,7 +13,12 @@ export class AdminOrdersController {
   }
 
   @Patch(':id')
-  updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.orders.updateStatus(id, body?.status);
+  update(@Param('id') id: string, @Body() body: OrderPatch) {
+    return this.orders.update(id, body);
+  }
+
+  @Post(':id/return')
+  returnOrder(@Param('id') id: string) {
+    return this.orders.returnOrder(id);
   }
 }

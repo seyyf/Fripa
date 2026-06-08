@@ -43,7 +43,8 @@ model Order {
   customerAddress String
   customerPhone   String
   total           Int
-  status          String      @default("Nouvelle") // Nouvelle | Confirmée | Expédiée | Livrée | Annulée
+  status          String      @default("Nouvelle") // Nouvelle | Confirmée | Expédiée | Livrée | Retournée | Annulée
+  paid            Boolean     @default(false) // cash collected (COD reconciliation)
   createdAt       DateTime    @default(now())
   lines           OrderLine[]
 }
