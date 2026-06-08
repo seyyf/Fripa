@@ -7,13 +7,21 @@ import {
   type ItemInput,
 } from './adminApi';
 import { ItemForm } from './ItemForm';
+import { QuickDraft } from './QuickDraft';
 import { downloadCsv } from './csv';
 
 interface Props {
   onAuthError: () => void;
 }
 
-type Editing = { mode: 'create' } | { mode: 'edit'; item: AdminItem } | null;
+type Editing =
+  | { mode: 'create' }
+  | { mode: 'edit'; item: AdminItem }
+  | { mode: 'clone'; item: AdminItem }
+  | null;
+
+const DORMANT_DAYS = 30;
+const ageDays = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 type SortKey = 'title' | 'price' | 'category' | 'status';
 type Sort = { key: SortKey; dir: 'asc' | 'desc' };
 
@@ -29,6 +37,8 @@ export function AdminItems({ onAuthError }: Props) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<Sort | null>(null);
+  const [dormantOnly, setDormantOnly] = useState(false);
+  const [quickDraft, setQuickDraft] = useState(false);
 
   function handleError(err: unknown) {
     if (err instanceof AdminAuthError) {
@@ -58,24 +68,34 @@ export function AdminItems({ onAuthError }: Props) {
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((i) => {
+      // Dormant = active, unsold for a while, and not already discounted.
+      if (dormantOnly && !(i.status === 'active' && i.salePrice == null && ageDays(i.createdAt) >= DORMANT_DAYS))
+        return false;
       if (statusFilter !== 'all' && i.status !== statusFilter) return false;
       if (!q) return true;
       return `${i.title} ${i.brand} ${i.category} ${i.color}`.toLowerCase().includes(q);
     });
-  }, [items, query, statusFilter]);
+  }, [items, query, statusFilter, dormantOnly]);
 
   const sorted = useMemo(() => {
-    if (!sort) return shown;
-    const arr = [...shown];
-    arr.sort((a, b) => {
-      const cmp =
-        sort.key === 'price'
-          ? a.price - b.price
-          : String(a[sort.key]).localeCompare(String(b[sort.key]), 'fr');
-      return sort.dir === 'asc' ? cmp : -cmp;
-    });
-    return arr;
-  }, [shown, sort]);
+    if (sort) {
+      const arr = [...shown];
+      arr.sort((a, b) => {
+        const cmp =
+          sort.key === 'price'
+            ? a.price - b.price
+            : String(a[sort.key]).localeCompare(String(b[sort.key]), 'fr');
+        return sort.dir === 'asc' ? cmp : -cmp;
+      });
+      return arr;
+    }
+    // Dormant view: oldest first.
+    if (dormantOnly)
+      return [...shown].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    return shown;
+  }, [shown, sort, dormantOnly]);
 
   function toggleSort(key: SortKey) {
     setSort((s) =>
@@ -87,7 +107,7 @@ export function AdminItems({ onAuthError }: Props) {
   // Back to the first page whenever the filtered/sorted set changes.
   useEffect(() => {
     setPage(1);
-  }, [query, statusFilter, sort]);
+  }, [query, statusFilter, sort, dormantOnly]);
 
   // Drop selected ids that no longer exist (after deletions/refresh).
   useEffect(() => {
@@ -149,6 +169,16 @@ export function AdminItems({ onAuthError }: Props) {
   async function changeStatus(item: AdminItem, status: string) {
     try {
       await adminApi.updateItem(item.id, { status });
+      await refresh();
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+  // Suggested discount: knock 20% off (rounded), for stale stock.
+  async function quickDiscount(item: AdminItem) {
+    try {
+      await adminApi.updateItem(item.id, { salePrice: Math.max(1, Math.round(item.price * 0.8)) });
       await refresh();
     } catch (err) {
       handleError(err);
@@ -218,6 +248,9 @@ export function AdminItems({ onAuthError }: Props) {
           >
             ⤓ CSV
           </button>
+          <button className="admin-btn" onClick={() => setQuickDraft(true)}>
+            + Brouillon
+          </button>
           <button className="btn btn--add" onClick={() => setEditing({ mode: 'create' })}>
             + Nouvelle pièce
           </button>
@@ -241,6 +274,13 @@ export function AdminItems({ onAuthError }: Props) {
               {s === 'all' ? 'Toutes' : s} <span className="admin-tab__n">{counts[s] ?? 0}</span>
             </button>
           ))}
+          <button
+            className={`admin-tab ${dormantOnly ? 'admin-tab--on' : ''}`}
+            onClick={() => setDormantOnly((v) => !v)}
+            title={`Pièces actives invendues depuis +${DORMANT_DAYS}j, à solder`}
+          >
+            💤 Dormant
+          </button>
         </div>
       </div>
 
@@ -317,6 +357,7 @@ export function AdminItems({ onAuthError }: Props) {
                     <strong className="admin-cell-title">{item.title}</strong>
                     <span className="admin-cell-sub">
                       {item.brand} · {item.color}
+                      {dormantOnly && ` · dort depuis ${ageDays(item.createdAt)}j`}
                     </span>
                   </td>
                   <td>{item.size}</td>
@@ -343,8 +384,16 @@ export function AdminItems({ onAuthError }: Props) {
                     </select>
                   </td>
                   <td className="admin-actions">
+                    {dormantOnly && (
+                      <button className="admin-btn admin-btn--sale" onClick={() => quickDiscount(item)}>
+                        −20%
+                      </button>
+                    )}
                     <button className="admin-btn" onClick={() => setEditing({ mode: 'edit', item })}>
                       Modifier
+                    </button>
+                    <button className="admin-btn" onClick={() => setEditing({ mode: 'clone', item })}>
+                      Dupliquer
                     </button>
                     <button className="admin-btn admin-btn--danger" onClick={() => remove(item)}>
                       Suppr.
@@ -385,9 +434,20 @@ export function AdminItems({ onAuthError }: Props) {
 
       {editing && (
         <ItemForm
-          initial={editing.mode === 'edit' ? editing.item : null}
+          initial={editing.mode === 'create' ? null : editing.item}
+          isEdit={editing.mode === 'edit'}
           onSave={save}
           onCancel={() => setEditing(null)}
+        />
+      )}
+
+      {quickDraft && (
+        <QuickDraft
+          onCancel={() => setQuickDraft(false)}
+          onSaved={() => {
+            setQuickDraft(false);
+            void refresh();
+          }}
         />
       )}
     </section>

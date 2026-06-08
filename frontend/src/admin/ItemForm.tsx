@@ -10,7 +10,8 @@ import {
 } from './adminApi';
 
 interface Props {
-  initial: AdminItem | null; // null → create
+  initial: AdminItem | null; // data to prefill (null → blank create)
+  isEdit?: boolean; // true = updating an existing piece; false = create (incl. clone)
   onSave: (input: ItemInput) => Promise<void>;
   onCancel: () => void;
 }
@@ -30,7 +31,7 @@ const EMPTY: ItemInput = {
   status: 'active',
 };
 
-export function ItemForm({ initial, onSave, onCancel }: Props) {
+export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
   const [form, setForm] = useState<ItemInput>(
     initial
       ? {
@@ -93,7 +94,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
     <div className="admin-modal-backdrop" onClick={onCancel}>
       <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
         <header className="admin-modal__head">
-          <h2>{initial ? 'Modifier la pièce' : 'Nouvelle pièce'}</h2>
+          <h2>{isEdit ? 'Modifier la pièce' : 'Nouvelle pièce'}</h2>
           <button className="icon-btn" onClick={onCancel} aria-label="Fermer">
             ✕
           </button>
@@ -229,7 +230,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
               Annuler
             </button>
             <button type="submit" className="btn btn--add" disabled={busy}>
-              {busy ? 'Enregistrement…' : initial ? 'Enregistrer' : 'Créer la pièce'}
+              {busy ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer la pièce'}
             </button>
           </div>
         </form>
