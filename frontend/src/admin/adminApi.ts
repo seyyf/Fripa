@@ -48,6 +48,14 @@ export interface AdminOrderLine {
   imageUrl: string;
 }
 
+export const ORDER_STATUSES = [
+  'Nouvelle',
+  'Confirmée',
+  'Expédiée',
+  'Livrée',
+  'Annulée',
+] as const;
+
 export interface AdminOrder {
   id: string;
   ref: string;
@@ -57,6 +65,7 @@ export interface AdminOrder {
   customerAddress: string;
   customerPhone: string;
   total: number;
+  status: string;
   createdAt: string;
   lines: AdminOrderLine[];
 }
@@ -117,6 +126,8 @@ export const adminApi = {
   deleteItem: (id: string) =>
     http<{ ok: true }>(`/admin/items/${id}`, { method: 'DELETE' }),
   listOrders: () => http<AdminOrder[]>('/admin/orders'),
+  updateOrderStatus: (id: string, status: string) =>
+    http<AdminOrder>(`/admin/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).

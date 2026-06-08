@@ -42,6 +42,7 @@ model Order {
   customerAddress String
   customerPhone   String
   total           Int
+  status          String      @default("Nouvelle") // Nouvelle | Confirmée | Expédiée | Livrée | Annulée
   createdAt       DateTime    @default(now())
   lines           OrderLine[]
 }

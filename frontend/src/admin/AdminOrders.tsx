@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { adminApi, AdminAuthError, type AdminOrder } from './adminApi';
+import { adminApi, AdminAuthError, ORDER_STATUSES, type AdminOrder } from './adminApi';
+
+// Normalises accented status to a CSS-class-safe suffix (e.g. "Expédiée" → "expediee").
+const statusKey = (s: string) =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 interface Props {
   onAuthError: () => void;
@@ -36,6 +40,18 @@ export function AdminOrders({ onAuthError }: Props) {
 
   const revenue = orders.reduce((sum, o) => sum + o.total, 0);
 
+  async function changeStatus(order: AdminOrder, status: string) {
+    const prev = order.status;
+    setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status } : o))); // optimistic
+    try {
+      await adminApi.updateOrderStatus(order.id, status);
+    } catch (err) {
+      setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status: prev } : o)));
+      if (err instanceof AdminAuthError) onAuthError();
+      else setError(err instanceof Error ? err.message : 'Échec de la mise à jour.');
+    }
+  }
+
   return (
     <section className="admin-orders">
       <div className="admin-items__head">
@@ -62,7 +78,18 @@ export function AdminOrders({ onAuthError }: Props) {
                   <strong className="admin-order__ref">{o.ref}</strong>
                   <span className="admin-order__date">{dateFmt.format(new Date(o.createdAt))}</span>
                 </div>
-                <span className="admin-order__total">{o.total} TND</span>
+                <div className="admin-order__head-right">
+                  <select
+                    className={`admin-status admin-order-status--${statusKey(o.status)}`}
+                    value={o.status}
+                    onChange={(e) => changeStatus(o, e.target.value)}
+                  >
+                    {ORDER_STATUSES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <span className="admin-order__total">{o.total} TND</span>
+                </div>
               </header>
 
               <div className="admin-order__customer">

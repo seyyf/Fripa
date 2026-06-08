@@ -457,9 +457,40 @@
   font-size: 13px;
   color: var(--muted);
 }
+.admin-order__head-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .admin-order__total {
   font-size: 18px;
   font-weight: 800;
+}
+/* Order status pill colours (key is the accent-stripped status). */
+.admin-order-status--nouvelle {
+  color: #1d4ed8;
+  border-color: #c7d7fb;
+  background: #eef3ff;
+}
+.admin-order-status--confirmee {
+  color: #8a6d12;
+  border-color: #f0e0a8;
+  background: #fdf7e3;
+}
+.admin-order-status--expediee {
+  color: #7c3aed;
+  border-color: #ddd0fb;
+  background: #f5efff;
+}
+.admin-order-status--livree {
+  color: #0f7b46;
+  border-color: #bfe6cf;
+  background: #ecf9f1;
+}
+.admin-order-status--annulee {
+  color: var(--accent);
+  border-color: #f1d3d0;
+  background: #fdeceb;
 }
 .admin-order__customer {
   display: flex;
