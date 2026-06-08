@@ -10,6 +10,8 @@ import { AdminItemsService } from './admin-items.service';
 import { AdminOrdersController } from './admin-orders.controller';
 import { AdminOrdersService } from './admin-orders.service';
 import { AdminUploadController } from './admin-upload.controller';
+import { AdminStatsController } from './admin-stats.controller';
+import { AdminStatsService } from './admin-stats.service';
 
 @Module({
   imports: [
@@ -31,8 +33,15 @@ import { AdminUploadController } from './admin-upload.controller';
     AdminItemsController,
     AdminOrdersController,
     AdminUploadController,
+    AdminStatsController,
   ],
-  providers: [AdminService, AdminGuard, AdminItemsService, AdminOrdersService],
+  providers: [
+    AdminService,
+    AdminGuard,
+    AdminItemsService,
+    AdminOrdersService,
+    AdminStatsService,
+  ],
   // Exported so later admin feature modules can reuse the guard.
   exports: [AdminGuard, JwtModule],
 })

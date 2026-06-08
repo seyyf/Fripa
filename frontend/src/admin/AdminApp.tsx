@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import { adminApi, clearToken, getToken } from './adminApi';
 import { AdminLogin } from './AdminLogin';
+import { AdminOverview } from './AdminOverview';
 import { AdminItems } from './AdminItems';
 import { AdminOrders } from './AdminOrders';
 import './admin.css';
@@ -58,6 +59,9 @@ export default function AdminApp() {
         </div>
         <nav className="admin__nav">
           <NavLink to="/admin" end className={navClass}>
+            Tableau de bord
+          </NavLink>
+          <NavLink to="/admin/items" className={navClass}>
             Pièces
           </NavLink>
           <NavLink to="/admin/orders" className={navClass}>
@@ -75,7 +79,8 @@ export default function AdminApp() {
       </header>
       <main className="admin__main">
         <Routes>
-          <Route index element={<AdminItems onAuthError={logout} />} />
+          <Route index element={<AdminOverview onAuthError={logout} />} />
+          <Route path="items" element={<AdminItems onAuthError={logout} />} />
           <Route path="orders" element={<AdminOrders onAuthError={logout} />} />
         </Routes>
       </main>

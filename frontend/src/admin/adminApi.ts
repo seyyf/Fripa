@@ -56,6 +56,13 @@ export const ORDER_STATUSES = [
   'Annulée',
 ] as const;
 
+export interface AdminStats {
+  items: { total: number } & Record<string, number>;
+  orders: { total: number; revenue: number; today: number; revenueToday: number };
+  ordersByStatus: Record<string, number>;
+  topCategories: { category: string; count: number }[];
+}
+
 export interface AdminOrder {
   id: string;
   ref: string;
@@ -128,6 +135,7 @@ export const adminApi = {
   listOrders: () => http<AdminOrder[]>('/admin/orders'),
   updateOrderStatus: (id: string, status: string) =>
     http<AdminOrder>(`/admin/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  stats: () => http<AdminStats>('/admin/stats'),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).
