@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ITEMS } from './items.data';
 import {
   CartLine,
+  CatalogueResponse,
+  Category,
+  CATEGORIES,
   FavoritesResponse,
   FieldFilters,
   FieldResponse,
+  ItemDetail,
   TShirt,
 } from './types';
 
@@ -19,6 +23,7 @@ function matchesFilters(item: TShirt, f: FieldFilters): boolean {
   if (f.conditions && f.conditions.length > 0 && !f.conditions.includes(item.condition))
     return false;
   if (f.maxPrice != null && item.price > f.maxPrice) return false;
+  if (f.category && item.category !== f.category) return false;
   return true;
 }
 
@@ -31,6 +36,20 @@ const LAST_CHANCE_PROBABILITY = 0.1;
 // Tuned to feel like a real fripa: rare but jolting when it happens.
 const LAST_CHANCE_SURFACE_RATE = 0.2;
 
+// A cart line is a soft reservation: hold a piece this long, then it's released
+// back to the floor (someone else can grab it). See "how should I handle the cart".
+const CART_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// How many pieces a single user may hold (reserve) at once. Caps cart-spam:
+// without it a session could reserve unbounded pieces (and empty its own deck).
+// Re-adding a piece already held doesn't consume a new slot. Tune as needed.
+export const MAX_CART_HOLDS = 10;
+
+// "Reviens !" (undo) is allowed once per hour per user.
+// NOTE: tracked in memory only — move to DB-backed per-user storage when
+// auth/persistence lands (it currently resets on server restart).
+const UNDO_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
 type SwipeAction = 'pass' | 'keep' | 'favorite';
 interface HistoryEntry {
   action: SwipeAction;
@@ -41,11 +60,14 @@ interface UserState {
   passed: Set<string>;
   lastChancePool: Set<string>;
   shownLastChance: Set<string>;
+  // itemId → reservedAt (ms epoch). Each piece is a one-off, so no quantities.
   cart: Map<string, number>;
   // Swipe-up "save for later". Separate from the cart; excluded from the deck.
   favorites: Set<string>;
   // Stack of undoable swipe actions, most recent last. Powers "Reviens !".
   history: HistoryEntry[];
+  // When the user last used "Reviens !" — enforces the once-per-hour limit.
+  lastUndoAt?: number;
 }
 
 @Injectable()
@@ -54,6 +76,16 @@ export class ShopService {
 
   // Injectable randomness so the 90/10 dice and field shuffle are testable.
   private rng: () => number = Math.random;
+  // Injectable clock so the cart-hold TTL is testable.
+  private now: () => number = () => Date.now();
+
+  // Release any cart reservations whose hold has lapsed (lazy expiry on read).
+  private expireCart(s: UserState): void {
+    const now = this.now();
+    for (const [id, reservedAt] of s.cart) {
+      if (now - reservedAt >= CART_TTL_MS) s.cart.delete(id);
+    }
+  }
 
   private getState(userId: string): UserState {
     let s = this.states.get(userId);
@@ -68,27 +100,81 @@ export class ShopService {
       };
       this.states.set(userId, s);
     }
+    // Authoritative lazy expiry: every read/write first releases stale holds.
+    this.expireCart(s);
     return s;
   }
 
+  private findItem(id: string): TShirt | undefined {
+    return ITEMS.find((i) => i.id === id);
+  }
+
   private getItem(id: string): TShirt {
-    const item = ITEMS.find((i) => i.id === id);
+    const item = this.findItem(id);
     if (!item) throw new NotFoundException(`Item ${id} not found`);
     return item;
+  }
+
+  // An item is "fresh" for a user when they haven't decided on it yet (not
+  // passed, not pending reprise, not already shown, not in cart or favorites).
+  private isFresh(s: UserState, i: TShirt): boolean {
+    return (
+      !s.passed.has(i.id) &&
+      !s.lastChancePool.has(i.id) &&
+      !s.shownLastChance.has(i.id) &&
+      !s.cart.has(i.id) &&
+      !s.favorites.has(i.id)
+    );
+  }
+
+  // The garment categories actually present in the catalogue, in display order.
+  getCategories(): Category[] {
+    const present = new Set(ITEMS.map((i) => i.category));
+    return CATEGORIES.filter((c) => present.has(c));
+  }
+
+  // Browse view: every still-available piece (no reprise injection, no count
+  // cap), honouring the same filters as the deck. See product detail / grid.
+  getCatalog(userId: string, filters: FieldFilters = {}): CatalogueResponse {
+    const s = this.getState(userId); // releases stale cart holds first
+    // On the floor: everything not gone (passed/reprise pool/shown). Cart pieces
+    // stay flagged as held (blurred + timer); favorited pieces stay flagged as
+    // highlighted (still grabbable).
+    const visible = ITEMS.filter(
+      (i) =>
+        !s.passed.has(i.id) &&
+        !s.lastChancePool.has(i.id) &&
+        !s.shownLastChance.has(i.id) &&
+        matchesFilters(i, filters),
+    );
+    const items = visible.map((i) => {
+      if (s.cart.has(i.id)) {
+        return { ...i, reservedUntil: (s.cart.get(i.id) as number) + CART_TTL_MS };
+      }
+      if (s.favorites.has(i.id)) return { ...i, favorited: true };
+      return { ...i };
+    });
+    const total = visible.filter((i) => !s.cart.has(i.id)).length;
+    return { items, total };
+  }
+
+  // Single piece for the detail page, with its status for this user.
+  getOne(userId: string, id: string): ItemDetail {
+    const item = this.getItem(id); // throws NotFound if the id is unknown
+    const s = this.getState(userId);
+    let status: ItemDetail['status'];
+    if (s.cart.has(id)) status = 'inCart';
+    else if (s.favorites.has(id)) status = 'inFavorites';
+    else if (s.passed.has(id) || s.lastChancePool.has(id) || s.shownLastChance.has(id))
+      status = 'gone';
+    else status = 'available';
+    return { item, status };
   }
 
   getField(userId: string, count: number, filters: FieldFilters = {}): FieldResponse {
     const s = this.getState(userId);
 
-    const fresh = ITEMS.filter(
-      (i) =>
-        !s.passed.has(i.id) &&
-        !s.lastChancePool.has(i.id) &&
-        !s.shownLastChance.has(i.id) &&
-        !s.cart.has(i.id) &&
-        !s.favorites.has(i.id) &&
-        matchesFilters(i, filters),
-    );
+    const fresh = ITEMS.filter((i) => this.isFresh(s, i) && matchesFilters(i, filters));
     const reprise = ITEMS.filter(
       (i) =>
         s.lastChancePool.has(i.id) &&
@@ -123,35 +209,60 @@ export class ShopService {
     return arr;
   }
 
-  pass(userId: string, itemId: string) {
-    const s = this.getState(userId);
-    this.getItem(itemId); // validate
-    s.history.push({ action: 'pass', itemId });
-
-    // If it was already a last-chance show, the swipe seals it forever.
+  // The 90/10 dice shared by the user's pass and the phantom crowd's snatch.
+  private rollPass(s: UserState, itemId: string) {
+    // If it was already a last-chance show, this seals it forever.
     if (s.shownLastChance.has(itemId)) return { gone: true };
-
-    // Roll the dice: 10% chance it gets one reprise as last-chance.
+    // 10% chance it gets one reprise as last-chance.
     if (this.rng() < LAST_CHANCE_PROBABILITY) {
       s.lastChancePool.add(itemId);
       return { gone: false, eligibleForReprise: true };
     }
-
     s.passed.add(itemId);
     return { gone: true };
+  }
+
+  // The user passes on a piece (swipe-left). Undoable via "Reviens !".
+  pass(userId: string, itemId: string) {
+    const s = this.getState(userId);
+    this.getItem(itemId); // validate
+    s.history.push({ action: 'pass', itemId });
+    return this.rollPass(s, itemId);
+  }
+
+  // A phantom shopper takes a piece off the catalogue floor. Same dice as a
+  // pass, but NOT recorded in the undo history — it isn't the user's action.
+  snatch(userId: string, itemId: string) {
+    const s = this.getState(userId);
+    this.getItem(itemId); // validate
+    return this.rollPass(s, itemId);
   }
 
   // Mutates the cart without recording an undoable swipe (shared by the
   // swipe-keep and the move-from-favorites paths).
   private cartAdd(s: UserState, itemId: string) {
-    s.cart.set(itemId, (s.cart.get(itemId) || 0) + 1);
+    // Start (or refresh) the hold reservation for this piece.
+    s.cart.set(itemId, this.now());
     // Once it's in the cart, drop any pending reprise.
     s.lastChancePool.delete(itemId);
+  }
+
+  // Guard against cart-spam: a user can hold at most MAX_CART_HOLDS pieces.
+  // Re-holding a piece already in the cart is fine (it just refreshes the TTL).
+  // `s` is post-expiry (getState releases lapsed holds first), so the count is
+  // only the live reservations.
+  private assertCanHold(s: UserState, itemId: string) {
+    if (!s.cart.has(itemId) && s.cart.size >= MAX_CART_HOLDS) {
+      throw new ConflictException(
+        `Panier plein — tu peux réserver ${MAX_CART_HOLDS} pièces à la fois. Passe commande ou retires-en une.`,
+      );
+    }
   }
 
   addToCart(userId: string, itemId: string) {
     const s = this.getState(userId);
     this.getItem(itemId);
+    this.assertCanHold(s, itemId);
     this.cartAdd(s, itemId);
     s.history.push({ action: 'keep', itemId });
     return this.getCart(userId);
@@ -159,15 +270,22 @@ export class ShopService {
 
   // Reverse the most recent swipe. Returns the restored item so the client can
   // drop it back on top of the deck. See feature "Reviens !".
-  undo(userId: string): { undone: { action: SwipeAction; item: TShirt } | null } {
+  undo(userId: string): {
+    undone: { action: SwipeAction; item: TShirt } | null;
+    rateLimited?: boolean;
+    retryAfterMs?: number;
+  } {
     const s = this.getState(userId);
+    const now = this.now();
+    // Once per hour per user.
+    if (s.lastUndoAt != null && now - s.lastUndoAt < UNDO_COOLDOWN_MS) {
+      return { undone: null, rateLimited: true, retryAfterMs: s.lastUndoAt + UNDO_COOLDOWN_MS - now };
+    }
     const last = s.history.pop();
     if (!last) return { undone: null };
     const { action, itemId } = last;
     if (action === 'keep') {
-      const qty = (s.cart.get(itemId) || 0) - 1;
-      if (qty > 0) s.cart.set(itemId, qty);
-      else s.cart.delete(itemId);
+      s.cart.delete(itemId); // one-off piece — no quantities
     } else if (action === 'favorite') {
       s.favorites.delete(itemId);
     } else {
@@ -176,23 +294,36 @@ export class ShopService {
       s.lastChancePool.delete(itemId);
       s.shownLastChance.delete(itemId);
     }
+    s.lastUndoAt = now; // start the hourly cooldown
     return { undone: { action, item: this.getItem(itemId) } };
   }
 
   removeFromCart(userId: string, itemId: string) {
     const s = this.getState(userId);
     s.cart.delete(itemId);
-    // Removed items don't come back as last-chance — they're permanently passed.
-    s.passed.add(itemId);
+    // Putting it back on the rack: a removed piece returns to circulation
+    // (it becomes available again in the catalogue and the deck).
     return this.getCart(userId);
+  }
+
+  // Empty a user's cart after a successful order. The bought pieces are marked
+  // sold globally by the checkout flow (CheckoutService), not here.
+  clearCart(userId: string): void {
+    this.getState(userId).cart.clear();
   }
 
   getCart(userId: string): { lines: CartLine[]; total: number } {
     const s = this.getState(userId);
-    const lines: CartLine[] = Array.from(s.cart.entries()).map(([id, qty]) => ({
-      ...this.getItem(id),
-      quantity: qty,
-    }));
+    const lines: CartLine[] = [];
+    for (const [id, reservedAt] of s.cart) {
+      const item = this.findItem(id);
+      // A piece sold or removed globally silently drops out of the cart.
+      if (!item) {
+        s.cart.delete(id);
+        continue;
+      }
+      lines.push({ ...item, quantity: 1, expiresAt: reservedAt + CART_TTL_MS });
+    }
     const total = lines.reduce((acc, l) => acc + l.price * l.quantity, 0);
     return { lines, total };
   }
@@ -212,14 +343,16 @@ export class ShopService {
   removeFavorite(userId: string, itemId: string): FavoritesResponse {
     const s = this.getState(userId);
     s.favorites.delete(itemId);
-    // Removing a favorite is a decision — it does not resurface in the deck.
-    s.passed.add(itemId);
+    // Un-favoriting is not destructive — the piece returns to circulation.
     return this.getFavorites(userId);
   }
 
   moveFavoriteToCart(userId: string, itemId: string) {
     const s = this.getState(userId);
     this.getItem(itemId);
+    // Check the hold cap before removing it from favourites, so a rejected move
+    // leaves the favourite untouched.
+    this.assertCanHold(s, itemId);
     s.favorites.delete(itemId);
     this.cartAdd(s, itemId); // not an undoable swipe
     return { cart: this.getCart(userId), favorites: this.getFavorites(userId) };
@@ -227,24 +360,17 @@ export class ShopService {
 
   getFavorites(userId: string): FavoritesResponse {
     const s = this.getState(userId);
-    const lines: TShirt[] = Array.from(s.favorites).map((id) => this.getItem(id));
-    return { lines };
-  }
-
-  checkout(userId: string) {
-    const cart = this.getCart(userId);
-    if (cart.lines.length === 0) {
-      return { ok: false, message: 'Panier vide.' };
+    const lines: TShirt[] = [];
+    for (const id of s.favorites) {
+      const item = this.findItem(id);
+      // Drop a favourite that was sold/removed globally.
+      if (!item) {
+        s.favorites.delete(id);
+        continue;
+      }
+      lines.push(item);
     }
-    // In-memory demo: just clear the cart and pretend we sold them.
-    const s = this.getState(userId);
-    s.cart.clear();
-    return {
-      ok: true,
-      message: `Commande confirmée — ${cart.total} TND. À très vite chez Fripa !`,
-      orderTotal: cart.total,
-      lines: cart.lines,
-    };
+    return { lines };
   }
 
   reset(userId: string) {

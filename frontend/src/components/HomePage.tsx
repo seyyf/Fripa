@@ -1,10 +1,45 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { animate, motion, useInView, useReducedMotion, type Variants } from 'framer-motion';
 import { api } from '../api';
 import type { TShirt } from '../types';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const MotionLink = motion(Link);
+
+const COUNT_EASE = [0.22, 1, 0.36, 1] as const;
+
+// A stat figure that counts up from zero the first time it scrolls into view.
+// The displayed text starts at the final value, so it reads correctly before
+// (and without) any animation — only the count-up replaces it once in view.
+function StatValue({ value }: { value: string }) {
+  const reduce = useReducedMotion();
+  const match = value.match(/^(\d+)(.*)$/);
+  const target = match ? parseInt(match[1], 10) : 0;
+  const suffix = match ? match[2] : value;
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.5 });
+  const [display, setDisplay] = useState(value);
+
+  useEffect(() => {
+    if (reduce || !match || !inView) return;
+    setDisplay(`0${suffix}`);
+    const controls = animate(0, target, {
+      duration: 1.1,
+      ease: COUNT_EASE,
+      onUpdate: (v) => setDisplay(`${Math.round(v)}${suffix}`),
+    });
+    return () => controls.stop();
+    // `match` is a fresh array each render; gate on its boolean presence instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView, reduce, target, suffix]);
+
+  return (
+    <span ref={ref} className="home__stat-value">
+      {display}
+    </span>
+  );
+}
 
 const STEPS = [
   { icon: '→', label: 'Garder', desc: 'Swipe à droite : la pièce file dans ton panier.' },
@@ -53,6 +88,10 @@ const viewport = { once: true, amount: 0.2 } as const;
 
 export function HomePage() {
   const reduce = useReducedMotion();
+  // Smart default: phones land on the swipe deck, larger screens on the grid —
+  // both stay reachable from the nav.
+  const isMobile = useMediaQuery('(max-width: 600px)');
+  const browseTo = isMobile ? '/shop' : '/catalogue';
   const [preview, setPreview] = useState<TShirt[]>([]);
 
   // Reduced-motion users get presence without movement.
@@ -87,191 +126,201 @@ export function HomePage() {
   return (
     <div className="home">
       {/* Hero */}
-      <motion.section
-        className="home__hero"
-        variants={stagger}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.span className="home__badge" variants={fadeUp}>
-          🇹🇳 Friperie en ligne
-        </motion.span>
-        <motion.h1 className="home__title" variants={fadeUp}>
-          Fripa
-        </motion.h1>
-        <motion.p className="home__tagline" variants={fadeUp}>
-          Le vide-dressing tunisien qui file vite. Tu swipes, tu gardes, tu chines —
-          mais attention : <strong>90% du temps, une pièce passée disparaît pour de bon.</strong>
-        </motion.p>
-        <motion.div className="home__hero-actions" variants={fadeUp}>
-          <MotionLink to="/shop" className="btn btn--add btn--cta" {...hover}>
-            Commencer à chiner →
-          </MotionLink>
-          <motion.a href="#how" className="btn btn--ghost btn--cta-ghost" {...hover}>
-            Comment ça marche
-          </motion.a>
+      <section className="home-band home-band--hero">
+        <motion.div
+          className="home-wrap home__hero"
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.span className="home__badge" variants={fadeUp}>
+            🇹🇳 Friperie en ligne
+          </motion.span>
+          <motion.h1 className="home__title" variants={fadeUp}>
+            Fripa
+          </motion.h1>
+          <motion.p className="home__tagline" variants={fadeUp}>
+            Le vide-dressing tunisien qui file vite. Tu swipes, tu gardes, tu chines —
+            mais attention : <strong>90% du temps, une pièce passée disparaît pour de bon.</strong>
+          </motion.p>
+          <motion.div className="home__hero-actions" variants={fadeUp}>
+            <MotionLink to={browseTo} className="btn btn--add btn--cta" {...hover}>
+              Commencer à chiner →
+            </MotionLink>
+            <motion.a href="#how" className="btn btn--ghost btn--cta-ghost" {...hover}>
+              Comment ça marche
+            </motion.a>
+          </motion.div>
         </motion.div>
-      </motion.section>
+      </section>
 
       {/* Stats */}
-      <motion.section
-        className="home__stats"
-        aria-label="Chiffres clés"
-        variants={stagger}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewport}
-      >
-        {STATS.map((s) => (
-          <motion.div key={s.label} className="home__stat" variants={fadeUp}>
-            <span className="home__stat-value">{s.value}</span>
-            <span className="home__stat-label">{s.label}</span>
-          </motion.div>
-        ))}
-      </motion.section>
-
-      {/* How it works */}
-      <motion.section
-        className="home__how"
-        id="how"
-        aria-label="Comment ça marche"
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewport}
-      >
-        <h2 className="home__section-title">Comment ça marche</h2>
-        <motion.ul className="home__steps" variants={stagger}>
-          {STEPS.map((s) => (
-            <motion.li key={s.label} className="home__step" variants={fadeUp}>
-              <span className="home__step-icon">{s.icon}</span>
-              <div>
-                <strong className="home__step-label">{s.label}</strong>
-                <p className="home__step-desc">{s.desc}</p>
-              </div>
-            </motion.li>
-          ))}
-        </motion.ul>
-        <p className="home__note">
-          Les 10% restants reviennent <strong>une seule fois</strong> avec un bandeau
-          « Dernière chance ». Comme dans une vraie fripa.
-        </p>
-      </motion.section>
-
-      {/* Live preview */}
-      {preview.length > 0 && (
-        <section className="home__preview" aria-label="Pièces du moment">
-          <motion.div
-            className="home__preview-head"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewport}
-          >
-            <h2 className="home__section-title">Pièces du moment</h2>
-            <Link to="/shop" className="home__preview-all">
-              Voir toutes les pièces →
-            </Link>
-          </motion.div>
-          <motion.div
-            className="preview-grid"
-            variants={stagger}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewport}
-          >
-            {preview.map((item) => (
-              <motion.div key={item.id} variants={fadeUp} {...cardHover}>
-                <Link to="/shop" className="preview-card">
-                  <span
-                    className="preview-card__img"
-                    style={{ backgroundImage: `url(${item.imageUrl})` }}
-                  />
-                  <span className="preview-card__title">{item.title}</span>
-                  <span className="preview-card__price">{item.price} TND</span>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-        </section>
-      )}
-
-      {/* Testimonials */}
-      <section className="home__testimonials" aria-label="Témoignages">
-        <motion.h2
-          className="home__section-title"
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={viewport}
-        >
-          Ils chinent déjà
-        </motion.h2>
+      <section className="home-band home-band--stats" aria-label="Chiffres clés">
         <motion.div
-          className="testimonial-grid"
+          className="home-wrap home__stats"
           variants={stagger}
           initial="hidden"
           whileInView="show"
           viewport={viewport}
         >
-          {TESTIMONIALS.map((t) => (
-            <motion.figure key={t.author} className="testimonial" variants={fadeUp}>
-              <blockquote className="testimonial__quote">« {t.quote} »</blockquote>
-              <figcaption className="testimonial__author">— {t.author}</figcaption>
-            </motion.figure>
+          {STATS.map((s) => (
+            <motion.div key={s.label} className="home__stat" variants={fadeUp}>
+              <StatValue value={s.value} />
+              <span className="home__stat-label">{s.label}</span>
+            </motion.div>
           ))}
         </motion.div>
       </section>
 
-      {/* FAQ */}
-      <motion.section
-        className="home__faq"
-        aria-label="Questions fréquentes"
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewport}
-      >
-        <h2 className="home__section-title">Questions fréquentes</h2>
-        <div className="faq-list">
-          {FAQ.map((f) => (
-            <details key={f.q} className="faq-item">
-              <summary className="faq-q">{f.q}</summary>
-              <p className="faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </motion.section>
+      {/* Centered content sections */}
+      <div className="home-wrap home__content">
+        {/* How it works */}
+        <motion.section
+          className="home__how"
+          id="how"
+          aria-label="Comment ça marche"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewport}
+        >
+          <h2 className="home__section-title">Comment ça marche</h2>
+          <motion.ul className="home__steps" variants={stagger}>
+            {STEPS.map((s) => (
+              <motion.li key={s.label} className="home__step" variants={fadeUp}>
+                <span className="home__step-icon">{s.icon}</span>
+                <div>
+                  <strong className="home__step-label">{s.label}</strong>
+                  <p className="home__step-desc">{s.desc}</p>
+                </div>
+              </motion.li>
+            ))}
+          </motion.ul>
+          <p className="home__note">
+            Les 10% restants reviennent <strong>une seule fois</strong> avec un bandeau
+            « Dernière chance ». Comme dans une vraie fripa.
+          </p>
+        </motion.section>
+
+        {/* Live preview */}
+        {preview.length > 0 && (
+          <section className="home__preview" aria-label="Pièces du moment">
+            <motion.div
+              className="home__preview-head"
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="show"
+              viewport={viewport}
+            >
+              <h2 className="home__section-title">Pièces du moment</h2>
+              <Link to="/shop" className="home__preview-all">
+                Voir toutes les pièces →
+              </Link>
+            </motion.div>
+            <motion.div
+              className="preview-grid"
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={viewport}
+            >
+              {preview.map((item) => (
+                <motion.div key={item.id} variants={fadeUp} {...cardHover}>
+                  <Link to="/shop" className="preview-card">
+                    <span
+                      className="preview-card__img"
+                      style={{ backgroundImage: `url(${item.imageUrl})` }}
+                    />
+                    <span className="preview-card__title">{item.title}</span>
+                    <span className="preview-card__price">{item.price} TND</span>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          </section>
+        )}
+
+        {/* Testimonials */}
+        <section className="home__testimonials" aria-label="Témoignages">
+          <motion.h2
+            className="home__section-title"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={viewport}
+          >
+            Ils chinent déjà
+          </motion.h2>
+          <motion.div
+            className="testimonial-grid"
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={viewport}
+          >
+            {TESTIMONIALS.map((t) => (
+              <motion.figure key={t.author} className="testimonial" variants={fadeUp}>
+                <blockquote className="testimonial__quote">« {t.quote} »</blockquote>
+                <figcaption className="testimonial__author">— {t.author}</figcaption>
+              </motion.figure>
+            ))}
+          </motion.div>
+        </section>
+
+        {/* FAQ */}
+        <motion.section
+          className="home__faq"
+          aria-label="Questions fréquentes"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewport}
+        >
+          <h2 className="home__section-title">Questions fréquentes</h2>
+          <div className="faq-list">
+            {FAQ.map((f) => (
+              <details key={f.q} className="faq-item">
+                <summary className="faq-q">{f.q}</summary>
+                <p className="faq-a">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </motion.section>
+      </div>
 
       {/* Final CTA band */}
-      <motion.section
-        className="home__cta-band"
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewport}
-      >
-        <h2 className="home__cta-title">Prête à chiner ?</h2>
-        <p className="home__cta-text">
-          Des centaines de pièces uniques t'attendent. Mais elles ne t'attendent pas longtemps.
-        </p>
-        <MotionLink to="/shop" className="btn btn--cta home__cta-btn" {...hover}>
-          Swiper maintenant →
-        </MotionLink>
-      </motion.section>
+      <section className="home-band home-band--cta">
+        <motion.div
+          className="home-wrap home__cta-inner"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewport}
+        >
+          <h2 className="home__cta-title">Prête à chiner ?</h2>
+          <p className="home__cta-text">
+            Des centaines de pièces uniques t'attendent. Mais elles ne t'attendent pas longtemps.
+          </p>
+          <MotionLink to="/shop" className="btn btn--cta home__cta-btn" {...hover}>
+            Swiper maintenant →
+          </MotionLink>
+        </motion.div>
+      </section>
 
       {/* Footer */}
-      <footer className="home__footer">
-        <div className="home__footer-brand">
-          <span className="logo__mark">FR</span>
-          <span>Fripa — le swipe du fripier 🇹🇳</span>
+      <footer className="home-band home-band--footer">
+        <div className="home-wrap home__footer">
+          <div className="home__footer-brand">
+            <span className="logo__mark">FR</span>
+            <span>Fripa — le swipe du fripier 🇹🇳</span>
+          </div>
+          <nav className="home__footer-links">
+            <Link to="/">Accueil</Link>
+            <Link to="/shop">Boutique</Link>
+            <a href="#how">Comment ça marche</a>
+          </nav>
+          <p className="home__footer-legal">© 2026 Fripa · MVP · Fait avec ❤️ en Tunisie</p>
         </div>
-        <nav className="home__footer-links">
-          <Link to="/">Accueil</Link>
-          <Link to="/shop">Boutique</Link>
-          <a href="#how">Comment ça marche</a>
-        </nav>
-        <p className="home__footer-legal">© 2026 Fripa · MVP · Fait avec ❤️ en Tunisie</p>
       </footer>
     </div>
   );

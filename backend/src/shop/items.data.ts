@@ -1,4 +1,4 @@
-import { TShirt } from './types';
+import { Category, TShirt } from './types';
 
 // Placeholder photos via picsum.photos with stable seeds.
 // Swap imageUrl values with real product photos when wiring up inventory.
@@ -16,6 +16,7 @@ const CURATED: TShirt[] = [
     condition: 'Très bon état',
     color: 'Blanc cassé',
     seller: 'Souk El Jemaa, Tunis',
+    category: 'T-shirts',
   },
   {
     id: 't-002',
@@ -28,6 +29,7 @@ const CURATED: TShirt[] = [
     condition: 'Bon état',
     color: 'Rouge',
     seller: 'Fripa Sfax',
+    category: 'T-shirts',
   },
   {
     id: 't-003',
@@ -40,6 +42,7 @@ const CURATED: TShirt[] = [
     condition: 'Vintage',
     color: 'Rouge & Jaune',
     seller: 'Bab El Falla',
+    category: 'Maillots',
   },
   {
     id: 't-004',
@@ -52,6 +55,7 @@ const CURATED: TShirt[] = [
     condition: 'Comme neuf',
     color: 'Bordeaux',
     seller: 'Fripa La Marsa',
+    category: 'T-shirts',
   },
   {
     id: 't-005',
@@ -64,6 +68,7 @@ const CURATED: TShirt[] = [
     condition: 'Vintage',
     color: 'Rouge & Blanc',
     seller: 'Sousse Médina',
+    category: 'Maillots',
   },
   {
     id: 't-006',
@@ -76,6 +81,7 @@ const CURATED: TShirt[] = [
     condition: 'Bon état',
     color: 'Noir',
     seller: 'Souk Sidi Bou Saïd',
+    category: 'T-shirts',
   },
   {
     id: 't-007',
@@ -88,6 +94,7 @@ const CURATED: TShirt[] = [
     condition: 'Comme neuf',
     color: 'Blanc',
     seller: 'Fripa Lac 2',
+    category: 'T-shirts',
   },
   {
     id: 't-008',
@@ -100,6 +107,7 @@ const CURATED: TShirt[] = [
     condition: 'Bon état',
     color: 'Violet',
     seller: 'Fripa Bardo',
+    category: 'T-shirts',
   },
   {
     id: 't-009',
@@ -112,11 +120,12 @@ const CURATED: TShirt[] = [
     condition: 'Comme neuf',
     color: 'Sable',
     seller: 'Tunis Centre Ville',
+    category: 'T-shirts',
   },
   {
     id: 't-010',
     title: 'Ralph Lauren Polo Bear',
-    description: 'Tee Polo Ralph Lauren, motif ours brodé sur la poitrine.',
+    description: 'Polo Ralph Lauren, motif ours brodé sur la poitrine.',
     imageUrl: img('fripa-polo-bear'),
     price: 45,
     size: 'L',
@@ -124,6 +133,7 @@ const CURATED: TShirt[] = [
     condition: 'Très bon état',
     color: 'Bleu marine',
     seller: 'Fripa Menzah',
+    category: 'Polos',
   },
   {
     id: 't-011',
@@ -136,6 +146,7 @@ const CURATED: TShirt[] = [
     condition: 'Vintage',
     color: 'Noir',
     seller: 'Fripa Ariana',
+    category: 'T-shirts',
   },
   {
     id: 't-012',
@@ -148,6 +159,7 @@ const CURATED: TShirt[] = [
     condition: 'Bon état',
     color: 'Bleu',
     seller: 'Fripa Hammamet',
+    category: 'T-shirts',
   },
   {
     id: 't-013',
@@ -160,6 +172,7 @@ const CURATED: TShirt[] = [
     condition: 'Très bon état',
     color: 'Rouge',
     seller: 'Fripa Manar',
+    category: 'Maillots',
   },
   {
     id: 't-014',
@@ -172,6 +185,7 @@ const CURATED: TShirt[] = [
     condition: 'Comme neuf',
     color: 'Crème',
     seller: 'Fripa Berges du Lac',
+    category: 'T-shirts',
   },
   {
     id: 't-015',
@@ -184,6 +198,7 @@ const CURATED: TShirt[] = [
     condition: 'Vintage',
     color: 'Rouge',
     seller: 'Fripa Kram',
+    category: 'T-shirts',
   },
   {
     id: 't-016',
@@ -196,23 +211,26 @@ const CURATED: TShirt[] = [
     condition: 'Vintage',
     color: 'Rouge & Blanc',
     seller: 'Bab Jedid',
+    category: 'Maillots',
   },
 ];
 
-// --- Generated filler stock so the floating field has real variety. ---
+// --- Generated filler stock so the catalogue has real variety. ---
 // Deterministic combinations of brands, garment types, colours, sizes and
 // Tunisian sellers. Swap for real inventory later (stable picsum seeds).
 const BRANDS = [
   'Nike', 'Adidas', 'Puma', "Levi's", 'Carhartt', 'Lacoste',
   'Fila', 'Kappa', 'Umbro', 'Reebok', 'Diadora', 'Sergio Tacchini',
 ];
-const TYPES: { t: string; c: TShirt['condition'] }[] = [
-  { t: 'Sweat à capuche', c: 'Comme neuf' },
-  { t: 'T-shirt vintage', c: 'Vintage' },
-  { t: 'Polo piqué', c: 'Très bon état' },
-  { t: 'Veste coupe-vent', c: 'Bon état' },
-  { t: 'Maillot rétro', c: 'Vintage' },
-  { t: 'Crewneck molleton', c: 'Comme neuf' },
+const TYPES: { t: string; c: TShirt['condition']; category: Category }[] = [
+  { t: 'Sweat à capuche', c: 'Comme neuf', category: 'Sweats' },
+  { t: 'T-shirt vintage', c: 'Vintage', category: 'T-shirts' },
+  { t: 'Polo piqué', c: 'Très bon état', category: 'Polos' },
+  { t: 'Veste coupe-vent', c: 'Bon état', category: 'Vestes' },
+  { t: 'Maillot rétro', c: 'Vintage', category: 'Maillots' },
+  { t: 'Crewneck molleton', c: 'Comme neuf', category: 'Sweats' },
+  { t: 'Short en molleton', c: 'Bon état', category: 'Shorts' },
+  { t: 'Jean droit', c: 'Très bon état', category: 'Jeans' },
 ];
 const COLORS = [
   'Noir', 'Blanc cassé', 'Bleu marine', 'Rouge',
@@ -245,9 +263,23 @@ function generateItems(n: number): TShirt[] {
       condition: type.c,
       color,
       seller,
+      category: type.category,
     });
   }
   return out;
 }
 
+// The live catalogue the shop service reads from. At runtime this is replaced
+// with the active items from the database (see CatalogueLoader); in unit tests
+// it keeps these bundled defaults.
 export const ITEMS: TShirt[] = [...CURATED, ...generateItems(44)];
+
+// An immutable snapshot of the bundled defaults, used to seed an empty database
+// on first boot. Taken before any runtime replacement of ITEMS.
+export const SEED_ITEMS: readonly TShirt[] = ITEMS.slice();
+
+// Replace the live catalogue in place (keeps the exported `ITEMS` binding stable
+// so existing imports keep working). Used by the DB loader at boot and reload.
+export function setItems(next: TShirt[]): void {
+  ITEMS.splice(0, ITEMS.length, ...next);
+}

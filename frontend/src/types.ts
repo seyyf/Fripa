@@ -1,3 +1,12 @@
+export type Category =
+  | 'T-shirts'
+  | 'Sweats'
+  | 'Polos'
+  | 'Vestes'
+  | 'Maillots'
+  | 'Shorts'
+  | 'Jeans';
+
 export interface TShirt {
   id: string;
   title: string;
@@ -9,6 +18,7 @@ export interface TShirt {
   condition: string;
   color: string;
   seller: string;
+  category: Category;
 }
 
 export interface FieldItem extends TShirt {
@@ -22,6 +32,7 @@ export interface FieldResponse {
 
 export interface CartLine extends TShirt {
   quantity: number;
+  expiresAt: number;
 }
 
 export interface CartResponse {
@@ -33,9 +44,45 @@ export interface FavoritesResponse {
   lines: TShirt[];
 }
 
+export interface CustomerInfo {
+  name: string;
+  email: string;
+  address: string;
+  phone: string;
+}
+
+export interface CheckoutResult {
+  ok: boolean;
+  message: string;
+  ref?: string;
+  orderTotal?: number;
+  lines?: CartLine[];
+  customer?: CustomerInfo;
+}
+
 export interface FieldFilters {
   q?: string;
   sizes?: TShirt['size'][];
   conditions?: TShirt['condition'][];
   maxPrice?: number;
+  category?: Category;
+}
+
+export type ItemStatus = 'available' | 'gone' | 'inCart' | 'inFavorites';
+
+export interface CatalogueItem extends TShirt {
+  // Set when the piece is held by the user's cart (blurred + countdown on the floor).
+  reservedUntil?: number;
+  // True when the piece is in favourites — shown highlighted, still on the floor.
+  favorited?: boolean;
+}
+
+export interface CatalogueResponse {
+  items: CatalogueItem[];
+  total: number;
+}
+
+export interface ItemDetail {
+  item: TShirt;
+  status: ItemStatus;
 }

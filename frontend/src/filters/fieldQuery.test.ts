@@ -20,6 +20,10 @@ describe('buildFieldQuery', () => {
     expect(new URLSearchParams(buildFieldQuery({ maxPrice: 20 })).get('maxPrice')).toBe('20');
   });
 
+  it('includes category', () => {
+    expect(new URLSearchParams(buildFieldQuery({ category: 'Shorts' })).get('category')).toBe('Shorts');
+  });
+
   it('omits blank query and empty arrays', () => {
     expect(buildFieldQuery({ q: '', sizes: [], conditions: [] })).toBe('');
   });

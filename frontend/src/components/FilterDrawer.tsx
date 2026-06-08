@@ -53,8 +53,8 @@ export function FilterDrawer({ open, filters, onApply, onClear, onClose }: Props
   }
 
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <aside className="drawer drawer--filters" onClick={(e) => e.stopPropagation()}>
+    <div className="drawer-backdrop drawer-backdrop--side" onClick={onClose}>
+      <aside className="drawer drawer--filters drawer--side" onClick={(e) => e.stopPropagation()}>
         <header className="drawer__head">
           <h2>Filtrer</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Fermer">✕</button>

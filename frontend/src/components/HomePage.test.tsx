@@ -19,6 +19,7 @@ vi.mock('../api', () => ({
           condition: 'Vintage',
           color: 'Noir',
           seller: 'Tunis',
+          category: 'T-shirts',
           lastChance: false,
         },
       ],
@@ -43,10 +44,11 @@ describe('HomePage', () => {
     expect(screen.getByRole('heading', { name: /Fripa/i })).toBeInTheDocument();
   });
 
-  it('has a "Commencer à chiner" call-to-action linking to /shop', () => {
+  it('has a "Commencer à chiner" call-to-action linking to a browse route', () => {
     renderHome();
     const cta = screen.getByRole('link', { name: /Commencer à chiner/i });
-    expect(cta).toHaveAttribute('href', '/shop');
+    // Desktop default in jsdom (matchMedia → false) is the grid; mobile → deck.
+    expect(cta.getAttribute('href')).toMatch(/^\/(shop|catalogue)$/);
   });
 
   it('explains the three swipe directions', () => {

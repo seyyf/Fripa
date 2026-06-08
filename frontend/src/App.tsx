@@ -1,10 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Route, Routes } from 'react-router-dom';
 import { api } from './api';
-import type { CartResponse, FavoritesResponse, FieldFilters, FieldItem } from './types';
+import type {
+  CartResponse,
+  CheckoutResult,
+  CustomerInfo,
+  FavoritesResponse,
+  FieldFilters,
+  FieldItem,
+  TShirt,
+} from './types';
 import { activeFilterCount } from './filters/fieldQuery';
+import { holdState } from './cart/holdTimer';
 import { SwipeDeck } from './components/SwipeDeck';
 import { HomePage } from './components/HomePage';
+import { Catalogue } from './components/Catalogue';
+import { ProductDetail } from './components/ProductDetail';
+import { CheckoutPage } from './components/CheckoutPage';
 import { Cart } from './components/Cart';
 import { FavoritesDrawer } from './components/FavoritesDrawer';
 import { FilterDrawer } from './components/FilterDrawer';
@@ -14,6 +27,13 @@ import { EmptyState } from './components/EmptyState';
 const BATCH = 60; // how many items we ask the backend for per refill
 const LOW_WATER = 6; // refill the deck when it drops to this many cards
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Prefer a human-readable server message (e.g. the cart-hold cap); fall back to
+// a generic line for opaque/network errors.
+function errMsg(e: unknown, fallback: string): string {
+  const m = e instanceof Error ? e.message : '';
+  return m && !m.startsWith('HTTP') ? m : fallback;
+}
 
 export default function App() {
   const [deck, setDeck] = useState<FieldItem[]>([]);
@@ -26,6 +46,11 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [outOfCards, setOutOfCards] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
+  // A piece just removed from the cart → returned to the floor. The tick lets
+  // the catalogue react even if the same piece is returned twice.
+  const [returned, setReturned] = useState<{ item: TShirt; tick: number } | null>(null);
+  // Pieces bought at checkout → the catalogue removes them from the floor.
+  const [purchased, setPurchased] = useState<{ ids: string[]; tick: number } | null>(null);
 
   const deckRef = useRef<FieldItem[]>([]);
   const filtersRef = useRef<FieldFilters>({});
@@ -72,6 +97,39 @@ export default function App() {
     void refreshFavorites();
   }, [topUp, refreshCart, refreshFavorites]);
 
+  // Watch cart-hold timers: warn at <60s, and on expiry toast + refetch + drop
+  // the piece back onto the floor. Keyed by id:expiresAt so a re-reserved piece
+  // gets fresh warnings.
+  const cartRef = useRef(cart);
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+  const warnedHolds = useRef<Set<string>>(new Set());
+  const expiredHolds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      let released = false;
+      for (const line of cartRef.current.lines) {
+        const key = `${line.id}:${line.expiresAt}`;
+        const { phase } = holdState(line.expiresAt, now);
+        if (phase === 'expired') {
+          if (!expiredHolds.current.has(key)) {
+            expiredHolds.current.add(key);
+            flash(`Trop tard — ${line.title} est reparti dans le rayon. 👋`);
+            setReturned((r) => ({ item: line, tick: (r?.tick ?? 0) + 1 }));
+            released = true;
+          }
+        } else if (phase === 'warning' && !warnedHolds.current.has(key)) {
+          warnedHolds.current.add(key);
+          flash(`⏳ ${line.title} expire bientôt !`);
+        }
+      }
+      if (released) void refreshCart();
+    }, 1000);
+    return () => clearInterval(id);
+  }, [refreshCart]);
+
   function dropTop(itemId: string) {
     setDeck((prev) => prev.filter((i) => i.id !== itemId));
   }
@@ -89,7 +147,7 @@ export default function App() {
     } catch (e) {
       console.error('keep failed', e);
       restore(item);
-      flash('Oups, réessaie.');
+      flash(errMsg(e, 'Oups, réessaie.'));
       return;
     }
     void topUp();
@@ -128,6 +186,10 @@ export default function App() {
   async function handleUndo() {
     try {
       const res = await api.undo();
+      if (res.rateLimited) {
+        flash('↩ Reviens : une seule fois par heure. À tout à l’heure !');
+        return;
+      }
       if (!res.undone) {
         setHistoryCount(0);
         return;
@@ -145,6 +207,52 @@ export default function App() {
     }
   }
 
+  // Cart / favorite actions from the catalogue detail page (no deck involved).
+  async function addToCart(item: TShirt) {
+    try {
+      setCart(await api.add(item.id));
+      flash(`Ajouté au panier — ${item.title}`);
+    } catch (e) {
+      console.error('add failed', e);
+      flash(errMsg(e, 'Oups, réessaie.'));
+    }
+  }
+
+  async function addFavorite(item: TShirt) {
+    try {
+      setFavorites(await api.favorite(item.id));
+      flash(`Gardé pour plus tard — ${item.title} ⭐`);
+    } catch (e) {
+      console.error('favorite failed', e);
+      flash('Oups, réessaie.');
+    }
+  }
+
+  async function removeFromCart(itemId: string) {
+    const line = cart.lines.find((l) => l.id === itemId);
+    try {
+      setCart(await api.remove(itemId));
+      // Back on the rack — signal the catalogue floor to show it again.
+      if (line) setReturned((r) => ({ item: line, tick: (r?.tick ?? 0) + 1 }));
+    } catch (e) {
+      console.error('remove failed', e);
+    }
+  }
+
+  async function placeOrder(customer: CustomerInfo): Promise<CheckoutResult> {
+    const ids = cart.lines.map((l) => l.id);
+    const res = await api.checkout(customer);
+    if (res.ok) {
+      setCart({ lines: [], total: 0 });
+      // The bought pieces leave the floor for good.
+      setPurchased((p) => ({ ids, tick: (p?.tick ?? 0) + 1 }));
+    } else {
+      // Refused (e.g. cart expired/lost) — re-sync the UI to the real cart.
+      await refreshCart();
+    }
+    return res;
+  }
+
   async function moveFavoriteToCart(itemId: string) {
     try {
       const res = await api.favoriteToCart(itemId);
@@ -153,6 +261,7 @@ export default function App() {
       flash('Déplacé au panier. 🛒');
     } catch (e) {
       console.error('move to cart failed', e);
+      flash(errMsg(e, 'Oups, réessaie.'));
     }
   }
 
@@ -220,6 +329,26 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route
+          path="/catalogue"
+          element={
+            <Catalogue
+              onAddToCart={addToCart}
+              onFavorite={addFavorite}
+              onUnfavorite={removeFavorite}
+              returned={returned}
+              purchased={purchased}
+            />
+          }
+        />
+        <Route
+          path="/piece/:id"
+          element={<ProductDetail onAddToCart={addToCart} onFavorite={addFavorite} />}
+        />
+        <Route
+          path="/checkout"
+          element={<CheckoutPage cart={cart} onPlaceOrder={placeOrder} />}
+        />
+        <Route
           path="/shop"
           element={
             <main className="stage">
@@ -229,6 +358,7 @@ export default function App() {
                   className="toolbar-btn"
                   onClick={handleUndo}
                   disabled={historyCount === 0}
+                  title="Annule ton dernier swipe — 1 fois par heure"
                 >
                   ↩ Reviens
                 </button>
@@ -280,7 +410,13 @@ export default function App() {
         />
       </Routes>
 
-      <Cart open={cartOpen} onClose={() => setCartOpen(false)} cart={cart} refresh={refreshCart} />
+      <Cart
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        cart={cart}
+        onRemove={removeFromCart}
+        onPlaceOrder={placeOrder}
+      />
       <FavoritesDrawer
         open={favOpen}
         onClose={() => setFavOpen(false)}
@@ -296,7 +432,24 @@ export default function App() {
         onClose={() => setFilterOpen(false)}
       />
 
-      {toast && <div className="toast">{toast}</div>}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className="toast"
+            role="status"
+            aria-live="polite"
+            initial={reducedMotion ? { opacity: 0, x: '-50%' } : { opacity: 0, x: '-50%', y: 24, scale: 0.9 }}
+            animate={{ opacity: 1, x: '-50%', y: 0, scale: 1 }}
+            exit={reducedMotion ? { opacity: 0, x: '-50%' } : { opacity: 0, x: '-50%', y: 12, scale: 0.95 }}
+            transition={
+              reducedMotion ? { duration: 0.15 } : { type: 'spring', stiffness: 420, damping: 28 }
+            }
+          >
+            <span className="toast__dot" aria-hidden="true" />
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

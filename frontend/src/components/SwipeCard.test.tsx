@@ -15,6 +15,7 @@ const item: FieldItem = {
   condition: 'Très bon état',
   color: 'Blanc cassé',
   seller: 'Souk El Jemaa, Tunis',
+  category: 'T-shirts',
   lastChance: false,
 };
 

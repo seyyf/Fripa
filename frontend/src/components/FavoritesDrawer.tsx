@@ -12,8 +12,8 @@ export function FavoritesDrawer({ open, onClose, favorites, onMoveToCart, onRemo
   if (!open) return null;
 
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <aside className="drawer" onClick={(e) => e.stopPropagation()}>
+    <div className="drawer-backdrop drawer-backdrop--side" onClick={onClose}>
+      <aside className="drawer drawer--side" onClick={(e) => e.stopPropagation()}>
         <header className="drawer__head">
           <h2>Mes favoris</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Fermer">✕</button>

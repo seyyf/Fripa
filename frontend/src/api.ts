@@ -1,8 +1,13 @@
 import type {
   CartResponse,
+  CatalogueResponse,
+  Category,
+  CheckoutResult,
+  CustomerInfo,
   FavoritesResponse,
   FieldFilters,
   FieldResponse,
+  ItemDetail,
   TShirt,
 } from './types';
 import { buildFieldQuery } from './filters/fieldQuery';
@@ -23,7 +28,16 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    // Surface the server's message (e.g. the cart-hold cap) when there is one.
+    let message = '';
+    try {
+      message = (await res.json())?.message ?? '';
+    } catch {
+      /* no JSON body */
+    }
+    throw new Error(message || `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
@@ -35,6 +49,21 @@ export const api = {
       `/items/field?userId=${userId()}&count=${count}${qs ? `&${qs}` : ''}`,
     );
   },
+  // Garment categories present in the catalogue (for the browse tabs).
+  categories: () => http<Category[]>(`/categories`),
+  // Browse grid: all still-available pieces (filters honoured).
+  catalogue: (filters: FieldFilters = {}) => {
+    const qs = buildFieldQuery(filters);
+    return http<CatalogueResponse>(`/catalogue?userId=${userId()}${qs ? `&${qs}` : ''}`);
+  },
+  // Single piece for the detail page (with its status for this user).
+  item: (id: string) => http<ItemDetail>(`/piece/${id}?userId=${userId()}`),
+  // A phantom shopper grabs a piece off the catalogue floor (not undoable).
+  crowdSnatch: (itemId: string) =>
+    http<{ gone: boolean; eligibleForReprise?: boolean }>(`/crowd/snatch`, {
+      method: 'POST',
+      body: JSON.stringify({ userId: userId(), itemId }),
+    }),
   // Swipe-left: the user passes. Rolls the 90/10 dice on /api/swipes/pass —
   // 90% gone forever, 10% resurfaces once as a "Dernière chance" card.
   pass: (itemId: string) =>
@@ -43,11 +72,13 @@ export const api = {
       body: JSON.stringify({ userId: userId(), itemId }),
     }),
   // "Reviens !" — reverse the most recent swipe; returns the restored item.
+  // Allowed once per hour per user (rateLimited when on cooldown).
   undo: () =>
-    http<{ undone: { action: 'pass' | 'keep' | 'favorite'; item: TShirt } | null }>(
-      `/swipes/undo`,
-      { method: 'POST', body: JSON.stringify({ userId: userId() }) },
-    ),
+    http<{
+      undone: { action: 'pass' | 'keep' | 'favorite'; item: TShirt } | null;
+      rateLimited?: boolean;
+      retryAfterMs?: number;
+    }>(`/swipes/undo`, { method: 'POST', body: JSON.stringify({ userId: userId() }) }),
   add: (itemId: string) =>
     http<CartResponse>(`/cart`, {
       method: 'POST',
@@ -70,11 +101,11 @@ export const api = {
       `/favorites/${userId()}/${itemId}/to-cart`,
       { method: 'POST' },
     ),
-  checkout: () =>
-    http<{ ok: boolean; message: string; orderTotal?: number }>(
-      `/cart/${userId()}/checkout`,
-      { method: 'POST' },
-    ),
+  checkout: (customer: CustomerInfo) =>
+    http<CheckoutResult>(`/cart/${userId()}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify(customer),
+    }),
   reset: () =>
     http<{ ok: boolean }>(`/session/${userId()}/reset`, { method: 'POST' }),
   resetSwipes: () =>

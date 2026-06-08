@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ShopService } from './shop.service';
+import { ShopService, MAX_CART_HOLDS } from './shop.service';
+
+const id = (n: number) => `t-${String(n).padStart(3, '0')}`;
 
 function withRng(value: number): ShopService {
   const s = new ShopService();
@@ -73,6 +75,13 @@ describe('ShopService.getField filters', () => {
     expect(res.items.every((i) => i.condition === 'Vintage')).toBe(true);
   });
 
+  it('filters by category', () => {
+    const s = new ShopService();
+    const res = s.getField('u1', 60, { category: 'Shorts' });
+    expect(res.items.length).toBeGreaterThan(0);
+    expect(res.items.every((i) => i.category === 'Shorts')).toBe(true);
+  });
+
   it('filters by free-text query against title/brand', () => {
     const s = new ShopService();
     const res = s.getField('u1', 60, { q: 'nike' });
@@ -89,6 +98,196 @@ describe('ShopService.getField filters', () => {
     const res = s.getField('u1', 60, { q: 'zzz-no-such-thing' });
     expect(res.items.length).toBe(0);
     expect(res.remaining).toBe(0);
+  });
+});
+
+function withClock(start: number) {
+  const s = new ShopService();
+  const store = s as unknown as { now: () => number };
+  let t = start;
+  store.now = () => t;
+  return { s, advance: (ms: number) => (t += ms) };
+}
+
+const TTL = 10 * 60 * 1000;
+
+describe('ShopService cart hold (TTL)', () => {
+  it('puts an expiry timestamp on each cart line', () => {
+    const { s } = withClock(1000);
+    s.addToCart('u1', 't-001');
+    const line = s.getCart('u1').lines.find((l) => l.id === 't-001')!;
+    expect(line.expiresAt).toBe(1000 + TTL);
+  });
+
+  it('keeps the piece held (on the floor, blurred) while the hold is active', () => {
+    const { s, advance } = withClock(0);
+    s.addToCart('u1', 't-001');
+    advance(9 * 60 * 1000); // 9 min < 10
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(true);
+    const item = s.getCatalog('u1').items.find((i) => i.id === 't-001');
+    expect(item?.reservedUntil).toBeGreaterThan(0); // present but held
+  });
+
+  it('releases the piece back to circulation when the hold expires', () => {
+    const { s, advance } = withClock(0);
+    s.addToCart('u1', 't-001');
+    advance(TTL + 1);
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+    expect(s.getCatalog('u1').items.some((i) => i.id === 't-001')).toBe(true);
+    expect(s.getField('u1', 60).items.some((i) => i.id === 't-001')).toBe(true);
+  });
+});
+
+describe('ShopService.clearCart', () => {
+  it('empties the user cart (used after a successful order)', () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    s.addToCart('u1', 't-002');
+    expect(s.getCart('u1').lines.length).toBe(2);
+    s.clearCart('u1');
+    expect(s.getCart('u1').lines.length).toBe(0);
+  });
+});
+
+describe('ShopService cart hold cap', () => {
+  function fillCart(s: ShopService) {
+    for (let i = 1; i <= MAX_CART_HOLDS; i++) s.addToCart('u1', id(i));
+  }
+
+  it('allows holding up to the cap', () => {
+    const s = new ShopService();
+    fillCart(s);
+    expect(s.getCart('u1').lines.length).toBe(MAX_CART_HOLDS);
+  });
+
+  it('rejects a new hold beyond the cap', () => {
+    const s = new ShopService();
+    fillCart(s);
+    expect(() => s.addToCart('u1', id(MAX_CART_HOLDS + 1))).toThrow();
+    expect(s.getCart('u1').lines.length).toBe(MAX_CART_HOLDS); // unchanged
+  });
+
+  it('still lets you re-hold a piece already in the cart when full (refresh, no new slot)', () => {
+    const s = new ShopService();
+    fillCart(s);
+    expect(() => s.addToCart('u1', id(1))).not.toThrow();
+    expect(s.getCart('u1').lines.length).toBe(MAX_CART_HOLDS);
+  });
+
+  it('frees a slot when a held piece is removed', () => {
+    const s = new ShopService();
+    fillCart(s);
+    s.removeFromCart('u1', id(1));
+    expect(() => s.addToCart('u1', id(MAX_CART_HOLDS + 1))).not.toThrow();
+    expect(s.getCart('u1').lines.length).toBe(MAX_CART_HOLDS);
+  });
+
+  it('does not let moveFavoriteToCart exceed the cap (favourite kept on rejection)', () => {
+    const s = new ShopService();
+    fillCart(s);
+    s.addFavorite('u1', id(MAX_CART_HOLDS + 1));
+    expect(() => s.moveFavoriteToCart('u1', id(MAX_CART_HOLDS + 1))).toThrow();
+    // The favourite is untouched since the move was rejected before deletion.
+    expect(s.getFavorites('u1').lines.some((l) => l.id === id(MAX_CART_HOLDS + 1))).toBe(true);
+  });
+});
+
+describe('ShopService.removeFromCart', () => {
+  it('returns the piece to circulation (available again) when removed', () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    // While in the cart it's held on the floor (blurred), not available.
+    expect(s.getCatalog('u1').items.find((i) => i.id === 't-001')?.reservedUntil).toBeGreaterThan(0);
+
+    s.removeFromCart('u1', 't-001');
+
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+    const item = s.getCatalog('u1').items.find((i) => i.id === 't-001');
+    expect(item?.reservedUntil).toBeUndefined(); // available again
+    expect(s.getField('u1', 60).items.some((i) => i.id === 't-001')).toBe(true);
+  });
+});
+
+describe('ShopService.snatch (phantom crowd)', () => {
+  it('removes the piece like a pass, but is NOT undoable', () => {
+    const s = withRng(0.9); // force "gone"
+    s.snatch('u1', 't-001');
+    expect(s.getCatalog('u1').items.some((i) => i.id === 't-001')).toBe(false);
+    // The crowd taking a piece is not the user's action — nothing to undo.
+    expect(s.undo('u1').undone).toBeNull();
+  });
+
+  it('still rolls the 10% Dernière chance reprise', () => {
+    const s = withRng(0.05); // < 0.1 → reprise
+    expect(s.snatch('u1', 't-002')).toEqual({ gone: false, eligibleForReprise: true });
+  });
+});
+
+describe('ShopService.getCatalog', () => {
+  it('returns available pieces with a total, applying filters', () => {
+    const s = new ShopService();
+    const res = s.getCatalog('u1', { sizes: ['S'] });
+    expect(res.total).toBe(res.items.length);
+    expect(res.items.length).toBeGreaterThan(0);
+    expect(res.items.every((i) => i.size === 'S')).toBe(true);
+  });
+
+  it('excludes passed pieces; keeps cart (held) and favorited (highlighted) pieces flagged', () => {
+    const s = new ShopService();
+    (s as unknown as { rng: () => number }).rng = () => 0.9; // force "gone"
+    s.pass('u1', 't-001');
+    s.addToCart('u1', 't-002');
+    s.addFavorite('u1', 't-003');
+    const items = s.getCatalog('u1').items;
+    expect(items.some((i) => i.id === 't-001')).toBe(false); // passed → gone
+    expect(items.find((i) => i.id === 't-002')?.reservedUntil).toBeGreaterThan(0); // held
+    expect(items.find((i) => i.id === 't-003')?.favorited).toBe(true); // highlighted, on the floor
+  });
+
+  it('counts only available (non-held) pieces in total', () => {
+    const s = new ShopService();
+    const before = s.getCatalog('u1').total;
+    s.addToCart('u1', 't-001');
+    const after = s.getCatalog('u1');
+    expect(after.total).toBe(before - 1); // one piece is now held, not available
+    expect(after.items.find((i) => i.id === 't-001')?.reservedUntil).toBeGreaterThan(0);
+  });
+});
+
+describe('ShopService.getCategories', () => {
+  it('returns the distinct categories present, in display order', () => {
+    const s = new ShopService();
+    const cats = s.getCategories();
+    expect(cats).toContain('T-shirts');
+    expect(cats).toContain('Shorts');
+    expect(cats).toContain('Maillots');
+    expect(new Set(cats).size).toBe(cats.length); // no duplicates
+  });
+});
+
+describe('ShopService.getOne', () => {
+  it('returns the item with status "available" for a fresh piece', () => {
+    const s = new ShopService();
+    const res = s.getOne('u1', 't-001');
+    expect(res.item.id).toBe('t-001');
+    expect(res.status).toBe('available');
+  });
+
+  it('reports "inCart", "inFavorites" and "gone" states', () => {
+    const s = new ShopService();
+    const store = s as unknown as { rng: () => number };
+    s.addToCart('u1', 't-001');
+    s.addFavorite('u1', 't-002');
+    store.rng = () => 0.9; // force "gone"
+    s.pass('u1', 't-003');
+    expect(s.getOne('u1', 't-001').status).toBe('inCart');
+    expect(s.getOne('u1', 't-002').status).toBe('inFavorites');
+    expect(s.getOne('u1', 't-003').status).toBe('gone');
+  });
+
+  it('throws for an unknown id', () => {
+    const s = new ShopService();
+    expect(() => s.getOne('u1', 'does-not-exist')).toThrow();
   });
 });
 
@@ -119,13 +318,14 @@ describe('ShopService favorites', () => {
     expect(res.items.some((i) => i.id === 't-001')).toBe(false);
   });
 
-  it('removeFavorite drops it and it does not resurface in the deck', () => {
+  it('removeFavorite drops it from favorites and returns it to circulation', () => {
     const s = new ShopService();
     s.addFavorite('u1', 't-001');
     const res = s.removeFavorite('u1', 't-001');
     expect(res.lines.some((l) => l.id === 't-001')).toBe(false);
-    const field = s.getField('u1', 60);
-    expect(field.items.some((i) => i.id === 't-001')).toBe(false);
+    // Un-favoriting is not destructive: the piece is available again.
+    expect(s.getField('u1', 60).items.some((i) => i.id === 't-001')).toBe(true);
+    expect(s.getCatalog('u1').items.find((i) => i.id === 't-001')?.favorited).toBeUndefined();
   });
 
   it('moveFavoriteToCart removes from favorites and adds to the cart', () => {
@@ -183,13 +383,40 @@ describe('ShopService.undo', () => {
     expect(s.undo('u1').undone).toBeNull();
   });
 
-  it('undoes multiple actions in reverse order', () => {
-    const s = new ShopService();
+  it('undoes actions in reverse order, one per hour', () => {
+    const { s, advance } = withClock(0);
     s.addToCart('u1', 't-001');
     s.addFavorite('u1', 't-002');
     expect(s.undo('u1').undone?.action).toBe('favorite');
+    advance(60 * 60 * 1000 + 1); // next hour
     expect(s.undo('u1').undone?.action).toBe('keep');
-    expect(s.undo('u1').undone).toBeNull();
+  });
+
+  it('allows one undo, then rate-limits within the hour', () => {
+    const { s } = withClock(0);
+    s.pass('u1', 't-001');
+    expect(s.undo('u1').undone?.action).toBe('pass');
+    s.pass('u1', 't-002');
+    const second = s.undo('u1');
+    expect(second.undone).toBeNull();
+    expect(second.rateLimited).toBe(true);
+    expect(second.retryAfterMs).toBeGreaterThan(0);
+  });
+
+  it('allows undo again after an hour', () => {
+    const { s, advance } = withClock(0);
+    s.pass('u1', 't-001');
+    s.undo('u1');
+    s.pass('u1', 't-002');
+    advance(60 * 60 * 1000 + 1);
+    expect(s.undo('u1').undone?.action).toBe('pass');
+  });
+
+  it('does not consume the hourly allowance when there is nothing to undo', () => {
+    const { s } = withClock(0);
+    expect(s.undo('u1').undone).toBeNull(); // empty history, not rate-limited
+    s.pass('u1', 't-001');
+    expect(s.undo('u1').undone?.action).toBe('pass'); // still allowed
   });
 
   it('moveFavoriteToCart is not an undoable swipe', () => {

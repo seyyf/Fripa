@@ -8,6 +8,7 @@ export function buildFieldQuery(f: FieldFilters): string {
   if (f.sizes && f.sizes.length) p.set('sizes', f.sizes.join(','));
   if (f.conditions && f.conditions.length) p.set('conditions', f.conditions.join(','));
   if (f.maxPrice != null) p.set('maxPrice', String(f.maxPrice));
+  if (f.category) p.set('category', f.category);
   return p.toString();
 }
 

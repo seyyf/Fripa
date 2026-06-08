@@ -22,10 +22,21 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
   const y = useMotionValue(0);
   const rotate = useTransform(x, [-240, 240], [-14, 14]);
 
+  // A colored halo grows around the card in whichever direction you drag,
+  // previewing the decision before you commit. Driven by opacity (GPU-cheap)
+  // rather than an animated box-shadow, which would repaint every frame.
+  const keepGlow = useTransform(x, [40, 120], [0, 1]);
+  const passGlow = useTransform(x, [-120, -40], [1, 0]);
+  const favoriteGlow = useTransform(y, [-120, -40], [1, 0]);
+
   // Overlay stamp opacities driven by drag distance in each direction.
   const keepOpacity = useTransform(x, [40, 120], [0, 1]);
   const passOpacity = useTransform(x, [-120, -40], [1, 0]);
   const favoriteOpacity = useTransform(y, [-120, -40], [1, 0]);
+  // Stamps "press in" as they appear, for a rubber-stamp feel.
+  const keepStamp = useTransform(x, [40, 120], [0.7, 1]);
+  const passStamp = useTransform(x, [-120, -40], [1, 0.7]);
+  const favoriteStamp = useTransform(y, [-120, -40], [1, 0.7]);
 
   function fire(action: SwipeAction) {
     if (action === 'keep') onKeep(item);
@@ -59,6 +70,10 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
     else springBack();
   }
 
+  // Springy button feedback (skipped for reduced-motion users).
+  const press = reducedMotion ? {} : { whileHover: { scale: 1.1 }, whileTap: { scale: 0.88 } };
+  const btnTransition = { type: 'spring' as const, stiffness: 480, damping: 18 };
+
   return (
     <motion.div
       className={`swipe-card ${item.lastChance ? 'swipe-card--last-chance' : ''}`}
@@ -70,6 +85,11 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
     >
+      {/* Directional edge glow — opacity-driven, so it stays smooth while dragging. */}
+      <motion.span className="swipe-card__glow swipe-card__glow--keep" style={{ opacity: keepGlow }} aria-hidden="true" />
+      <motion.span className="swipe-card__glow swipe-card__glow--pass" style={{ opacity: passGlow }} aria-hidden="true" />
+      <motion.span className="swipe-card__glow swipe-card__glow--favorite" style={{ opacity: favoriteGlow }} aria-hidden="true" />
+
       {item.lastChance && (
         <div className="last-chance-banner">
           <span className="last-chance-banner__dot" /> Dernière chance
@@ -80,13 +100,25 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         className="swipe-card__image"
         style={{ backgroundImage: `url(${item.imageUrl})` }}
       >
-        <motion.span className="stamp stamp--keep" style={{ opacity: keepOpacity }}>
+        {/* rotate / x are set here (not just in CSS) because framer-motion's
+            `scale` writes the whole `transform`, which would otherwise drop the
+            stamps' CSS rotation and centering. */}
+        <motion.span
+          className="stamp stamp--keep"
+          style={{ opacity: keepOpacity, scale: keepStamp, rotate: 14 }}
+        >
           GARDER
         </motion.span>
-        <motion.span className="stamp stamp--pass" style={{ opacity: passOpacity }}>
+        <motion.span
+          className="stamp stamp--pass"
+          style={{ opacity: passOpacity, scale: passStamp, rotate: -14 }}
+        >
           PASSER
         </motion.span>
-        <motion.span className="stamp stamp--favorite" style={{ opacity: favoriteOpacity }}>
+        <motion.span
+          className="stamp stamp--favorite"
+          style={{ opacity: favoriteOpacity, scale: favoriteStamp, x: '-50%' }}
+        >
           FAVORI
         </motion.span>
         <span className="swipe-card__price">{item.price} TND</span>
@@ -107,30 +139,36 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
       </div>
 
       <div className="swipe-card__actions">
-        <button
+        <motion.button
           type="button"
           className="round-btn round-btn--pass"
           onClick={() => onPass(item)}
           aria-label="Passer"
+          transition={btnTransition}
+          {...press}
         >
           ✕
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           className="round-btn round-btn--favorite"
           onClick={() => onFavorite(item)}
           aria-label="Favori"
+          transition={btnTransition}
+          {...press}
         >
           ⭐
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           className="round-btn round-btn--keep"
           onClick={() => onKeep(item)}
           aria-label="Garder"
+          transition={btnTransition}
+          {...press}
         >
           🛒
-        </button>
+        </motion.button>
       </div>
     </motion.div>
   );

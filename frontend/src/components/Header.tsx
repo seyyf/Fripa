@@ -1,3 +1,4 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { NavLink } from 'react-router-dom';
 
 interface Props {
@@ -9,6 +10,18 @@ interface Props {
 }
 
 export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Props) {
+  const reduce = useReducedMotion();
+  // Re-keying on the count value makes the badge pop each time it changes.
+  const badgeMotion = (key: number) => ({
+    key,
+    initial: reduce ? { opacity: 0 } : { scale: 0, opacity: 0 },
+    animate: reduce ? { opacity: 1 } : { scale: 1, opacity: 1 },
+    exit: reduce ? { opacity: 0 } : { scale: 0, opacity: 0 },
+    transition: reduce
+      ? { duration: 0.12 }
+      : { type: 'spring' as const, stiffness: 600, damping: 18 },
+  });
+
   return (
     <header className="app-header">
       <NavLink to="/" className="logo">
@@ -33,6 +46,12 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
         >
           Boutique
         </NavLink>
+        <NavLink
+          to="/catalogue"
+          className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
+        >
+          Catalogue
+        </NavLink>
       </nav>
 
       <div className="header-actions">
@@ -41,11 +60,26 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
         </button>
         <button className="cart-btn" onClick={onFavorites} aria-label="Mes favoris">
           ⭐
-          {favCount > 0 && <span className="cart-btn__badge cart-btn__badge--fav">{favCount}</span>}
+          <AnimatePresence>
+            {favCount > 0 && (
+              <motion.span
+                className="cart-btn__badge cart-btn__badge--fav"
+                {...badgeMotion(favCount)}
+              >
+                {favCount}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
         <button className="cart-btn" onClick={onCart} aria-label="Mon panier">
           🛒
-          {cartCount > 0 && <span className="cart-btn__badge">{cartCount}</span>}
+          <AnimatePresence>
+            {cartCount > 0 && (
+              <motion.span className="cart-btn__badge" {...badgeMotion(cartCount)}>
+                {cartCount}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
       </div>
     </header>

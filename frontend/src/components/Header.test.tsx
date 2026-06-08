@@ -29,4 +29,9 @@ describe('Header navigation', () => {
     renderHeader();
     expect(screen.getByRole('link', { name: /Boutique/i })).toHaveAttribute('href', '/shop');
   });
+
+  it('links to the catalogue grid', () => {
+    renderHeader();
+    expect(screen.getByRole('link', { name: /Catalogue/i })).toHaveAttribute('href', '/catalogue');
+  });
 });

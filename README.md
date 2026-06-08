@@ -64,12 +64,16 @@ recommencer une session.
 | Méthode | Route | Description |
 |---|---|---|
 | `GET` | `/api/items/field?userId=X&count=N` | Tire un lot pour le deck. Filtres optionnels : `q`, `sizes`, `conditions`, `maxPrice` |
+| `GET` | `/api/categories` | Catégories présentes (T-shirts, Sweats, Polos, Vestes, Maillots, Shorts, Jeans) |
+| `GET` | `/api/catalogue?userId=X&category=Shorts` | Le rayon (live) : pièces dispo. Filtres : `q`, `sizes`, `conditions`, `maxPrice`, `category` |
+| `POST` | `/api/crowd/snatch` | Body `{ userId, itemId }` — la foule prend une pièce (dés 90/10, non annulable) |
+| `GET` | `/api/piece/:id?userId=X` | Détail d'une pièce + son `status` (`available`/`gone`/`inCart`/`inFavorites`) |
 | `POST` | `/api/swipes/pass` | Body `{ userId, itemId }` — swipe gauche, applique la roulette 90/10 |
 | `POST` | `/api/swipes/undo` | Body `{ userId }` — « Reviens ! » : annule le dernier swipe |
 | `POST` | `/api/cart` | Body `{ userId, itemId }` — swipe droite, ajoute au panier |
 | `GET` | `/api/cart/:userId` | Récupère le panier (`lines`, `total`) |
 | `DELETE` | `/api/cart/:userId/:itemId` | Retire un article |
-| `POST` | `/api/cart/:userId/checkout` | Valide la commande (démo : vide le panier) |
+| `POST` | `/api/cart/:userId/checkout` | Body `{ name, email, address, phone }` — passe la commande (paiement à la livraison, pas de paiement en ligne) ; marque les pièces vendues, renvoie une réf `FR-####` |
 | `POST` | `/api/favorites` | Body `{ userId, itemId }` — swipe haut, met en favori |
 | `GET` | `/api/favorites/:userId` | Récupère les favoris |
 | `DELETE` | `/api/favorites/:userId/:itemId` | Retire un favori |

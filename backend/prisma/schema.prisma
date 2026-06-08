@@ -1,0 +1,59 @@
+// Fripa data model. SQLite for local dev (zero infra); swap the datasource
+// provider to "postgresql" for production — the model stays the same.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A second-hand piece. Mirrors the `TShirt` shape used across the app, plus a
+// lifecycle `status` (one-off stock) and audit timestamps. SQLite has no native
+// enums, so `size` / `condition` / `category` / `status` are stored as text and
+// validated in application code against the TypeScript unions.
+model Item {
+  id          String   @id
+  title       String
+  description String
+  imageUrl    String
+  price       Int
+  size        String // S | M | L | XL | XXL
+  brand       String
+  condition   String // Comme neuf | Très bon état | Bon état | Vintage
+  color       String
+  seller      String
+  category    String // T-shirts | Sweats | Polos | Vestes | Maillots | Shorts | Jeans
+  status      String   @default("active") // active | draft | sold | archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// A placed order (cash on delivery for now). Lines snapshot the piece details at
+// purchase time, so order history stays accurate even if the item is later
+// edited or deleted.
+model Order {
+  id              String      @id @default(cuid())
+  ref             String      @unique
+  userId          String
+  customerName    String
+  customerEmail   String
+  customerAddress String
+  customerPhone   String
+  total           Int
+  createdAt       DateTime    @default(now())
+  lines           OrderLine[]
+}
+
+model OrderLine {
+  id       String @id @default(cuid())
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId   String
+  title    String
+  brand    String
+  price    Int
+  size     String
+  imageUrl String
+}

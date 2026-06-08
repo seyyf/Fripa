@@ -14,14 +14,34 @@ The stack of clothing cards the user swipes through, one at a time. Fed client-s
 **Swipe card** (a.k.a. card):
 A single clothing item presented full-size in the deck. Draggable in three directions; on-screen buttons mirror each gesture for mouse/desktop and accessibility.
 
+**Le rayon** (a.k.a. catalogue grid, `/catalogue`):
+A **live** browse floor. Taken pieces don't vanish — they go **blurred with a countdown** (see **Hold**) and return when freed, so you can wait for a piece to reappear. **Category tabs** (T-shirts, Sweats, Polos, Vestes, Maillots, Shorts, Jeans — from `GET /api/categories`) sit above the floor; the drawer filters (q/size/condition/price) apply **within** the selected category. Each card opens a quick-look **modal** (plain click) or the **product detail** page (`/piece/:id`, new tab) and has quick **🛒 Prendre / ⭐** actions so you can claim a piece before others do. A snatched card flashes "Parti !" and leaves; a ticker announces "{name} vient de prendre …". Backed by `GET /api/catalogue` (same availability rules as the deck) — see `shop.service.ts::getCatalog`.
+
+**Category** (catégorie):
+A garment type on every item (`TShirt.category`): T-shirts, Sweats, Polos, Vestes, Maillots, Shorts, Jeans. Drives the catalogue tabs and is a filter dimension (`FieldFilters.category`).
+
+**Hold** (réservation, on the floor):
+A taken piece does **not** vanish from **Le rayon** — it stays as a **blurred, non-grabbable card with a countdown** ("Revient dans m:ss") until released. Two kinds:
+- **You-hold** (🛒 Réservé): the piece is in your cart. Backed by the cart TTL; `getCatalog` returns cart pieces with `reservedUntil`. Un-blurs when you remove it or the hold lapses; removed from the floor only on **checkout** (bought). Catalogue state is reconciled via App→Catalogue signals `returned` (released) and `purchased` (bought).
+- **Crowd-hold** (⏱ Pris): a simulated shopper grabbed it. **Client-side and temporary** (`CROWD_HOLD_MS ≈ 30s`, capped at `MAX_CROWD_HOLDS`) — it auto-returns (un-blurs) when the hold lapses. Does not touch backend state.
+
+**Phantom crowd** (grid-only):
+The simulated other shoppers on **Le rayon**. A client-side timer (`usePhantomCrowd`) periodically **holds** one un-hovered available piece (blurred, ~30s) and stops before the floor empties (`MIN_FLOOR`) or when too many are already held. Single-player pressure; scoped to the catalogue only — the swipe deck stays the user's own decision.
+
+**Snatch** (`shop.service.ts::snatch`, legacy):
+The old crowd mechanic that removed a piece via the 90/10 dice. **No longer used by the floor** (the crowd now uses temporary client-side holds). Kept for reference; route `POST /api/crowd/snatch`.
+
+**Product detail** (`/piece/:id`):
+A shareable page for one piece. `GET /api/piece/:id` returns the item plus a `status` for this user — `available` (can add to cart / favorite), `inCart`, `inFavorites`, or `gone` (passed — shown as "partie"). See `shop.service.ts::getOne`.
+
 **Garder** (swipe right →):
 The keep action — adds the item to the cart.
 
 **Passer** (swipe left ←):
 The user's pass. Fires the 90/10 dice (see **Pass**). This is a genuine user action again (the floating field had removed it; [ADR-0003](docs/adr/0003-revert-to-swipe-deck-add-favorites.md) brought it back).
 
-**Favori** (swipe up ↑):
-Save-for-later. Adds the item to the **favorites** list — separate from the cart. From the favorites drawer the user can move an item to the cart or remove it. Removing a favorite is a decision: it does not resurface in the deck.
+**Favori** (swipe up ↑, or ⭐ on the catalogue):
+Save-for-later. Adds the item to the **favorites** list — separate from the cart. On **Le rayon** a favorited piece **stays on the floor, highlighted** (gold ribbon + outline) and still grabbable; the ⭐ toggles it on/off. From the favorites drawer the user can move an item to the cart or remove it. Un-favoriting is **not destructive** — the piece returns to circulation (catalogue + deck). The deck (swipe) still hides favorited pieces.
 
 **Reviens !** (undo):
 Reverses the most recent swipe and drops the piece back on top of the deck. Backed by a per-user **action-history** stack (`shop.service.ts::undo()`): a pass becomes eligible again (whatever the dice rolled), a keep leaves the cart, a favorite leaves the list. Repeatable in reverse order. `moveFavoriteToCart` is not an undoable swipe. Cleared by stock-refresh and reset.
@@ -47,6 +67,11 @@ _Avoid_: "reset" (the destructive variant that also wipes the cart).
 
 **Reset** (destructive):
 Wipes the entire `UserState` — cart and favorites included. The secondary, hard-restart action (header `↻`).
+
+### Commande
+
+**Checkout** (`/checkout`):
+A simple delivery form — **nom, email, adresse, téléphone** — reached from the cart drawer's "Passer commande". No online payment yet (**paiement à la livraison** / cash on delivery). On submit, `POST /api/cart/:userId/checkout` validates the fields, **marks the cart pieces sold** (gone from the floor and the deck), clears the cart, and returns an order reference (`FR-####`) shown on a confirmation screen. The bought pieces are also removed from the live floor via the `purchased` App→Catalogue signal.
 
 ### Actors
 
