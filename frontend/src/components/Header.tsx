@@ -1,6 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Link, NavLink } from 'react-router-dom';
-import { useAccount } from '../account/AccountContext';
+import { NavLink } from 'react-router-dom';
 import { useT } from '../i18n/LanguageContext';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
@@ -14,7 +13,6 @@ interface Props {
 
 export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Props) {
   const reduce = useReducedMotion();
-  const { user, openLogin } = useAccount();
   const { t } = useT();
   // Re-keying on the count value makes the badge pop each time it changes.
   const badgeMotion = (key: number) => ({
@@ -65,15 +63,6 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
         <button className="ghost-btn" onClick={onReset} title={t('a11y.reset')}>
           ↻
         </button>
-        {user ? (
-          <Link to="/compte" className="cart-btn" aria-label={t('a11y.account')} title={t('a11y.account')}>
-            👤
-          </Link>
-        ) : (
-          <button className="cart-btn" onClick={openLogin} aria-label={t('a11y.login')} title={t('a11y.login')}>
-            👤
-          </button>
-        )}
         <button className="cart-btn" onClick={onFavorites} aria-label={t('a11y.favorites')}>
           ⭐
           <AnimatePresence>

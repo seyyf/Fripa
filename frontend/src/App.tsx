@@ -409,7 +409,7 @@ export default function App() {
                 </button>
               </div>
 
-              <QuickFilters filters={filters} deck={deck} onApply={applyFilters} />
+              <QuickFilters filters={filters} onApply={applyFilters} />
 
               {showEmpty ? (
                 filteredEmpty ? (
