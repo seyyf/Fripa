@@ -37,5 +37,10 @@ describe('AdminStatsService.summary', () => {
 
     // sorted by count desc
     expect(s.topCategories[0]).toEqual({ category: 'T-shirts', count: 20 });
+
+    // 90-day daily series; today's bucket holds the "now" order (50 TND)
+    expect(s.revenueSeries).toHaveLength(90);
+    expect(s.revenueSeries[89].revenue).toBe(50);
+    expect(s.revenueSeries[0].revenue).toBe(0);
   });
 });

@@ -84,6 +84,7 @@ export interface AdminStats {
   collected: { count: number; revenue: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
+  revenueSeries: { date: string; revenue: number }[];
 }
 
 export interface AdminOrder {

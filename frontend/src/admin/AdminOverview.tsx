@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { adminApi, AdminAuthError, ORDER_STATUSES, type AdminStats } from './adminApi';
 
 interface Props {
@@ -8,9 +8,20 @@ interface Props {
 const statusKey = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+const RANGES = [7, 30, 90] as const;
+
 export function AdminOverview({ onAuthError }: Props) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [range, setRange] = useState<(typeof RANGES)[number]>(30);
+
+  const series = useMemo(() => (stats ? stats.revenueSeries.slice(-range) : []), [stats, range]);
+  const maxRev = Math.max(1, ...series.map((p) => p.revenue));
+  const rangeTotal = series.reduce((s, p) => s + p.revenue, 0);
+  const fmtDay = (iso: string) => {
+    const d = new Date(iso + 'T00:00:00');
+    return `${d.getDate()}/${d.getMonth() + 1}`;
+  };
 
   useEffect(() => {
     let alive = true;
@@ -67,6 +78,34 @@ export function AdminOverview({ onAuthError }: Props) {
             <span className="admin-kpi__sub">{c.sub}</span>
           </div>
         ))}
+      </div>
+
+      <div className="admin-panel admin-revchart">
+        <div className="admin-revchart__head">
+          <h2 className="admin-panel__title">Ventes — {rangeTotal} TND sur {range} j</h2>
+          <div className="admin-revchart__ranges">
+            {RANGES.map((r) => (
+              <button
+                key={r}
+                className={`admin-tab ${range === r ? 'admin-tab--on' : ''}`}
+                onClick={() => setRange(r)}
+              >
+                {r}j
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="admin-chart">
+          {series.map((p) => (
+            <div key={p.date} className="admin-chart__bar" title={`${p.date} : ${p.revenue} TND`}>
+              <span style={{ height: `${(p.revenue / maxRev) * 100}%` }} />
+            </div>
+          ))}
+        </div>
+        <div className="admin-chart__axis">
+          <span>{series.length ? fmtDay(series[0].date) : ''}</span>
+          <span>{series.length ? fmtDay(series[series.length - 1].date) : ''}</span>
+        </div>
       </div>
 
       <div className="admin-overview__cols">

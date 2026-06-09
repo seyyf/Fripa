@@ -12,7 +12,13 @@ export interface AdminStats {
   collected: { count: number; revenue: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
+  // Daily gross revenue for the last 90 days (oldest → newest).
+  revenueSeries: { date: string; revenue: number }[];
 }
+
+const SERIES_DAYS = 90;
+const dayKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 @Injectable()
 export class AdminStatsService {
@@ -48,6 +54,20 @@ export class AdminStatsService {
       .map((g) => ({ category: g.category, count: g._count._all }))
       .sort((a, b) => b.count - a.count);
 
+    // Bucket order revenue by local day, then emit a continuous last-90-days series.
+    const buckets = new Map<string, number>();
+    for (const o of orders) {
+      const k = dayKey(new Date(o.createdAt));
+      buckets.set(k, (buckets.get(k) ?? 0) + o.total);
+    }
+    const revenueSeries: { date: string; revenue: number }[] = [];
+    for (let i = SERIES_DAYS - 1; i >= 0; i--) {
+      const d = new Date(startOfToday);
+      d.setDate(d.getDate() - i);
+      const k = dayKey(d);
+      revenueSeries.push({ date: k, revenue: buckets.get(k) ?? 0 });
+    }
+
     return {
       items,
       orders: {
@@ -66,6 +86,7 @@ export class AdminStatsService {
       },
       ordersByStatus,
       topCategories,
+      revenueSeries,
     };
   }
 }
