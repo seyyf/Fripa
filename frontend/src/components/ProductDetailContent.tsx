@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { ItemStatus, TShirt } from '../types';
 import { effectivePrice, isOnSale } from '../types';
+import { shareItem } from '../util/share';
 
 interface Props {
   item: TShirt;
@@ -11,6 +13,15 @@ interface Props {
 // Presentational detail layout, shared by the standalone /piece/:id page and
 // the catalogue quick-look modal.
 export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: Props) {
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
+
+  async function onShare() {
+    const res = await shareItem(item);
+    if (res === 'copied') setShareMsg('Lien copié !');
+    else if (res === 'failed') setShareMsg('Partage indisponible.');
+    if (res !== 'shared') setTimeout(() => setShareMsg(null), 2000);
+  }
+
   return (
     <div className="pd__layout">
       <div className="pd__media">
@@ -21,6 +32,9 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
         <div className="pd__title-row">
           <h1 className="pd__title">{item.title}</h1>
           <span className="pd__brand">{item.brand}</span>
+          <button type="button" className="pd__share" onClick={onShare} aria-label="Partager">
+            ↗ {shareMsg ?? 'Partager'}
+          </button>
         </div>
         <div className="pd__price">
           {isOnSale(item) && <span className="price-old">{item.price} TND</span>}

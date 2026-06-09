@@ -1569,6 +1569,22 @@ body {
   font-weight: 600;
   white-space: nowrap;
 }
+.pd__share {
+  margin-left: auto;
+  border: 1px solid #eee2cf;
+  background: var(--paper);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.pd__share:hover {
+  background: #fff1e2;
+}
 .pd__price {
   font-size: 24px;
   font-weight: 800;
