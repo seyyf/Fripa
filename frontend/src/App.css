@@ -773,6 +773,73 @@ body {
   border-color: var(--ink);
 }
 
+/* ---------- Quick filters (shop deck) ---------- */
+.quickfilters {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.quickfilters__search {
+  position: relative;
+}
+.quickfilters__search .filter-input {
+  width: 100%;
+  padding-right: 34px;
+}
+.quickfilters__clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+}
+.quickfilters__suggest {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--paper);
+  border: 1px solid #eee2cf;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+}
+.quickfilters__suggest button {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.quickfilters__suggest button:hover {
+  background: #fff1e2;
+}
+.quickfilters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.quickfilters__sep {
+  width: 1px;
+  height: 18px;
+  background: #eadbc4;
+  margin: 0 2px;
+}
+
 /* ---------- Filter drawer ---------- */
 .filter-body {
   padding: 12px 20px 4px;
