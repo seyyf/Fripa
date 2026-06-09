@@ -14,6 +14,7 @@ import type {
 import { activeFilterCount } from './filters/fieldQuery';
 import { holdState } from './cart/holdTimer';
 import { SwipeDeck } from './components/SwipeDeck';
+import { SwipeCoach } from './components/SwipeCoach';
 import { HomePage } from './components/HomePage';
 import { Catalogue } from './components/Catalogue';
 import { ProductDetail } from './components/ProductDetail';
@@ -400,6 +401,7 @@ export default function App() {
                   onFavorite={handleFavorite}
                 />
               )}
+              {!showEmpty && deck.length > 0 && <SwipeCoach />}
               {!showEmpty && (
                 <p className="hint">
                   ← Passer · → Garder · ↑ Favori · ou utilise les boutons.

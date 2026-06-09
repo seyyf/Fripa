@@ -1683,6 +1683,76 @@ body {
   gap: 24px;
 }
 
+/* First-run swipe coach */
+.coach-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(20, 10, 5, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+.coach {
+  background: var(--paper);
+  border-radius: 22px;
+  padding: 26px 22px 22px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lift);
+}
+.coach__title {
+  margin: 0 0 18px;
+  font-size: 20px;
+}
+.coach__moves {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  gap: 10px;
+}
+.coach__move {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 8px;
+  border: 1px solid #f0e4d2;
+}
+.coach__icon {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+}
+.coach__move--pass .coach__icon {
+  color: var(--accent);
+}
+.coach__move--keep .coach__icon {
+  color: var(--green);
+}
+.coach__move--fav .coach__icon {
+  color: var(--gold);
+}
+.coach__move strong {
+  font-size: 14px;
+}
+.coach__desc {
+  font-size: 11px;
+  color: var(--muted);
+}
+.coach__note {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* Toast */
 .toast {
   position: fixed;

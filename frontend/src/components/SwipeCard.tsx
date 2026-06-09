@@ -1,6 +1,7 @@
 import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { effectivePrice, isOnSale, type FieldItem } from '../types';
 import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
+import { haptic } from '../util/haptic';
 
 interface Props {
   item: FieldItem;
@@ -47,6 +48,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
   // Smoothly throw the card off-screen in the committed direction, then report
   // the decision (which removes it from the deck).
   function flyOut(action: SwipeAction) {
+    haptic(); // tactile feedback on a committed swipe
     const opts = { duration: reducedMotion ? 0 : 0.28, ease: FLY_EASE };
     if (action === 'keep') animate(x, 1000, { ...opts, onComplete: () => fire(action) });
     else if (action === 'pass') animate(x, -1000, { ...opts, onComplete: () => fire(action) });
@@ -146,7 +148,10 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         <motion.button
           type="button"
           className="round-btn round-btn--pass"
-          onClick={() => onPass(item)}
+          onClick={() => {
+            haptic();
+            onPass(item);
+          }}
           aria-label="Passer"
           transition={btnTransition}
           {...press}
@@ -156,7 +161,10 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         <motion.button
           type="button"
           className="round-btn round-btn--favorite"
-          onClick={() => onFavorite(item)}
+          onClick={() => {
+            haptic();
+            onFavorite(item);
+          }}
           aria-label="Favori"
           transition={btnTransition}
           {...press}
@@ -166,7 +174,10 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         <motion.button
           type="button"
           className="round-btn round-btn--keep"
-          onClick={() => onKeep(item)}
+          onClick={() => {
+            haptic();
+            onKeep(item);
+          }}
           aria-label="Garder"
           transition={btnTransition}
           {...press}
