@@ -31,6 +31,8 @@ export interface TShirt {
   title: string;
   description: string;
   imageUrl: string;
+  // Extra photo URLs (the cover is `imageUrl`); empty/absent for single-photo items.
+  images?: string[];
   price: number;
   // Optional discounted price. Treated as a sale only when set and below `price`.
   salePrice?: number | null;

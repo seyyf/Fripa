@@ -18,6 +18,7 @@ model Item {
   title       String
   description String
   imageUrl    String
+  images      String? // JSON array of extra photo URLs (cover is imageUrl)
   price       Int
   salePrice   Int? // optional discounted price; treated as a sale only when < price
   size        String // S | M | L | XL | XXL

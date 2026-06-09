@@ -16,10 +16,21 @@ interface Props {
   onCancel: () => void;
 }
 
+const parseImages = (raw?: string | null): string[] => {
+  if (!raw) return [];
+  try {
+    const a = JSON.parse(raw);
+    return Array.isArray(a) ? a.filter((u) => typeof u === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
 const EMPTY: ItemInput = {
   title: '',
   description: '',
   imageUrl: '',
+  images: [],
   price: 0,
   salePrice: null,
   size: 'M',
@@ -38,6 +49,7 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
           title: initial.title,
           description: initial.description,
           imageUrl: initial.imageUrl,
+          images: parseImages(initial.images),
           price: initial.price,
           salePrice: initial.salePrice ?? null,
           size: initial.size,
@@ -53,9 +65,29 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingExtra, setUploadingExtra] = useState(false);
+  const images = form.images ?? [];
 
   function set<K extends keyof ItemInput>(key: K, value: ItemInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+  const addImage = (url: string) => set('images', [...images, url]);
+  const removeImage = (i: number) => set('images', images.filter((_, idx) => idx !== i));
+
+  async function onPickExtra(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingExtra(true);
+    setError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      addImage(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Échec du téléversement.');
+    } finally {
+      setUploadingExtra(false);
+    }
   }
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -200,8 +232,35 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
                   className="filter-input"
                   value={form.imageUrl}
                   onChange={(e) => set('imageUrl', e.target.value)}
-                  placeholder="…ou colle une URL https://"
+                  placeholder="…ou colle une URL (photo principale)"
                 />
+              </div>
+            </div>
+
+            <div className="field admin-form__wide">
+              <span className="field__label">Photos supplémentaires</span>
+              <div className="admin-gallery">
+                {images.map((url, i) => (
+                  <div
+                    key={i}
+                    className="admin-gallery__thumb"
+                    style={{ backgroundImage: `url(${url})` }}
+                  >
+                    <button type="button" onClick={() => removeImage(i)} aria-label="Retirer">
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <label className={`admin-gallery__add ${uploadingExtra ? 'is-busy' : ''}`}>
+                  {uploadingExtra ? '…' : '+'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    disabled={uploadingExtra}
+                    onChange={onPickExtra}
+                  />
+                </label>
               </div>
             </div>
 

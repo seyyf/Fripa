@@ -15,9 +15,13 @@ interface Props {
 // the catalogue quick-look modal.
 export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: Props) {
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [sel, setSel] = useState(0);
+  const [zoom, setZoom] = useState(false);
+  const gallery = [item.imageUrl, ...(item.images ?? [])];
 
   useEffect(() => {
     addRecent(item);
+    setSel(0);
   }, [item]);
 
   async function onShare() {
@@ -30,7 +34,29 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
   return (
     <div className="pd__layout">
       <div className="pd__media">
-        <img className="pd__img" src={item.imageUrl} alt={item.title} />
+        <button type="button" className="pd__img-btn" onClick={() => setZoom(true)} aria-label="Agrandir">
+          <img
+            className="pd__img"
+            src={gallery[sel] ?? item.imageUrl}
+            alt={item.title}
+            decoding="async"
+          />
+          <span className="pd__zoom-hint" aria-hidden="true">⤢</span>
+        </button>
+        {gallery.length > 1 && (
+          <div className="pd__thumbs">
+            {gallery.map((src, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`pd__thumb ${i === sel ? 'is-active' : ''}`}
+                style={{ backgroundImage: `url(${src})` }}
+                onClick={() => setSel(i)}
+                aria-label={`Photo ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="pd__info">
@@ -84,6 +110,42 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
           </>
         )}
       </div>
+
+      {zoom && (
+        <div className="lightbox" onClick={() => setZoom(false)}>
+          <button className="lightbox__close" aria-label="Fermer">✕</button>
+          {gallery.length > 1 && (
+            <button
+              className="lightbox__nav lightbox__nav--prev"
+              aria-label="Précédent"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSel((s) => (s - 1 + gallery.length) % gallery.length);
+              }}
+            >
+              ‹
+            </button>
+          )}
+          <img
+            className="lightbox__img"
+            src={gallery[sel] ?? item.imageUrl}
+            alt={item.title}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {gallery.length > 1 && (
+            <button
+              className="lightbox__nav lightbox__nav--next"
+              aria-label="Suivant"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSel((s) => (s + 1) % gallery.length);
+              }}
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

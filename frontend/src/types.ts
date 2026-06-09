@@ -12,6 +12,7 @@ export interface TShirt {
   title: string;
   description: string;
   imageUrl: string;
+  images?: string[];
   price: number;
   salePrice?: number | null;
   size: 'S' | 'M' | 'L' | 'XL' | 'XXL';

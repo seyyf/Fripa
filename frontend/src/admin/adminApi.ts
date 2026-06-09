@@ -22,6 +22,7 @@ export interface AdminItem {
   title: string;
   description: string;
   imageUrl: string;
+  images?: string | null; // raw JSON array string from the DB
   price: number;
   salePrice?: number | null;
   size: string;
@@ -35,8 +36,12 @@ export interface AdminItem {
   updatedAt: string;
 }
 
-export type ItemInput = Omit<AdminItem, 'id' | 'createdAt' | 'updatedAt' | 'status'> & {
+export type ItemInput = Omit<
+  AdminItem,
+  'id' | 'createdAt' | 'updatedAt' | 'status' | 'images'
+> & {
   status?: string;
+  images?: string[] | null; // sent as an array; stored as JSON server-side
 };
 
 export interface AdminOrderLine {

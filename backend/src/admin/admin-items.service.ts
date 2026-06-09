@@ -8,6 +8,7 @@ export interface ItemInput {
   title: string;
   description: string;
   imageUrl: string;
+  images?: string[] | null;
   price: number;
   salePrice?: number | null;
   size: string;
@@ -211,6 +212,18 @@ export class AdminItemsService {
         throw new BadRequestException('Le prix doit être un entier positif.');
       }
       out.price = p;
+    }
+
+    // images: undefined → leave as-is; array → store as JSON (filtered, trimmed).
+    if (input.images !== undefined) {
+      if (input.images === null) {
+        out.images = null;
+      } else if (!Array.isArray(input.images)) {
+        throw new BadRequestException('« images » doit être une liste d’URL.');
+      } else {
+        const urls = input.images.map((u) => String(u).trim()).filter(Boolean);
+        out.images = urls.length ? JSON.stringify(urls) : null;
+      }
     }
 
     // salePrice: undefined → leave as-is; null → clear the sale; number → validate.

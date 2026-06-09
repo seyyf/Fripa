@@ -4,6 +4,16 @@ import { PrismaService } from './prisma.service';
 import { SEED_ITEMS, setItems } from './items.data';
 import { TShirt } from './types';
 
+function parseImages(raw: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((u) => typeof u === 'string') : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Map a DB row to the `TShirt` shape the shop logic expects. SQLite stores the
 // enum-like columns as plain text, so we cast them back to their unions here.
 function toTShirt(row: Item): TShirt {
@@ -12,6 +22,7 @@ function toTShirt(row: Item): TShirt {
     title: row.title,
     description: row.description,
     imageUrl: row.imageUrl,
+    images: parseImages(row.images),
     price: row.price,
     salePrice: row.salePrice,
     size: row.size as TShirt['size'],
@@ -43,7 +54,11 @@ export class CatalogueLoader implements OnModuleInit {
     if (count > 0) return;
     this.logger.log(`Empty database — seeding ${SEED_ITEMS.length} bundled items.`);
     await this.prisma.item.createMany({
-      data: SEED_ITEMS.map((i) => ({ ...i, status: 'active' })),
+      data: SEED_ITEMS.map(({ images, ...i }) => ({
+        ...i,
+        images: images && images.length ? JSON.stringify(images) : null,
+        status: 'active',
+      })),
     });
   }
 
