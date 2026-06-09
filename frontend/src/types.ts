@@ -96,3 +96,13 @@ export interface ItemDetail {
   item: TShirt;
   status: ItemStatus;
 }
+
+export interface TrackedOrder {
+  ref: string;
+  status: string;
+  paid: boolean;
+  createdAt: string;
+  total: number;
+  customerName: string;
+  lines: { title: string; brand: string; size: string; price: number; imageUrl: string }[];
+}

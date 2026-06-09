@@ -8,6 +8,7 @@ import type {
   FieldFilters,
   FieldResponse,
   ItemDetail,
+  TrackedOrder,
   TShirt,
 } from './types';
 import { buildFieldQuery } from './filters/fieldQuery';
@@ -112,6 +113,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ ...customer, promoCode }),
     }),
+  // Public order tracking by reference + phone.
+  trackOrder: (ref: string, phone: string) =>
+    http<TrackedOrder>(
+      `/orders/track?ref=${encodeURIComponent(ref)}&phone=${encodeURIComponent(phone)}`,
+    ),
   reset: () =>
     http<{ ok: boolean }>(`/session/${userId()}/reset`, { method: 'POST' }),
   resetSwipes: () =>

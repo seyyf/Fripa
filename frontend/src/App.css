@@ -2047,6 +2047,154 @@ body {
   }
 }
 
+/* ---------- Order tracking ---------- */
+.track {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 24px 56px;
+}
+.track__title {
+  margin: 10px 0 4px;
+  font-size: clamp(24px, 4vw, 32px);
+  letter-spacing: -0.5px;
+}
+.track__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+.track__form .filter-input {
+  flex: 1;
+  min-width: 140px;
+}
+.track__form .btn {
+  width: auto;
+}
+.track__result {
+  background: var(--paper);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+.track__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.track__ref {
+  font-size: 18px;
+}
+.track__total {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.track__steps {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+.track__steps::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #f0e4d2;
+  z-index: 0;
+}
+.track__step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  flex: 1;
+}
+.track__dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #e6dcc9;
+}
+.track__step.is-done {
+  color: var(--ink);
+  font-weight: 600;
+}
+.track__step.is-done .track__dot {
+  background: var(--green);
+  border-color: var(--green);
+}
+.track__step.is-current .track__dot {
+  box-shadow: 0 0 0 4px rgba(31, 157, 85, 0.2);
+}
+.track__special {
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+.track__special--return {
+  background: #fdf3e3;
+  color: #b45309;
+}
+.track__special--cancel {
+  background: #fdeceb;
+  color: var(--accent);
+}
+.track__lines {
+  list-style: none;
+  margin: 0;
+  padding: 14px 0 0;
+  border-top: 1px solid #f0e4d2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.track__line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.track__thumb {
+  width: 44px;
+  height: 56px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  background-color: #f0e4d2;
+}
+.track__line-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+.track__line-price {
+  font-weight: 700;
+  color: var(--accent);
+}
+.drawer__track-link {
+  display: block;
+  text-align: center;
+  margin-top: 10px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+
 /* ---------- Checkout ---------- */
 .checkout {
   width: 100%;

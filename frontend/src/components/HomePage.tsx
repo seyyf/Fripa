@@ -317,6 +317,7 @@ export function HomePage() {
           <nav className="home__footer-links">
             <Link to="/">Accueil</Link>
             <Link to="/shop">Boutique</Link>
+            <Link to="/suivi">Suivre ma commande</Link>
             <a href="#how">Comment ça marche</a>
           </nav>
           <p className="home__footer-legal">© 2026 Fripa · MVP · Fait avec ❤️ en Tunisie</p>

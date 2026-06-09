@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 import { effectivePrice, isOnSale } from '../types';
@@ -111,6 +112,13 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
             <p className="checkout__ref">Référence : {done.ref}</p>
             <p className="muted">{done.message}</p>
             <p className="muted">💵 Paiement à la livraison — on te contacte pour confirmer.</p>
+            <Link
+              to={`/suivi?ref=${done.ref}`}
+              className="drawer__track-link"
+              onClick={onClose}
+            >
+              Suivre ma commande →
+            </Link>
             <button className="btn btn--add btn--full" onClick={onClose}>
               Continuer à chiner
             </button>

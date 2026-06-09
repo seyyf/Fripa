@@ -16,6 +16,7 @@ import { holdState } from './cart/holdTimer';
 import { SwipeDeck } from './components/SwipeDeck';
 import { SwipeCoach } from './components/SwipeCoach';
 import { QuickFilters } from './components/QuickFilters';
+import { TrackOrder } from './components/TrackOrder';
 import { HomePage } from './components/HomePage';
 import { Catalogue } from './components/Catalogue';
 import { ProductDetail } from './components/ProductDetail';
@@ -350,6 +351,7 @@ export default function App() {
           path="/checkout"
           element={<CheckoutPage cart={cart} onPlaceOrder={placeOrder} />}
         />
+        <Route path="/suivi" element={<TrackOrder />} />
         <Route
           path="/shop"
           element={

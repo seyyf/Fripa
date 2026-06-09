@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -10,6 +11,7 @@ import {
 import { ShopService } from './shop.service';
 import { CheckoutService } from './checkout.service';
 import { PromoService } from './promo.service';
+import { PrismaService } from './prisma.service';
 
 @Controller()
 export class ShopController {
@@ -17,7 +19,36 @@ export class ShopController {
     private readonly shop: ShopService,
     private readonly checkoutService: CheckoutService,
     private readonly promo: PromoService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  // Public order tracking: look up by ref + phone (phone acts as the secret).
+  @Get('orders/track')
+  async track(@Query('ref') ref?: string, @Query('phone') phone?: string) {
+    const digits = (s?: string) => (s ?? '').replace(/\D/g, '');
+    const order = await this.prisma.order.findUnique({
+      where: { ref: (ref ?? '').trim().toUpperCase() },
+      include: { lines: true },
+    });
+    if (!order || !digits(phone) || digits(order.customerPhone) !== digits(phone)) {
+      throw new NotFoundException('Commande introuvable. Vérifie la référence et le téléphone.');
+    }
+    return {
+      ref: order.ref,
+      status: order.status,
+      paid: order.paid,
+      createdAt: order.createdAt,
+      total: order.total,
+      customerName: order.customerName,
+      lines: order.lines.map((l) => ({
+        title: l.title,
+        brand: l.brand,
+        size: l.size,
+        price: l.price,
+        imageUrl: l.imageUrl,
+      })),
+    };
+  }
 
   private parseFilters(
     q?: string,
