@@ -4,10 +4,11 @@ import { ShopService } from './shop.service';
 import { PrismaService } from './prisma.service';
 import { CatalogueLoader } from './catalogue.loader';
 import { CheckoutService } from './checkout.service';
+import { PromoService } from './promo.service';
 
 @Module({
   controllers: [ShopController],
-  providers: [ShopService, PrismaService, CatalogueLoader, CheckoutService],
+  providers: [ShopService, PrismaService, CatalogueLoader, CheckoutService, PromoService],
   // Exported so a future admin module can reuse the DB connection and trigger a
   // catalogue reload after mutating items.
   exports: [PrismaService, CatalogueLoader],

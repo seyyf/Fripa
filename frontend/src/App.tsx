@@ -239,9 +239,9 @@ export default function App() {
     }
   }
 
-  async function placeOrder(customer: CustomerInfo): Promise<CheckoutResult> {
+  async function placeOrder(customer: CustomerInfo, promoCode?: string): Promise<CheckoutResult> {
     const ids = cart.lines.map((l) => l.id);
-    const res = await api.checkout(customer);
+    const res = await api.checkout(customer, promoCode);
     if (res.ok) {
       setCart({ lines: [], total: 0 });
       // The bought pieces leave the floor for good.

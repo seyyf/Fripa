@@ -67,6 +67,31 @@ export interface OrderPatch {
   customerPhone?: string;
 }
 
+export const PROMO_TYPES = ['percent', 'fixed'] as const;
+
+export interface AdminPromo {
+  id: string;
+  code: string;
+  type: string;
+  value: number;
+  minOrder: number | null;
+  maxUses: number | null;
+  uses: number;
+  active: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+export type PromoInput = {
+  code: string;
+  type: string;
+  value: number;
+  minOrder?: number | null;
+  maxUses?: number | null;
+  active?: boolean;
+  expiresAt?: string | null;
+};
+
 export interface AdminCustomer {
   name: string;
   phone: string;
@@ -174,6 +199,13 @@ export const adminApi = {
     http<AdminOrder>(`/admin/orders/${id}/return`, { method: 'POST' }),
   stats: () => http<AdminStats>('/admin/stats'),
   listCustomers: () => http<AdminCustomer[]>('/admin/customers'),
+  listPromos: () => http<AdminPromo[]>('/admin/promos'),
+  createPromo: (input: PromoInput) =>
+    http<AdminPromo>('/admin/promos', { method: 'POST', body: JSON.stringify(input) }),
+  updatePromo: (id: string, patch: Partial<PromoInput>) =>
+    http<AdminPromo>(`/admin/promos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deletePromo: (id: string) =>
+    http<{ ok: true }>(`/admin/promos/${id}`, { method: 'DELETE' }),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).

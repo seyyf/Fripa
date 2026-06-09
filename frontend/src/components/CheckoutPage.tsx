@@ -5,7 +5,7 @@ import { CheckoutForm } from './CheckoutForm';
 
 interface Props {
   cart: CartResponse;
-  onPlaceOrder: (customer: CustomerInfo) => Promise<CheckoutResult>;
+  onPlaceOrder: (customer: CustomerInfo, promoCode?: string) => Promise<CheckoutResult>;
 }
 
 export function CheckoutPage({ cart, onPlaceOrder }: Props) {

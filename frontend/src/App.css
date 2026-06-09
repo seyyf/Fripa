@@ -1860,6 +1860,41 @@ body {
 .checkout__pay-note {
   margin: 4px 0 0;
 }
+.checkout__promo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.checkout__promo-row {
+  display: flex;
+  gap: 8px;
+}
+.checkout__promo-row .filter-input {
+  flex: 1;
+  text-transform: uppercase;
+}
+.checkout__promo-row .btn--pass {
+  width: auto;
+  white-space: nowrap;
+  padding: 10px 16px;
+}
+.checkout__promo-applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #ecf9f1;
+  border: 1px solid #bfe6cf;
+  color: #0f7b46;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+.checkout__promo-applied .btn--ghost {
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+}
 .checkout__summary {
   background: var(--paper);
   border-radius: 20px;

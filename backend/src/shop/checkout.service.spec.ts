@@ -8,7 +8,7 @@ const customer = { name: 'Amine', email: 'amine@fripa.tn', address: 'Tunis', pho
 
 // Builds a CheckoutService over a real (in-memory) ShopService plus mocked
 // Prisma + loader. `activeIds` controls which cart pieces are still sellable.
-function setup(activeIds: string[]) {
+function setup(activeIds: string[], promo?: { code: string; discount: number; maxUses?: number | null }) {
   const shop = new ShopService();
   const tx = {
     item: {
@@ -21,13 +21,20 @@ function setup(activeIds: string[]) {
       count: vi.fn(async () => 0),
       create: vi.fn(async ({ data }: any) => ({ ref: data.ref, ...data })),
     },
+    promoCode: { updateMany: vi.fn(async () => ({ count: 1 })) },
   };
   const prisma = {
     $transaction: vi.fn(async (fn: any) => fn(tx)),
   } as unknown as PrismaService;
   const loader = { reload: vi.fn(async () => {}) } as unknown as CatalogueLoader;
-  const service = new CheckoutService(prisma, loader, shop);
-  return { service, shop, prisma, loader, tx };
+  const promoSvc = {
+    validateForTotal: vi.fn(async () => {
+      if (!promo) throw new Error('no promo configured');
+      return { promo: { id: 'p1', code: promo.code, maxUses: promo.maxUses ?? null }, discount: promo.discount };
+    }),
+  };
+  const service = new CheckoutService(prisma, loader, shop, promoSvc as any);
+  return { service, shop, prisma, loader, tx, promoSvc };
 }
 
 describe('CheckoutService.checkout', () => {
@@ -60,6 +67,31 @@ describe('CheckoutService.checkout', () => {
     const { service, shop, prisma } = setup(['t-001']);
     shop.addToCart('u1', 't-001');
     const res = await service.checkout('u1', { name: '', email: '', address: '', phone: '' });
+    expect(res.ok).toBe(false);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('applies a valid promo: discounts the total, records it, claims one use', async () => {
+    const { service, shop, tx } = setup(['t-001'], { code: 'FRIPA10', discount: 10, maxUses: 5 });
+    shop.addToCart('u1', 't-001');
+    const fullTotal = shop.getCart('u1').total;
+
+    const res = await service.checkout('u1', customer, 'FRIPA10');
+
+    expect(res.ok).toBe(true);
+    expect(res.orderTotal).toBe(fullTotal - 10);
+    expect(tx.promoCode.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { uses: { increment: 1 } } }),
+    );
+    expect(tx.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ discount: 10, promoCode: 'FRIPA10' }) }),
+    );
+  });
+
+  it('rejects checkout when the promo code is invalid (no order)', async () => {
+    const { service, shop, prisma } = setup(['t-001']); // no promo configured → validate throws
+    shop.addToCart('u1', 't-001');
+    const res = await service.checkout('u1', customer, 'BADCODE');
     expect(res.ok).toBe(false);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });

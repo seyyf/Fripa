@@ -45,8 +45,24 @@ model Order {
   total           Int
   status          String      @default("Nouvelle") // Nouvelle | Confirmée | Expédiée | Livrée | Retournée | Annulée
   paid            Boolean     @default(false) // cash collected (COD reconciliation)
+  promoCode       String? // applied promo code, if any
+  discount        Int         @default(0) // amount discounted off the original cart total
   createdAt       DateTime    @default(now())
   lines           OrderLine[]
+}
+
+// A discount code applied at checkout.
+model PromoCode {
+  id        String    @id @default(cuid())
+  code      String    @unique // stored uppercase
+  type      String // "percent" | "fixed"
+  value     Int // percent (0-100) or fixed TND off
+  minOrder  Int? // minimum cart total to qualify
+  maxUses   Int? // null = unlimited
+  uses      Int       @default(0)
+  active    Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model OrderLine {

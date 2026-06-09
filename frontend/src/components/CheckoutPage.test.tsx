@@ -67,12 +67,15 @@ describe('CheckoutPage', () => {
     renderCheckout({ onPlaceOrder });
     await fillForm();
     await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
-    expect(onPlaceOrder).toHaveBeenCalledWith({
-      name: 'Amine Ben Salah',
-      email: 'amine@fripa.tn',
-      address: '12 rue de Marseille, Tunis',
-      phone: '20123456',
-    });
+    expect(onPlaceOrder).toHaveBeenCalledWith(
+      {
+        name: 'Amine Ben Salah',
+        email: 'amine@fripa.tn',
+        address: '12 rue de Marseille, Tunis',
+        phone: '20123456',
+      },
+      undefined, // no promo code applied
+    );
     expect((await screen.findAllByText(/FR-1001/)).length).toBeGreaterThan(0);
   });
 

@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { api } from '../api';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 
 interface Props {
   cart: CartResponse;
-  onPlaceOrder: (customer: CustomerInfo) => Promise<CheckoutResult>;
+  onPlaceOrder: (customer: CustomerInfo, promoCode?: string) => Promise<CheckoutResult>;
   onSuccess: (result: CheckoutResult) => void;
 }
 
@@ -17,6 +18,34 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState<{ code: string; discount: number } | null>(null);
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+
+  const discount = promo?.discount ?? 0;
+  const payable = cart.total - discount;
+
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoBusy(true);
+    setPromoMsg(null);
+    try {
+      const res = await api.applyPromo(code);
+      setPromo({ code: res.code, discount: res.discount });
+    } catch (e) {
+      setPromo(null);
+      setPromoMsg(e instanceof Error && e.message && !e.message.startsWith('HTTP') ? e.message : 'Code invalide.');
+    } finally {
+      setPromoBusy(false);
+    }
+  }
+  function clearPromo() {
+    setPromo(null);
+    setPromoInput('');
+    setPromoMsg(null);
+  }
 
   function set(field: Field, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -41,12 +70,15 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const res = await onPlaceOrder({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        address: form.address.trim(),
-        phone: form.phone.trim(),
-      });
+      const res = await onPlaceOrder(
+        {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          address: form.address.trim(),
+          phone: form.phone.trim(),
+        },
+        promo?.code,
+      );
       if (res.ok) onSuccess(res);
       else setFormError(res.message);
     } finally {
@@ -105,9 +137,43 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
         {errors.phone && <span className="field__error">{errors.phone}</span>}
       </label>
 
+      <div className="checkout__promo">
+        {promo ? (
+          <div className="checkout__promo-applied">
+            <span>Code <strong>{promo.code}</strong> appliqué · −{discount} TND</span>
+            <button type="button" className="btn--ghost" onClick={clearPromo}>Retirer</button>
+          </div>
+        ) : (
+          <div className="checkout__promo-row">
+            <input
+              className="filter-input"
+              placeholder="Code promo"
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+            />
+            <button
+              type="button"
+              className="btn btn--pass"
+              onClick={applyPromo}
+              disabled={promoBusy || !promoInput.trim()}
+            >
+              {promoBusy ? '…' : 'Appliquer'}
+            </button>
+          </div>
+        )}
+        {promoMsg && <span className="field__error">{promoMsg}</span>}
+      </div>
+
+      {discount > 0 && (
+        <div className="total">
+          <span>Remise</span>
+          <strong>−{discount} TND</strong>
+        </div>
+      )}
+
       {formError && <div className="checkout__error">{formError}</div>}
       <button type="submit" className="btn btn--add btn--full" disabled={submitting}>
-        {submitting ? 'Envoi…' : `Confirmer la commande — ${cart.total} TND`}
+        {submitting ? 'Envoi…' : `Confirmer la commande — ${payable} TND`}
       </button>
       <p className="muted checkout__pay-note">
         💵 Paiement à la livraison. Le paiement en ligne arrive bientôt.

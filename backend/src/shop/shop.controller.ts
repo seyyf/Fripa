@@ -9,12 +9,14 @@ import {
 } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { CheckoutService } from './checkout.service';
+import { PromoService } from './promo.service';
 
 @Controller()
 export class ShopController {
   constructor(
     private readonly shop: ShopService,
     private readonly checkoutService: CheckoutService,
+    private readonly promo: PromoService,
   ) {}
 
   private parseFilters(
@@ -113,12 +115,28 @@ export class ShopController {
     return this.shop.removeFromCart(userId, itemId);
   }
 
+  // Preview a promo against the user's current cart total.
+  @Post('cart/:userId/promo')
+  async applyPromo(@Param('userId') userId: string, @Body() body: { code: string }) {
+    const cart = this.shop.getCart(userId);
+    const { promo, discount } = await this.promo.validateForTotal(body?.code ?? '', cart.total);
+    return {
+      ok: true,
+      code: promo.code,
+      type: promo.type,
+      value: promo.value,
+      discount,
+      total: cart.total - discount,
+    };
+  }
+
   @Post('cart/:userId/checkout')
   checkout(
     @Param('userId') userId: string,
-    @Body() customer: { name: string; email: string; address: string; phone: string },
+    @Body()
+    body: { name: string; email: string; address: string; phone: string; promoCode?: string },
   ) {
-    return this.checkoutService.checkout(userId, customer);
+    return this.checkoutService.checkout(userId, body, body.promoCode);
   }
 
   @Post('favorites')

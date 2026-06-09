@@ -101,10 +101,16 @@ export const api = {
       `/favorites/${userId()}/${itemId}/to-cart`,
       { method: 'POST' },
     ),
-  checkout: (customer: CustomerInfo) =>
+  // Validate a promo against the current cart; returns the discount preview.
+  applyPromo: (code: string) =>
+    http<{ ok: boolean; code: string; type: string; value: number; discount: number; total: number }>(
+      `/cart/${userId()}/promo`,
+      { method: 'POST', body: JSON.stringify({ code }) },
+    ),
+  checkout: (customer: CustomerInfo, promoCode?: string) =>
     http<CheckoutResult>(`/cart/${userId()}/checkout`, {
       method: 'POST',
-      body: JSON.stringify(customer),
+      body: JSON.stringify({ ...customer, promoCode }),
     }),
   reset: () =>
     http<{ ok: boolean }>(`/session/${userId()}/reset`, { method: 'POST' }),
