@@ -2584,6 +2584,9 @@ body {
   cursor: pointer;
   font-size: 13px;
 }
+.checkout__promo-hint {
+  font-size: 12px;
+}
 .checkout__summary {
   background: var(--paper);
   border-radius: 20px;

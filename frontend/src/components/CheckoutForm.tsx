@@ -39,17 +39,27 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const discount = promo?.discount ?? 0;
   const payable = cart.total - discount;
 
-  async function applyPromo() {
-    const code = promoInput.trim();
-    if (!code) return;
+  // Validate + apply a code. Returns the applied promo (or null). Used by the
+  // "Appliquer" button, the field's onBlur, and the submit safety net — so the
+  // discount lands even if the shopper never clicks "Appliquer".
+  async function applyPromo(codeArg?: string): Promise<{ code: string; discount: number } | null> {
+    const code = (codeArg ?? promoInput).trim();
+    if (!code) {
+      setPromo(null);
+      return null;
+    }
+    if (promo && promo.code.toUpperCase() === code.toUpperCase()) return promo; // already applied
     setPromoBusy(true);
     setPromoMsg(null);
     try {
       const res = await api.applyPromo(code);
-      setPromo({ code: res.code, discount: res.discount });
+      const applied = { code: res.code, discount: res.discount };
+      setPromo(applied);
+      return applied;
     } catch (e) {
       setPromo(null);
       setPromoMsg(e instanceof Error && e.message && !e.message.startsWith('HTTP') ? e.message : 'Code invalide.');
+      return null;
     } finally {
       setPromoBusy(false);
     }
@@ -81,6 +91,20 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
     ev.preventDefault();
     setFormError(null);
     if (!validate()) return;
+
+    // Safety net: a code typed but never "Appliqué". Apply it now so the
+    // discount isn't lost. If it's invalid, stop and let them fix or clear it
+    // rather than silently charging full price.
+    let applied = promo;
+    const typed = promoInput.trim();
+    if (typed && (!promo || promo.code.toUpperCase() !== typed.toUpperCase())) {
+      applied = await applyPromo(typed);
+      if (!applied) {
+        setFormError('Code promo non valide — corrige-le ou efface-le pour continuer.');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const res = await onPlaceOrder(
@@ -90,7 +114,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
           address: form.address.trim(),
           phone: form.phone.trim(),
         },
-        promo?.code,
+        applied?.code,
       );
       if (res.ok) onSuccess(res);
       else setFormError(res.message);
@@ -162,12 +186,16 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
               className="filter-input"
               placeholder="Code promo"
               value={promoInput}
-              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setPromoInput(e.target.value.toUpperCase());
+                setPromoMsg(null);
+              }}
+              onBlur={() => void applyPromo()}
             />
             <button
               type="button"
               className="btn btn--pass"
-              onClick={applyPromo}
+              onClick={() => void applyPromo()}
               disabled={promoBusy || !promoInput.trim()}
             >
               {promoBusy ? '…' : 'Appliquer'}
@@ -175,6 +203,9 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
           </div>
         )}
         {promoMsg && <span className="field__error">{promoMsg}</span>}
+        {promoInput.trim() && !promo && !promoMsg && (
+          <span className="muted checkout__promo-hint">Ton code sera appliqué à la commande.</span>
+        )}
       </div>
 
       {discount > 0 && (
