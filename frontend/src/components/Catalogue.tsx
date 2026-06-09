@@ -5,6 +5,7 @@ import { api } from '../api';
 import type { CatalogueItem, Category, FieldFilters, TShirt } from '../types';
 import { effectivePrice, isOnSale } from '../types';
 import { activeFilterCount } from '../filters/fieldQuery';
+import { RecentlyViewed } from './RecentlyViewed';
 import { formatHold } from '../cart/holdTimer';
 import { usePhantomCrowd } from '../crowd/usePhantomCrowd';
 import { FilterDrawer } from './FilterDrawer';
@@ -219,6 +220,8 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
       <div className="floor-ticker" aria-live="polite">
         {ticker ? `⏱ ${ticker}` : '👀 D’autres chinent en direct. Les pièces prises reviennent quand le chineur lâche.'}
       </div>
+
+      <RecentlyViewed />
 
       {!loading && items.length === 0 ? (
         <div className="empty">

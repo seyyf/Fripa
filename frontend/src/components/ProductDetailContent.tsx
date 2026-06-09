@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ItemStatus, TShirt } from '../types';
 import { effectivePrice, isOnSale } from '../types';
 import { shareItem } from '../util/share';
+import { addRecent } from '../util/recentlyViewed';
 
 interface Props {
   item: TShirt;
@@ -14,6 +15,10 @@ interface Props {
 // the catalogue quick-look modal.
 export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: Props) {
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    addRecent(item);
+  }, [item]);
 
   async function onShare() {
     const res = await shareItem(item);

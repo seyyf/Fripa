@@ -1231,6 +1231,52 @@ body {
   }
 }
 
+/* Recently viewed rail */
+.recent {
+  margin: 6px 0 22px;
+}
+.recent__title {
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+.recent__rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+}
+.recent__card {
+  flex: 0 0 120px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scroll-snap-align: start;
+}
+.recent__img {
+  width: 120px;
+  height: 150px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  background-color: #f0e4d2;
+}
+.recent__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent__price {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
 /* ---------- Catalogue grid ---------- */
 .catalogue {
   width: 100%;

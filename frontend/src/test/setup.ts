@@ -31,4 +31,9 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
 
 afterEach(() => {
   cleanup();
+  try {
+    localStorage.clear();
+  } catch {
+    /* ignore */
+  }
 });
