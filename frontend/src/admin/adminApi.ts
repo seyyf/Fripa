@@ -67,6 +67,16 @@ export interface OrderPatch {
   customerPhone?: string;
 }
 
+export interface AdminCustomer {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  orders: number;
+  total: number;
+  lastOrderAt: string;
+}
+
 export interface AdminStats {
   items: { total: number } & Record<string, number>;
   orders: { total: number; revenue: number; today: number; revenueToday: number };
@@ -162,6 +172,7 @@ export const adminApi = {
   returnOrder: (id: string) =>
     http<AdminOrder>(`/admin/orders/${id}/return`, { method: 'POST' }),
   stats: () => http<AdminStats>('/admin/stats'),
+  listCustomers: () => http<AdminCustomer[]>('/admin/customers'),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).

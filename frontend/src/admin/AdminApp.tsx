@@ -5,6 +5,7 @@ import { AdminLogin } from './AdminLogin';
 import { AdminOverview } from './AdminOverview';
 import { AdminItems } from './AdminItems';
 import { AdminOrders } from './AdminOrders';
+import { AdminCustomers } from './AdminCustomers';
 import './admin.css';
 
 type AuthState = 'checking' | 'out' | 'in';
@@ -67,6 +68,9 @@ export default function AdminApp() {
           <NavLink to="/admin/orders" className={navClass}>
             Commandes
           </NavLink>
+          <NavLink to="/admin/customers" className={navClass}>
+            Clients
+          </NavLink>
         </nav>
         <div className="admin__bar-actions">
           <a className="admin__link" href="/" target="_blank" rel="noreferrer">
@@ -82,6 +86,7 @@ export default function AdminApp() {
           <Route index element={<AdminOverview onAuthError={logout} />} />
           <Route path="items" element={<AdminItems onAuthError={logout} />} />
           <Route path="orders" element={<AdminOrders onAuthError={logout} />} />
+          <Route path="customers" element={<AdminCustomers onAuthError={logout} />} />
         </Routes>
       </main>
     </div>

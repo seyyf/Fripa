@@ -711,6 +711,16 @@
   border-color: #f1d3d0;
   background: #fdeceb;
 }
+.admin-repeat-badge {
+  display: inline-block;
+  margin-left: 8px;
+  background: #fff1e2;
+  color: #6b4019;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
 .admin-paid-badge {
   background: #ecf9f1;
   color: #0f7b46;
