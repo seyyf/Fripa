@@ -17,6 +17,9 @@ import { SwipeDeck } from './components/SwipeDeck';
 import { SwipeCoach } from './components/SwipeCoach';
 import { QuickFilters } from './components/QuickFilters';
 import { TrackOrder } from './components/TrackOrder';
+import { useAccount } from './account/AccountContext';
+import { accountApi } from './account/accountApi';
+import { AccountPage } from './account/AccountPage';
 import { HomePage } from './components/HomePage';
 import { Catalogue } from './components/Catalogue';
 import { ProductDetail } from './components/ProductDetail';
@@ -55,9 +58,14 @@ export default function App() {
   // Pieces bought at checkout → the catalogue removes them from the floor.
   const [purchased, setPurchased] = useState<{ ids: string[]; tick: number } | null>(null);
 
+  const { user } = useAccount();
   const deckRef = useRef<FieldItem[]>([]);
   const filtersRef = useRef<FieldFilters>({});
   const fetching = useRef(false);
+  // Latest favourites snapshot, used to push anonymous favourites to the account on login.
+  const favRef = useRef<FavoritesResponse>({ lines: [] });
+  favRef.current = favorites;
+  const syncedRef = useRef(false);
   useEffect(() => {
     deckRef.current = deck;
   }, [deck]);
@@ -71,7 +79,23 @@ export default function App() {
   }
 
   const refreshCart = useCallback(async () => setCart(await api.cart()), []);
-  const refreshFavorites = useCallback(async () => setFavorites(await api.favorites()), []);
+  // Favourites come from the account when signed in (synced across devices),
+  // otherwise from the anonymous per-browser session.
+  const refreshFavorites = useCallback(async () => {
+    setFavorites(user ? await accountApi.favorites() : await api.favorites());
+  }, [user]);
+
+  // On login, push the anonymous favourites up to the account once, then reload.
+  useEffect(() => {
+    if (user && !syncedRef.current) {
+      syncedRef.current = true;
+      accountApi
+        .syncFavorites(favRef.current.lines.map((l) => l.id))
+        .then(setFavorites)
+        .catch(() => void refreshFavorites());
+    }
+    if (!user) syncedRef.current = false;
+  }, [user, refreshFavorites]);
 
   // Fetch a fresh batch (honouring the active filters) and append any cards we
   // don't already hold, but only when the deck is running low.
@@ -174,7 +198,9 @@ export default function App() {
   async function handleFavorite(item: FieldItem) {
     dropTop(item.id);
     try {
-      setFavorites(await api.favorite(item.id));
+      await api.favorite(item.id);
+      if (user) await accountApi.addFavorite(item.id);
+      await refreshFavorites();
       setHistoryCount((c) => c + 1);
       flash(`Gardé pour plus tard — ${item.title} ⭐`);
     } catch (e) {
@@ -223,7 +249,9 @@ export default function App() {
 
   async function addFavorite(item: TShirt) {
     try {
-      setFavorites(await api.favorite(item.id));
+      await api.favorite(item.id);
+      if (user) await accountApi.addFavorite(item.id);
+      await refreshFavorites();
       flash(`Gardé pour plus tard — ${item.title} ⭐`);
     } catch (e) {
       console.error('favorite failed', e);
@@ -260,7 +288,8 @@ export default function App() {
     try {
       const res = await api.favoriteToCart(itemId);
       setCart(res.cart);
-      setFavorites(res.favorites);
+      if (user) await accountApi.removeFavorite(itemId);
+      await refreshFavorites();
       flash('Déplacé au panier. 🛒');
     } catch (e) {
       console.error('move to cart failed', e);
@@ -270,7 +299,9 @@ export default function App() {
 
   async function removeFavorite(itemId: string) {
     try {
-      setFavorites(await api.unfavorite(itemId));
+      await api.unfavorite(itemId);
+      if (user) await accountApi.removeFavorite(itemId);
+      await refreshFavorites();
     } catch (e) {
       console.error('unfavorite failed', e);
     }
@@ -352,6 +383,7 @@ export default function App() {
           element={<CheckoutPage cart={cart} onPlaceOrder={placeOrder} />}
         />
         <Route path="/suivi" element={<TrackOrder />} />
+        <Route path="/compte" element={<AccountPage />} />
         <Route
           path="/shop"
           element={

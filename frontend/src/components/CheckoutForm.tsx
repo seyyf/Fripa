@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { useAccount } from '../account/AccountContext';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 
 interface Props {
@@ -14,7 +15,19 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/;
 // The delivery form + validation, shared by the checkout page and the cart
 // drawer so both behave identically.
 export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
+  const { user } = useAccount();
   const [form, setForm] = useState<CustomerInfo>({ name: '', email: '', address: '', phone: '' });
+
+  // Prefill from the signed-in account, without overwriting anything typed.
+  useEffect(() => {
+    if (!user) return;
+    setForm((f) => ({
+      name: f.name || user.name || '',
+      email: f.email || user.email || '',
+      address: f.address || user.address || '',
+      phone: f.phone || user.phone || '',
+    }));
+  }, [user]);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

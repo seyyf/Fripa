@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from './App';
+import { AccountProvider } from './account/AccountContext';
 import './App.css';
 
 // The admin dashboard is a separate lazy chunk — it never ships in the shopper's
@@ -20,7 +21,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             </Suspense>
           }
         />
-        <Route path="/*" element={<App />} />
+        <Route
+          path="/*"
+          element={
+            <AccountProvider>
+              <App />
+            </AccountProvider>
+          }
+        />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

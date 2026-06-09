@@ -52,6 +52,28 @@ model Order {
   lines           OrderLine[]
 }
 
+// A shopper account, identified by phone (OTP login). No password.
+model User {
+  id        String         @id @default(cuid())
+  phone     String         @unique
+  name      String?
+  address   String?
+  email     String?
+  createdAt DateTime       @default(now())
+  favorites FavoriteItem[]
+}
+
+// A favorited piece, persisted per account so favorites sync across devices.
+model FavoriteItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemId])
+}
+
 // A discount code applied at checkout.
 model PromoCode {
   id        String    @id @default(cuid())

@@ -16,7 +16,7 @@ function parseImages(raw: string | null): string[] | undefined {
 
 // Map a DB row to the `TShirt` shape the shop logic expects. SQLite stores the
 // enum-like columns as plain text, so we cast them back to their unions here.
-function toTShirt(row: Item): TShirt {
+export function toTShirt(row: Item): TShirt {
   return {
     id: row.id,
     title: row.title,

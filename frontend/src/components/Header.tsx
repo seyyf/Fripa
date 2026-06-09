@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
+import { useAccount } from '../account/AccountContext';
 
 interface Props {
   cartCount: number;
@@ -11,6 +12,7 @@ interface Props {
 
 export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Props) {
   const reduce = useReducedMotion();
+  const { user, openLogin } = useAccount();
   // Re-keying on the count value makes the badge pop each time it changes.
   const badgeMotion = (key: number) => ({
     key,
@@ -59,6 +61,15 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
         <button className="ghost-btn" onClick={onReset} title="Recommencer la session">
           ↻
         </button>
+        {user ? (
+          <Link to="/compte" className="cart-btn" aria-label="Mon compte" title="Mon compte">
+            👤
+          </Link>
+        ) : (
+          <button className="cart-btn" onClick={openLogin} aria-label="Se connecter" title="Se connecter">
+            👤
+          </button>
+        )}
         <button className="cart-btn" onClick={onFavorites} aria-label="Mes favoris">
           ⭐
           <AnimatePresence>
