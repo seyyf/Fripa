@@ -2,6 +2,7 @@ import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'fra
 import { effectivePrice, isOnSale, type FieldItem } from '../types';
 import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
 import { haptic } from '../util/haptic';
+import { useT } from '../i18n/LanguageContext';
 
 interface Props {
   item: FieldItem;
@@ -19,6 +20,7 @@ const VELOCITY_PROJECTION = 0.18;
 const FLY_EASE = [0.22, 1, 0.36, 1] as const;
 
 export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = false }: Props) {
+  const { t } = useT();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotate = useTransform(x, [-240, 240], [-14, 14]);
@@ -152,7 +154,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
             haptic();
             onPass(item);
           }}
-          aria-label="Passer"
+          aria-label={t('deck.pass')}
           transition={btnTransition}
           {...press}
         >
@@ -165,7 +167,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
             haptic();
             onFavorite(item);
           }}
-          aria-label="Favori"
+          aria-label={t('deck.favorite')}
           transition={btnTransition}
           {...press}
         >
@@ -178,7 +180,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
             haptic();
             onKeep(item);
           }}
-          aria-label="Garder"
+          aria-label={t('deck.keep')}
           transition={btnTransition}
           {...press}
         >

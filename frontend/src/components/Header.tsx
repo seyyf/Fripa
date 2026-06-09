@@ -1,6 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link, NavLink } from 'react-router-dom';
 import { useAccount } from '../account/AccountContext';
+import { useT } from '../i18n/LanguageContext';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
 interface Props {
   cartCount: number;
@@ -13,6 +15,7 @@ interface Props {
 export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Props) {
   const reduce = useReducedMotion();
   const { user, openLogin } = useAccount();
+  const { t } = useT();
   // Re-keying on the count value makes the badge pop each time it changes.
   const badgeMotion = (key: number) => ({
     key,
@@ -31,7 +34,7 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
         <span className="logo__mark">FR</span>
         <div>
           <h1>Fripa</h1>
-          <p>Le swipe du fripier · 🇹🇳</p>
+          <p>{t('header.tagline')} · 🇹🇳</p>
         </div>
       </NavLink>
 
@@ -41,36 +44,37 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
           end
           className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
         >
-          Accueil
+          {t('nav.home')}
         </NavLink>
         <NavLink
           to="/shop"
           className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
         >
-          Boutique
+          {t('nav.shop')}
         </NavLink>
         <NavLink
           to="/catalogue"
           className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
         >
-          Catalogue
+          {t('nav.catalogue')}
         </NavLink>
       </nav>
 
       <div className="header-actions">
-        <button className="ghost-btn" onClick={onReset} title="Recommencer la session">
+        <LanguageSwitcher />
+        <button className="ghost-btn" onClick={onReset} title={t('a11y.reset')}>
           ↻
         </button>
         {user ? (
-          <Link to="/compte" className="cart-btn" aria-label="Mon compte" title="Mon compte">
+          <Link to="/compte" className="cart-btn" aria-label={t('a11y.account')} title={t('a11y.account')}>
             👤
           </Link>
         ) : (
-          <button className="cart-btn" onClick={openLogin} aria-label="Se connecter" title="Se connecter">
+          <button className="cart-btn" onClick={openLogin} aria-label={t('a11y.login')} title={t('a11y.login')}>
             👤
           </button>
         )}
-        <button className="cart-btn" onClick={onFavorites} aria-label="Mes favoris">
+        <button className="cart-btn" onClick={onFavorites} aria-label={t('a11y.favorites')}>
           ⭐
           <AnimatePresence>
             {favCount > 0 && (
@@ -83,7 +87,7 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
             )}
           </AnimatePresence>
         </button>
-        <button className="cart-btn" onClick={onCart} aria-label="Mon panier">
+        <button className="cart-btn" onClick={onCart} aria-label={t('a11y.cart')}>
           🛒
           <AnimatePresence>
             {cartCount > 0 && (

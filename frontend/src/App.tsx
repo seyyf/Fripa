@@ -18,6 +18,7 @@ import { SwipeCoach } from './components/SwipeCoach';
 import { QuickFilters } from './components/QuickFilters';
 import { TrackOrder } from './components/TrackOrder';
 import { useAccount } from './account/AccountContext';
+import { useT } from './i18n/LanguageContext';
 import { accountApi } from './account/accountApi';
 import { AccountPage } from './account/AccountPage';
 import { HomePage } from './components/HomePage';
@@ -59,6 +60,7 @@ export default function App() {
   const [purchased, setPurchased] = useState<{ ids: string[]; tick: number } | null>(null);
 
   const { user } = useAccount();
+  const { t } = useT();
   const deckRef = useRef<FieldItem[]>([]);
   const filtersRef = useRef<FieldFilters>({});
   const fetching = useRef(false);
@@ -396,14 +398,14 @@ export default function App() {
                   disabled={historyCount === 0}
                   title="Annule ton dernier swipe — 1 fois par heure"
                 >
-                  ↩ Reviens
+                  {t('deck.undo')}
                 </button>
                 <button
                   type="button"
                   className={`toolbar-btn ${filterCount > 0 ? 'toolbar-btn--active' : ''}`}
                   onClick={() => setFilterOpen(true)}
                 >
-                  ⚙ Filtrer{filterCount > 0 ? ` (${filterCount})` : ''}
+                  {t('deck.filter')}{filterCount > 0 ? ` (${filterCount})` : ''}
                 </button>
               </div>
 
@@ -440,9 +442,7 @@ export default function App() {
               )}
               {!showEmpty && deck.length > 0 && <SwipeCoach />}
               {!showEmpty && (
-                <p className="hint">
-                  ← Passer · → Garder · ↑ Favori · ou utilise les boutons.
-                </p>
+                <p className="hint">{t('deck.hint')}</p>
               )}
             </main>
           }

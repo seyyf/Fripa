@@ -4,6 +4,7 @@ import { animate, motion, useInView, useReducedMotion, type Variants } from 'fra
 import { api } from '../api';
 import type { TShirt } from '../types';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useT } from '../i18n/LanguageContext';
 
 const MotionLink = motion(Link);
 
@@ -88,6 +89,7 @@ const viewport = { once: true, amount: 0.2 } as const;
 
 export function HomePage() {
   const reduce = useReducedMotion();
+  const { t } = useT();
   // Smart default: phones land on the swipe deck, larger screens on the grid —
   // both stay reachable from the nav.
   const isMobile = useMediaQuery('(max-width: 600px)');
@@ -134,21 +136,20 @@ export function HomePage() {
           animate="show"
         >
           <motion.span className="home__badge" variants={fadeUp}>
-            🇹🇳 Friperie en ligne
+            {t('home.badge')}
           </motion.span>
           <motion.h1 className="home__title" variants={fadeUp}>
             Fripa
           </motion.h1>
           <motion.p className="home__tagline" variants={fadeUp}>
-            Le vide-dressing tunisien qui file vite. Tu swipes, tu gardes, tu chines —
-            mais attention : <strong>90% du temps, une pièce passée disparaît pour de bon.</strong>
+            {t('home.tagline')}
           </motion.p>
           <motion.div className="home__hero-actions" variants={fadeUp}>
             <MotionLink to={browseTo} className="btn btn--add btn--cta" {...hover}>
-              Commencer à chiner →
+              {t('home.cta')}
             </MotionLink>
             <motion.a href="#how" className="btn btn--ghost btn--cta-ghost" {...hover}>
-              Comment ça marche
+              {t('home.how')}
             </motion.a>
           </motion.div>
         </motion.div>

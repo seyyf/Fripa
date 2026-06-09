@@ -1987,6 +1987,43 @@ body {
   gap: 24px;
 }
 
+/* Language switcher */
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  background: #f0e4d2;
+  border-radius: 999px;
+  padding: 2px;
+}
+.lang-switch__btn {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  min-width: 24px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.lang-switch__btn.is-on {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+/* RTL: keep numeric prices / refs LTR so they read correctly in Arabic. */
+[dir='rtl'] .price-old,
+[dir='rtl'] .track__ref,
+[dir='rtl'] .recent__price,
+[dir='rtl'] .pd__price {
+  direction: ltr;
+}
+[dir='rtl'] .lang-switch {
+  direction: ltr;
+}
+
 /* First-run swipe coach */
 .coach-backdrop {
   position: fixed;

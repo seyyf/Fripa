@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
+import { useT } from '../i18n/LanguageContext';
 import type { Category, FieldFilters, FieldItem } from '../types';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 const SIZES: FieldItem['size'][] = ['S', 'M', 'L', 'XL', 'XXL'];
 
 export function QuickFilters({ filters, deck, onApply }: Props) {
+  const { t } = useT();
   const [categories, setCategories] = useState<Category[]>([]);
   const [q, setQ] = useState(filters.q ?? '');
   const [focused, setFocused] = useState(false);
@@ -47,7 +49,7 @@ export function QuickFilters({ filters, deck, onApply }: Props) {
       <div className="quickfilters__search">
         <input
           className="filter-input"
-          placeholder="Rechercher une pièce, une marque…"
+          placeholder={t('deck.search')}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setFocused(true)}

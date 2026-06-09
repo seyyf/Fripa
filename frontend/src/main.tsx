@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from './App';
 import { AccountProvider } from './account/AccountContext';
+import { LanguageProvider } from './i18n/LanguageContext';
 import './App.css';
 
 // The admin dashboard is a separate lazy chunk — it never ships in the shopper's
@@ -24,9 +25,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Route
           path="/*"
           element={
-            <AccountProvider>
-              <App />
-            </AccountProvider>
+            <LanguageProvider>
+              <AccountProvider>
+                <App />
+              </AccountProvider>
+            </LanguageProvider>
           }
         />
       </Routes>
