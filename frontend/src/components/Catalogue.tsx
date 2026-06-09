@@ -223,7 +223,19 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
 
       <RecentlyViewed />
 
-      {!loading && items.length === 0 ? (
+      {loading && items.length === 0 ? (
+        <div className="catalogue-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="cat-card cat-card--skeleton" aria-hidden="true">
+              <span className="cat-card__img skeleton" />
+              <span className="cat-card__body">
+                <span className="skeleton skeleton--line" />
+                <span className="skeleton skeleton--line skeleton--short" />
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : !loading && items.length === 0 ? (
         <div className="empty">
           <div className="empty__emoji">🧺</div>
           <h2>{filterCount > 0 || category ? 'Aucune pièce ne correspond.' : 'Le rayon est vide.'}</h2>

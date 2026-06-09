@@ -65,7 +65,7 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
               }
               transition={reduce ? { duration: 0.15 } : { type: 'spring', stiffness: 460, damping: 38 }}
             >
-              <img src={line.imageUrl} alt={line.title} />
+              <img src={line.imageUrl} alt={line.title} loading="lazy" decoding="async" />
               <div className="cart-line__info">
                 <strong>{line.title}</strong>
                 <span className="muted">{line.size} · {line.condition}</span>

@@ -58,7 +58,7 @@ export function CheckoutPage({ cart, onPlaceOrder }: Props) {
           <ul className="checkout__lines">
             {cart.lines.map((line) => (
               <li key={line.id} className="checkout__line">
-                <img src={line.imageUrl} alt={line.title} />
+                <img src={line.imageUrl} alt={line.title} loading="lazy" decoding="async" />
                 <div className="checkout__line-info">
                   <strong>{line.title}</strong>
                   <span className="muted">
