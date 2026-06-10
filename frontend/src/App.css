@@ -2763,3 +2763,31 @@ body {
 .drop-banner__pieces {
   opacity: 0.85;
 }
+
+/* Gallery editor tools (reorder / make-cover) */
+.admin-gallery__tools {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  right: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+.admin-gallery__thumb .admin-gallery__tools button {
+  position: static;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(26, 31, 43, 0.85);
+  font-size: 12px;
+}
+.admin-gallery__thumb .admin-gallery__tools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.admin-gallery__hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+}

@@ -82,18 +82,37 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
   function set<K extends keyof ItemInput>(key: K, value: ItemInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
-  const addImage = (url: string) => set('images', [...images, url]);
   const removeImage = (i: number) => set('images', images.filter((_, idx) => idx !== i));
+  // Reorder a gallery photo one step left/right (the order shoppers swipe through).
+  const moveImage = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= images.length) return;
+    const next = [...images];
+    [next[i], next[j]] = [next[j], next[i]];
+    set('images', next);
+  };
+  // Promote a gallery photo to cover; the old cover slides into its slot.
+  const makeCover = (i: number) => {
+    const next = [...images];
+    const promoted = next[i];
+    next[i] = form.imageUrl;
+    setForm((f) => ({ ...f, imageUrl: promoted, images: next.filter(Boolean) }));
+  };
 
   async function onPickExtra(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    if (!file) return;
+    if (files.length === 0) return;
     setUploadingExtra(true);
     setError(null);
     try {
-      const { url } = await adminApi.uploadImage(file);
-      addImage(url);
+      // Sequential uploads keep the picked order in the gallery.
+      const urls: string[] = [];
+      for (const file of files) {
+        const { url } = await adminApi.uploadImage(file);
+        urls.push(url);
+      }
+      setForm((f) => ({ ...f, images: [...(f.images ?? []), ...urls] }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Échec du téléversement.');
     } finally {
@@ -268,17 +287,47 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
             </div>
 
             <div className="field admin-form__wide">
-              <span className="field__label">Photos supplémentaires</span>
+              <span className="field__label">
+                Photos supplémentaires{images.length > 0 ? ` (${images.length})` : ''}
+              </span>
               <div className="admin-gallery">
                 {images.map((url, i) => (
                   <div
-                    key={i}
+                    key={`${url}-${i}`}
                     className="admin-gallery__thumb"
                     style={{ backgroundImage: `url(${url})` }}
                   >
                     <button type="button" onClick={() => removeImage(i)} aria-label="Retirer">
                       ×
                     </button>
+                    <div className="admin-gallery__tools">
+                      <button
+                        type="button"
+                        onClick={() => moveImage(i, -1)}
+                        disabled={i === 0}
+                        aria-label="Avancer la photo"
+                        title="Avancer"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => makeCover(i)}
+                        aria-label="Utiliser comme couverture"
+                        title="Utiliser comme couverture"
+                      >
+                        ★
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(i, 1)}
+                        disabled={i === images.length - 1}
+                        aria-label="Reculer la photo"
+                        title="Reculer"
+                      >
+                        ›
+                      </button>
+                    </div>
                   </div>
                 ))}
                 <label className={`admin-gallery__add ${uploadingExtra ? 'is-busy' : ''}`}>
@@ -286,12 +335,17 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     hidden
                     disabled={uploadingExtra}
                     onChange={onPickExtra}
                   />
                 </label>
               </div>
+              <span className="muted admin-gallery__hint">
+                ‹ › pour ordonner le carrousel · ★ pour passer en photo principale · sélection
+                multiple possible.
+              </span>
             </div>
 
             <label className="field admin-form__wide">
