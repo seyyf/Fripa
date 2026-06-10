@@ -39,6 +39,13 @@ export class AdminItemsController {
     return this.items.importCsv(body?.csv ?? '');
   }
 
+  // One-click markdown of every dormant piece (active, undiscounted, unsold
+  // for `days`). Distinct sub-path to stay clear of the :id routes.
+  @Post('markdown-dormant')
+  markdownDormant(@Body() body: { days?: number; percent?: number }) {
+    return this.items.markdownDormant(body?.days, body?.percent);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: Partial<ItemInput>) {
     return this.items.update(id, body);

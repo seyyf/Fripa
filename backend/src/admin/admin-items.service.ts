@@ -176,6 +176,34 @@ export class AdminItemsService {
     return { ok: true, count };
   }
 
+  // Mark down every dormant piece in one shot: active, not already discounted,
+  // in stock for at least `days`. salePrice = price − percent% (rounded, min 1).
+  // SQLite has no UPDATE…expression through Prisma updateMany, so this runs
+  // per-item inside one transaction, then reloads the catalogue once.
+  async markdownDormant(days = 30, percent = 20): Promise<{ ok: true; count: number }> {
+    if (!Number.isFinite(days) || days < 0) throw new BadRequestException('« days » invalide.');
+    if (!Number.isFinite(percent) || percent <= 0 || percent >= 100) {
+      throw new BadRequestException('« percent » doit être entre 1 et 99.');
+    }
+    const cutoff = new Date(Date.now() - days * 86400000);
+    const dormant = await this.prisma.item.findMany({
+      where: { status: 'active', salePrice: null, createdAt: { lte: cutoff } },
+      select: { id: true, price: true },
+    });
+    if (dormant.length > 0) {
+      await this.prisma.$transaction(
+        dormant.map((i) =>
+          this.prisma.item.update({
+            where: { id: i.id },
+            data: { salePrice: Math.max(1, Math.round(i.price * (1 - percent / 100))) },
+          }),
+        ),
+      );
+      await this.loader.reload();
+    }
+    return { ok: true, count: dormant.length };
+  }
+
   private async getOrThrow(id: string): Promise<Item> {
     const item = await this.prisma.item.findUnique({ where: { id } });
     if (!item) throw new NotFoundException(`Item ${id} introuvable.`);

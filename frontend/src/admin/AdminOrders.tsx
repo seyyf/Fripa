@@ -80,6 +80,35 @@ export function AdminOrders({ onAuthError }: Props) {
           </p>
         </div>
         {orders.length > 0 && (
+          <div className="admin-items__head-actions">
+          <button
+            className="admin-btn"
+            title="Commandes confirmées, prêtes à expédier — format livreur (COD)"
+            onClick={() => {
+              const toShip = orders.filter((o) => o.status === 'Confirmée');
+              if (toShip.length === 0) {
+                window.alert('Aucune commande « Confirmée » à expédier.');
+                return;
+              }
+              downloadCsv(
+                'fripa-livreur.csv',
+                ['nom', 'telephone', 'gouvernorat', 'adresse', 'designation', 'nb_pieces', 'cod_tnd', 'reference', 'commentaire'],
+                toShip.map((o) => [
+                  o.customerName,
+                  o.customerPhone,
+                  o.governorate,
+                  o.customerAddress,
+                  o.lines.map((l) => `${l.title} (${l.size})`).join(' | '),
+                  o.lines.length,
+                  o.paid ? 0 : o.total,
+                  o.ref,
+                  o.paid ? 'déjà encaissée' : 'paiement à la livraison',
+                ]),
+              );
+            }}
+          >
+            ⤓ Export livreur
+          </button>
           <button
             className="admin-btn"
             onClick={() =>
@@ -105,6 +134,7 @@ export function AdminOrders({ onAuthError }: Props) {
           >
             ⤓ CSV
           </button>
+          </div>
         )}
       </div>
 

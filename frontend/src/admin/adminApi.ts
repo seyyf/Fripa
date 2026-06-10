@@ -240,6 +240,11 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ csv }),
     }),
+  markdownDormant: (days?: number, percent?: number) =>
+    http<{ ok: true; count: number }>('/admin/items/markdown-dormant', {
+      method: 'POST',
+      body: JSON.stringify({ days, percent }),
+    }),
   listOrders: () => http<AdminOrder[]>('/admin/orders'),
   updateOrder: (id: string, patch: OrderPatch) =>
     http<AdminOrder>(`/admin/orders/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),

@@ -185,6 +185,20 @@ export function AdminItems({ onAuthError }: Props) {
     }
   }
 
+  // Same markdown, applied to every dormant piece at once (server-side rule:
+  // active, undiscounted, ≥30 days in stock).
+  async function markdownAllDormant() {
+    if (!window.confirm(`Solder −20% toutes les pièces dormantes (+${DORMANT_DAYS}j, sans solde) ?`))
+      return;
+    try {
+      const res = await adminApi.markdownDormant(DORMANT_DAYS, 20);
+      await refresh();
+      window.alert(`${res.count} pièce(s) soldée(s) à −20%.`);
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
   async function remove(item: AdminItem) {
     if (!window.confirm(`Supprimer « ${item.title} » ? Cette action est définitive.`)) return;
     try {
@@ -281,6 +295,11 @@ export function AdminItems({ onAuthError }: Props) {
           >
             💤 Dormant
           </button>
+          {dormantOnly && shown.length > 0 && (
+            <button className="admin-btn admin-btn--sale" onClick={markdownAllDormant}>
+              Tout solder −20% ({shown.length})
+            </button>
+          )}
         </div>
       </div>
 
