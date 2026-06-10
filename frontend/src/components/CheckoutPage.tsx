@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 import { CheckoutForm } from './CheckoutForm';
+import { WhatsAppConfirm } from './WhatsAppConfirm';
 
 interface Props {
   cart: CartResponse;
@@ -20,6 +21,7 @@ export function CheckoutPage({ cart, onPlaceOrder }: Props) {
         <p className="checkout__ref">Référence : {done.ref}</p>
         <p className="checkout__done-text">{done.message}</p>
         <p className="muted">Paiement à la livraison — on te contacte pour confirmer.</p>
+        <WhatsAppConfirm orderRef={done.ref} name={done.customer?.name} />
         <Link to="/catalogue" className="btn btn--add btn--wide">
           Continuer à chiner
         </Link>

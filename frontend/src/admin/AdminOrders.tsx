@@ -85,7 +85,7 @@ export function AdminOrders({ onAuthError }: Props) {
             onClick={() =>
               downloadCsv(
                 'fripa-commandes.csv',
-                ['ref', 'date', 'statut', 'encaissee', 'client', 'telephone', 'email', 'adresse', 'total', 'pieces'],
+                ['ref', 'date', 'statut', 'encaissee', 'client', 'telephone', 'email', 'gouvernorat', 'adresse', 'livraison', 'total', 'pieces'],
                 shown.map((o) => [
                   o.ref,
                   new Date(o.createdAt).toISOString(),
@@ -94,7 +94,9 @@ export function AdminOrders({ onAuthError }: Props) {
                   o.customerName,
                   o.customerPhone,
                   o.customerEmail,
+                  o.governorate,
                   o.customerAddress,
+                  o.deliveryFee,
                   o.total,
                   o.lines.map((l) => l.title).join(' | '),
                 ]),
@@ -158,6 +160,7 @@ export function AdminOrders({ onAuthError }: Props) {
                 </span>
                 <span className="admin-cell-sub">
                   {o.customerEmail} — {o.customerAddress}
+                  {o.governorate ? `, ${o.governorate}` : ''}
                 </span>
               </div>
 

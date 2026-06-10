@@ -2704,3 +2704,41 @@ body {
     flex: 1;
   }
 }
+
+/* Delivery & bundle incentive (checkout + cart drawer) */
+.checkout__delivery-free {
+  color: #1b7f4d;
+}
+.checkout__free-hint {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+.cart-free-note {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fdf3e0;
+  border: 1px dashed #e8c98e;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cart-free-note--on {
+  background: #e8f7ee;
+  border-color: #9ed9b8;
+  color: #1b7f4d;
+}
+
+/* "Confirmer sur WhatsApp" deep link on confirmation screens */
+.btn--whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #25d366;
+  color: #fff;
+  text-decoration: none;
+  margin: 6px 0;
+}
+.btn--whatsapp:hover {
+  background: #1fb958;
+}

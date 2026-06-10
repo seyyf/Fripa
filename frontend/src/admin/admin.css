@@ -864,3 +864,36 @@
     flex-direction: column;
   }
 }
+
+/* Settings page (Réglages) */
+.admin-settings .admin-panel {
+  margin-bottom: 16px;
+}
+.admin-notice {
+  background: #e8f7ee;
+  border: 1px solid #9ed9b8;
+  color: #1b7f4d;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.admin-zones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.admin-zone .field__label {
+  font-size: 12px;
+}
+.admin-settings__hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+.admin-settings__hint a {
+  color: inherit;
+}
+.admin-settings__row {
+  margin-top: 10px;
+}

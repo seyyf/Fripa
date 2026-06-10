@@ -12,6 +12,7 @@ import { ShopService } from './shop.service';
 import { CheckoutService } from './checkout.service';
 import { PromoService } from './promo.service';
 import { PrismaService } from './prisma.service';
+import { SettingsService } from './settings.service';
 
 @Controller()
 export class ShopController {
@@ -20,7 +21,15 @@ export class ShopController {
     private readonly checkoutService: CheckoutService,
     private readonly promo: PromoService,
     private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
   ) {}
+
+  // Public shop configuration: delivery zones/fees, the free-delivery rule and
+  // the shop's WhatsApp number (no admin credentials).
+  @Get('shop-config')
+  shopConfig() {
+    return this.settings.getPublic();
+  }
 
   // Public order tracking: look up by ref + phone (phone acts as the secret).
   @Get('orders/track')
@@ -165,7 +174,14 @@ export class ShopController {
   checkout(
     @Param('userId') userId: string,
     @Body()
-    body: { name: string; email: string; address: string; phone: string; promoCode?: string },
+    body: {
+      name: string;
+      email: string;
+      address: string;
+      phone: string;
+      governorate: string;
+      promoCode?: string;
+    },
   ) {
     return this.checkoutService.checkout(userId, body, body.promoCode);
   }

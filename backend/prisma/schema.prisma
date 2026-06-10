@@ -43,13 +43,23 @@ model Order {
   customerEmail   String
   customerAddress String
   customerPhone   String
-  total           Int
+  governorate     String      @default("") // delivery zone (Tunisian governorate)
+  total           Int // grand total: items − discount + deliveryFee
+  deliveryFee     Int         @default(0) // 0 when free delivery applied
   status          String      @default("Nouvelle") // Nouvelle | Confirmée | Expédiée | Livrée | Retournée | Annulée
   paid            Boolean     @default(false) // cash collected (COD reconciliation)
   promoCode       String? // applied promo code, if any
   discount        Int         @default(0) // amount discounted off the original cart total
   createdAt       DateTime    @default(now())
   lines           OrderLine[]
+}
+
+// Shop configuration editable from the admin (delivery fees, bundle rule,
+// WhatsApp numbers). One row per key; values are JSON-encoded.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 // A shopper account, identified by phone (OTP login). No password.

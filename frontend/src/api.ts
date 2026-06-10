@@ -8,6 +8,7 @@ import type {
   FieldFilters,
   FieldResponse,
   ItemDetail,
+  ShopConfig,
   TrackedOrder,
   TShirt,
 } from './types';
@@ -44,6 +45,8 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   userId,
+  // Public shop configuration (delivery fees, free-delivery rule, WhatsApp).
+  shopConfig: () => http<ShopConfig>(`/shop-config`),
   field: (count: number, filters: FieldFilters = {}) => {
     const qs = buildFieldQuery(filters);
     return http<FieldResponse>(

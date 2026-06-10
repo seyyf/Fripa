@@ -60,6 +60,8 @@ export interface CustomerInfo {
   email: string;
   address: string;
   phone: string;
+  // Delivery zone (Tunisian governorate) — drives the delivery fee.
+  governorate: string;
 }
 
 export interface CheckoutResult {
@@ -67,8 +69,20 @@ export interface CheckoutResult {
   message: string;
   ref?: string;
   orderTotal?: number;
+  deliveryFee?: number;
   lines?: CartLine[];
   customer?: CustomerInfo;
+}
+
+// Public shop configuration (delivery zones/fees, free-delivery rule, shop
+// WhatsApp number). Served by GET /api/shop-config.
+export interface ShopConfig {
+  governorates: string[];
+  deliveryFee: number;
+  deliveryFees: Record<string, number>;
+  freeDeliveryMinItems: number | null;
+  freeDeliveryMinTotal: number | null;
+  whatsappShop: string;
 }
 
 export interface FieldFilters {

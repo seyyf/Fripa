@@ -125,11 +125,29 @@ export interface AdminOrder {
   customerEmail: string;
   customerAddress: string;
   customerPhone: string;
+  governorate: string;
   total: number;
+  deliveryFee: number;
   status: string;
   paid: boolean;
   createdAt: string;
   lines: AdminOrderLine[];
+}
+
+// Shop configuration (admin → Réglages). Mirrors the backend ShopConfig.
+export interface ShopConfig {
+  deliveryFee: number;
+  deliveryFees: Record<string, number>;
+  freeDeliveryMinItems: number | null;
+  freeDeliveryMinTotal: number | null;
+  whatsappShop: string;
+  whatsappAlertPhone: string;
+  whatsappAlertApiKey: string;
+}
+
+export interface SettingsResponse {
+  governorates: string[];
+  config: ShopConfig;
 }
 
 export function getToken(): string | null {
@@ -211,6 +229,11 @@ export const adminApi = {
     http<AdminPromo>(`/admin/promos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deletePromo: (id: string) =>
     http<{ ok: true }>(`/admin/promos/${id}`, { method: 'DELETE' }),
+  getSettings: () => http<SettingsResponse>('/admin/settings'),
+  updateSettings: (patch: Partial<ShopConfig>) =>
+    http<SettingsResponse>('/admin/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+  testWhatsApp: () =>
+    http<{ ok: true }>('/admin/settings/test-whatsapp', { method: 'POST' }),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).

@@ -70,6 +70,8 @@ export interface CustomerInfo {
   email: string;
   address: string;
   phone: string;
+  // Delivery zone (Tunisian governorate) — drives the delivery fee.
+  governorate: string;
 }
 
 export interface FieldFilters {

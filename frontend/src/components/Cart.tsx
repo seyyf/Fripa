@@ -4,7 +4,9 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 import { effectivePrice, isOnSale } from '../types';
 import { holdState, formatHold } from '../cart/holdTimer';
+import { useShopConfig } from '../hooks/useShopConfig';
 import { CheckoutForm } from './CheckoutForm';
+import { WhatsAppConfirm } from './WhatsAppConfirm';
 
 interface Props {
   open: boolean;
@@ -16,6 +18,7 @@ interface Props {
 
 export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
   const reduce = useReducedMotion();
+  const config = useShopConfig();
   const [now, setNow] = useState(() => Date.now());
   // Two-step flow inside the one drawer: review the cart, then fill the form.
   const [step, setStep] = useState<'cart' | 'pay'>('cart');
@@ -46,6 +49,20 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
   if (!open) return null;
 
   const empty = cart.lines.length === 0;
+
+  // Bundle nudge: with COD the delivery cost is per-order, so we push toward
+  // the free-delivery threshold (admin → Réglages).
+  const minItems = config?.freeDeliveryMinItems ?? null;
+  const missingForFree = minItems != null ? minItems - cart.lines.length : null;
+  const bundleNote =
+    empty || missingForFree == null ? null : missingForFree > 0 ? (
+      <p className="cart-free-note">
+        🚚 Plus que {missingForFree} pièce{missingForFree > 1 ? 's' : ''} pour la livraison
+        offerte !
+      </p>
+    ) : (
+      <p className="cart-free-note cart-free-note--on">🚚 Livraison offerte sur cette commande !</p>
+    );
 
   const itemList = (
     <ul className="cart-list">
@@ -112,6 +129,7 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
             <p className="checkout__ref">Référence : {done.ref}</p>
             <p className="muted">{done.message}</p>
             <p className="muted">💵 Paiement à la livraison — on te contacte pour confirmer.</p>
+            <WhatsAppConfirm orderRef={done.ref} name={done.customer?.name} />
             <Link
               to={`/suivi?ref=${done.ref}`}
               className="drawer__track-link"
@@ -135,6 +153,7 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
             </p>
             {itemList}
             <footer className="drawer__foot">
+              {bundleNote}
               <div className="total">
                 <span>Total</span>
                 <strong>{cart.total} TND</strong>

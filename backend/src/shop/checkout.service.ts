@@ -3,6 +3,8 @@ import { PrismaService } from './prisma.service';
 import { CatalogueLoader } from './catalogue.loader';
 import { ShopService } from './shop.service';
 import { PromoService } from './promo.service';
+import { GOVERNORATES, SettingsService } from './settings.service';
+import { NotifyService } from './notify.service';
 import { CustomerInfo, effectivePrice } from './types';
 
 export interface CheckoutResult {
@@ -10,6 +12,7 @@ export interface CheckoutResult {
   message: string;
   ref?: string;
   orderTotal?: number;
+  deliveryFee?: number;
   lines?: unknown[];
   customer?: CustomerInfo;
 }
@@ -24,6 +27,8 @@ export class CheckoutService {
     private readonly loader: CatalogueLoader,
     private readonly shop: ShopService,
     private readonly promo: PromoService,
+    private readonly settings: SettingsService,
+    private readonly notify: NotifyService,
   ) {}
 
   async checkout(
@@ -43,6 +48,10 @@ export class CheckoutService {
     ) {
       return { ok: false, message: 'Informations de livraison manquantes.' };
     }
+    const governorate = customer.governorate?.trim() ?? '';
+    if (!(GOVERNORATES as readonly string[]).includes(governorate)) {
+      return { ok: false, message: 'Choisis ton gouvernorat pour la livraison.' };
+    }
 
     // Optional promo: validate up front so a bad code fails cleanly.
     let promoId: string | null = null;
@@ -60,7 +69,12 @@ export class CheckoutService {
         return { ok: false, message: e instanceof Error ? e.message : 'Code promo invalide.' };
       }
     }
-    const finalTotal = cart.total - discount;
+    // Delivery: per-governorate fee, waived by the bundle rule (N+ pieces
+    // and/or a minimum items total — see the admin settings).
+    const itemsTotal = cart.total - discount;
+    const freeDelivery = await this.settings.qualifiesFreeDelivery(cart.lines.length, itemsTotal);
+    const deliveryFee = freeDelivery ? 0 : await this.settings.feeFor(governorate);
+    const finalTotal = itemsTotal + deliveryFee;
     const ids = cart.lines.map((l) => l.id);
 
     try {
@@ -98,7 +112,9 @@ export class CheckoutService {
             customerEmail: customer.email.trim(),
             customerAddress: customer.address.trim(),
             customerPhone: customer.phone.trim(),
+            governorate,
             total: finalTotal,
+            deliveryFee,
             promoCode: promoCodeUpper,
             discount,
             lines: {
@@ -119,12 +135,27 @@ export class CheckoutService {
       await this.loader.reload();
       this.shop.clearCart(userId);
 
+      // Ping the admin's WhatsApp (fire-and-forget — never blocks the shopper).
+      this.notify.orderPlaced({
+        ref: order.ref,
+        total: finalTotal,
+        deliveryFee,
+        customerName: customer.name.trim(),
+        customerPhone: customer.phone.trim(),
+        governorate,
+        lineCount: cart.lines.length,
+      });
+
       const savedNote = discount > 0 ? ` (−${discount} TND avec ${promoCodeUpper})` : '';
+      const deliveryNote = freeDelivery
+        ? ', livraison offerte 🚚'
+        : `, dont ${deliveryFee} TND de livraison`;
       return {
         ok: true,
         ref: order.ref,
-        message: `Commande ${order.ref} confirmée — ${finalTotal} TND${savedNote}. On te contacte pour la livraison !`,
+        message: `Commande ${order.ref} confirmée — ${finalTotal} TND${savedNote}${deliveryNote}. On te contacte pour la livraison !`,
         orderTotal: finalTotal,
+        deliveryFee,
         lines: cart.lines,
         customer,
       };

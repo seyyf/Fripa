@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAccount } from '../account/AccountContext';
+import { useShopConfig } from '../hooks/useShopConfig';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 
 interface Props {
@@ -16,7 +17,14 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/;
 // drawer so both behave identically.
 export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const { user } = useAccount();
-  const [form, setForm] = useState<CustomerInfo>({ name: '', email: '', address: '', phone: '' });
+  const config = useShopConfig();
+  const [form, setForm] = useState<CustomerInfo>({
+    name: '',
+    email: '',
+    address: '',
+    phone: '',
+    governorate: '',
+  });
 
   // Prefill from the signed-in account, without overwriting anything typed.
   useEffect(() => {
@@ -26,6 +34,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       email: f.email || user.email || '',
       address: f.address || user.address || '',
       phone: f.phone || user.phone || '',
+      governorate: f.governorate,
     }));
   }, [user]);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
@@ -37,7 +46,26 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const [promoBusy, setPromoBusy] = useState(false);
 
   const discount = promo?.discount ?? 0;
-  const payable = cart.total - discount;
+  const itemsTotal = cart.total - discount;
+
+  // Delivery: per-governorate fee, waived by the free-delivery rule. Mirrors
+  // the backend computation; the server stays authoritative at submit time.
+  const itemCount = cart.lines.length;
+  const freeDelivery =
+    config != null &&
+    ((config.freeDeliveryMinItems != null && itemCount >= config.freeDeliveryMinItems) ||
+      (config.freeDeliveryMinTotal != null && itemsTotal >= config.freeDeliveryMinTotal));
+  const baseFee =
+    config && form.governorate
+      ? config.deliveryFees[form.governorate] ?? config.deliveryFee
+      : null;
+  const deliveryFee = config == null ? null : freeDelivery ? 0 : baseFee;
+  const payable = itemsTotal + (deliveryFee ?? 0);
+  // How many more pieces until free delivery (the bundle nudge).
+  const missingForFree =
+    config?.freeDeliveryMinItems != null && !freeDelivery
+      ? config.freeDeliveryMinItems - itemCount
+      : null;
 
   // Validate + apply a code. Returns the applied promo (or null). Used by the
   // "Appliquer" button, the field's onBlur, and the submit safety net — so the
@@ -80,6 +108,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
     if (!form.name.trim()) e.name = 'Le nom est obligatoire.';
     if (!form.email.trim()) e.email = "L'email est obligatoire.";
     else if (!EMAIL_RE.test(form.email.trim())) e.email = 'Email invalide.';
+    if (!form.governorate) e.governorate = 'Choisis ton gouvernorat.';
     if (!form.address.trim()) e.address = "L'adresse est obligatoire.";
     if (!form.phone.trim()) e.phone = 'Le téléphone est obligatoire.';
     else if (form.phone.replace(/\D/g, '').length < 8) e.phone = 'Numéro trop court.';
@@ -113,6 +142,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
           email: form.email.trim(),
           address: form.address.trim(),
           phone: form.phone.trim(),
+          governorate: form.governorate,
         },
         applied?.code,
       );
@@ -148,6 +178,23 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
           autoComplete="email"
         />
         {errors.email && <span className="field__error">{errors.email}</span>}
+      </label>
+
+      <label className="field">
+        <span className="field__label">Gouvernorat</span>
+        <select
+          className="filter-input"
+          value={form.governorate}
+          onChange={(e) => set('governorate', e.target.value)}
+        >
+          <option value="">— Choisir —</option>
+          {(config?.governorates ?? []).map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+        {errors.governorate && <span className="field__error">{errors.governorate}</span>}
       </label>
 
       <label className="field">
@@ -213,6 +260,27 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
           <span>Remise</span>
           <strong>−{discount} TND</strong>
         </div>
+      )}
+
+      {config && (
+        <div className="total checkout__delivery">
+          <span>Livraison</span>
+          <strong>
+            {freeDelivery ? (
+              <span className="checkout__delivery-free">Offerte 🚚</span>
+            ) : deliveryFee != null ? (
+              `${deliveryFee} TND`
+            ) : (
+              '— selon le gouvernorat'
+            )}
+          </strong>
+        </div>
+      )}
+      {missingForFree != null && missingForFree > 0 && (
+        <p className="muted checkout__free-hint">
+          🚚 Plus que {missingForFree} pièce{missingForFree > 1 ? 's' : ''} pour la livraison
+          offerte !
+        </p>
       )}
 
       {formError && <div className="checkout__error">{formError}</div>}

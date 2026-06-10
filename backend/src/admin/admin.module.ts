@@ -16,6 +16,7 @@ import { AdminCustomersController } from './admin-customers.controller';
 import { AdminCustomersService } from './admin-customers.service';
 import { AdminPromosController } from './admin-promos.controller';
 import { AdminPromosService } from './admin-promos.service';
+import { AdminSettingsController } from './admin-settings.controller';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AdminPromosService } from './admin-promos.service';
     AdminStatsController,
     AdminCustomersController,
     AdminPromosController,
+    AdminSettingsController,
   ],
   providers: [
     AdminService,

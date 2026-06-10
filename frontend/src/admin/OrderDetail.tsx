@@ -23,14 +23,15 @@ function printSlip(o: AdminOrder) {
   const rows = o.lines
     .map((l) => `<tr><td>${l.title} <small>(${l.brand} · ${l.size})</small></td><td style="text-align:right">${l.price} TND</td></tr>`)
     .join('');
+  const deliveryRow = `<tr><td>Livraison${o.governorate ? ` (${o.governorate})` : ''}</td><td style="text-align:right">${o.deliveryFee > 0 ? `${o.deliveryFee} TND` : 'Offerte'}</td></tr>`;
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${o.ref}</title>
   <style>body{font-family:system-ui,sans-serif;padding:24px;color:#1a1a1a}h1{font-size:20px;margin:0}
   .muted{color:#666;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:12px}
   td{padding:6px 0;border-bottom:1px solid #eee}.tot{font-weight:800;font-size:18px;margin-top:10px;display:flex;justify-content:space-between}
   .box{border:1px solid #ddd;border-radius:10px;padding:14px;margin-top:14px}</style></head>
   <body><h1>Fripa — Bon de livraison</h1><div class="muted">Réf ${o.ref} · ${dateFmt.format(new Date(o.createdAt))}</div>
-  <div class="box"><strong>${o.customerName}</strong><br>${o.customerPhone}<br>${o.customerAddress}<br><span class="muted">${o.customerEmail}</span></div>
-  <table>${rows}</table><div class="tot"><span>Total (à encaisser)</span><span>${o.total} TND</span></div>
+  <div class="box"><strong>${o.customerName}</strong><br>${o.customerPhone}<br>${o.customerAddress}${o.governorate ? `, ${o.governorate}` : ''}<br><span class="muted">${o.customerEmail}</span></div>
+  <table>${rows}${deliveryRow}</table><div class="tot"><span>Total (à encaisser)</span><span>${o.total} TND</span></div>
   </body></html>`;
   const w = window.open('', '_blank', 'width=420,height=640');
   if (!w) return;
@@ -96,7 +97,11 @@ export function OrderDetail({ order, onClose, onChanged, onAuthError }: Props) {
 
         <div className="admin-form">
           <div className="admin-order-detail__top">
-            <span className="admin-cell-sub">{dateFmt.format(new Date(order.createdAt))}</span>
+            <span className="admin-cell-sub">
+              {dateFmt.format(new Date(order.createdAt))}
+              {order.governorate ? ` · 🚚 ${order.governorate}` : ''}
+              {` · livraison ${order.deliveryFee > 0 ? `${order.deliveryFee} TND` : 'offerte'}`}
+            </span>
             <span className={`admin-status admin-order-status--${statusKey(order.status)}`}>{order.status}</span>
           </div>
 
