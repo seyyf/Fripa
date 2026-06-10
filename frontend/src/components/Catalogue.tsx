@@ -11,6 +11,7 @@ import { usePhantomCrowd } from '../crowd/usePhantomCrowd';
 import { FilterDrawer } from './FilterDrawer';
 import { Modal } from './Modal';
 import { ProductDetailContent } from './ProductDetailContent';
+import { DropBanner } from './DropBanner';
 
 interface Props {
   onAddToCart: (item: TShirt) => void | Promise<void>;
@@ -196,6 +197,8 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
           ⚙ Filtrer{filterCount > 0 ? ` (${filterCount})` : ''}
         </button>
       </div>
+
+      <DropBanner onDrop={() => void load({ ...filters, category: category ?? undefined })} />
 
       <div className="cat-tabs" role="tablist" aria-label="Catégories">
         <button

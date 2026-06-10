@@ -5,6 +5,7 @@ import { api } from '../api';
 import type { TShirt } from '../types';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useT } from '../i18n/LanguageContext';
+import { DropBanner } from './DropBanner';
 
 const MotionLink = motion(Link);
 
@@ -151,6 +152,9 @@ export function HomePage() {
             <motion.a href="#how" className="btn btn--ghost btn--cta-ghost" {...hover}>
               {t('home.how')}
             </motion.a>
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <DropBanner />
           </motion.div>
         </motion.div>
       </section>

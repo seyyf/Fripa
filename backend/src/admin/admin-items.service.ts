@@ -18,6 +18,9 @@ export interface ItemInput {
   seller: string;
   category: string;
   status?: string;
+  // Drop scheduling: ISO date for the automatic draft → active promotion
+  // (null clears the schedule).
+  publishAt?: string | null;
 }
 
 const STRING_FIELDS = [
@@ -252,6 +255,19 @@ export class AdminItemsService {
     oneOf('condition', input.condition, CONDITIONS);
     oneOf('category', input.category, CATEGORIES);
     if (input.status != null) oneOf('status', input.status, ITEM_STATUSES);
+
+    // publishAt: undefined → leave as-is; null → unschedule; string → valid date.
+    if (input.publishAt !== undefined) {
+      if (input.publishAt === null) {
+        out.publishAt = null;
+      } else {
+        const d = new Date(input.publishAt);
+        if (Number.isNaN(d.getTime())) {
+          throw new BadRequestException('« publishAt » doit être une date valide.');
+        }
+        out.publishAt = d;
+      }
+    }
 
     return out;
   }

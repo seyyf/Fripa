@@ -359,6 +359,13 @@ export function AdminItems({ onAuthError }: Props) {
                       {item.brand} · {item.color}
                       {dormantOnly && ` · dort depuis ${ageDays(item.createdAt)}j`}
                     </span>
+                    {item.status === 'draft' &&
+                      item.publishAt &&
+                      new Date(item.publishAt).getTime() > Date.now() && (
+                        <span className="admin-drop-badge">
+                          🔥 drop {new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(item.publishAt))}
+                        </span>
+                      )}
                   </td>
                   <td>{item.size}</td>
                   <td className="admin-price">

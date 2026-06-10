@@ -47,6 +47,8 @@ export const api = {
   userId,
   // Public shop configuration (delivery fees, free-delivery rule, WhatsApp).
   shopConfig: () => http<ShopConfig>(`/shop-config`),
+  // Next scheduled drop (countdown teaser). `at` is null when nothing is scheduled.
+  nextDrop: () => http<{ at: string | null; count: number }>(`/drops/next`),
   field: (count: number, filters: FieldFilters = {}) => {
     const qs = buildFieldQuery(filters);
     return http<FieldResponse>(

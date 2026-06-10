@@ -32,6 +32,7 @@ export interface AdminItem {
   seller: string;
   category: string;
   status: string;
+  publishAt?: string | null; // scheduled draft → active promotion (drop)
   createdAt: string;
   updatedAt: string;
 }

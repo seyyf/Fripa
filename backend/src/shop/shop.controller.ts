@@ -13,6 +13,7 @@ import { CheckoutService } from './checkout.service';
 import { PromoService } from './promo.service';
 import { PrismaService } from './prisma.service';
 import { SettingsService } from './settings.service';
+import { DropsService } from './drops.service';
 
 @Controller()
 export class ShopController {
@@ -22,6 +23,7 @@ export class ShopController {
     private readonly promo: PromoService,
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly drops: DropsService,
   ) {}
 
   // Public shop configuration: delivery zones/fees, the free-delivery rule and
@@ -29,6 +31,12 @@ export class ShopController {
   @Get('shop-config')
   shopConfig() {
     return this.settings.getPublic();
+  }
+
+  // Public drop teaser: when the next scheduled drop lands and its size.
+  @Get('drops/next')
+  nextDrop() {
+    return this.drops.next();
   }
 
   // Public order tracking: look up by ref + phone (phone acts as the secret).

@@ -2742,3 +2742,24 @@ body {
 .btn--whatsapp:hover {
   background: #1fb958;
 }
+
+/* Next-drop countdown teaser (home + catalogue) */
+.drop-banner {
+  margin: 10px 0;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #2b2118, #4a3622);
+  color: #ffe9c7;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow);
+}
+.drop-banner__count {
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+.drop-banner__pieces {
+  opacity: 0.85;
+}

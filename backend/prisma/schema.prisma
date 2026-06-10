@@ -28,6 +28,9 @@ model Item {
   seller      String
   category    String // T-shirts | Sweats | Polos | Vestes | Maillots | Shorts | Jeans
   status      String   @default("active") // active | draft | sold | archived
+  // Drop scheduling: a draft with a publishAt goes active automatically at that
+  // time (and feeds the public "next drop" countdown teaser).
+  publishAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

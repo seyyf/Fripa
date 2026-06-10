@@ -26,6 +26,15 @@ const parseImages = (raw?: string | null): string[] => {
   }
 };
 
+// ISO timestamp → value for a datetime-local input (local time, minute precision).
+const toLocalInput = (iso?: string | null): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const EMPTY: ItemInput = {
   title: '',
   description: '',
@@ -66,6 +75,8 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingExtra, setUploadingExtra] = useState(false);
+  // Drop scheduling (kept as the datetime-local string; converted on submit).
+  const [publishLocal, setPublishLocal] = useState(() => toLocalInput(initial?.publishAt));
   const images = form.images ?? [];
 
   function set<K extends keyof ItemInput>(key: K, value: ItemInput[K]) {
@@ -115,6 +126,7 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
         ...form,
         price: Number(form.price),
         salePrice: form.salePrice == null ? null : Number(form.salePrice),
+        publishAt: publishLocal ? new Date(publishLocal).toISOString() : null,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Échec de l’enregistrement.');
@@ -203,6 +215,24 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+            </label>
+
+            <label className="field">
+              <span className="field__label">🔥 Drop programmé</span>
+              <input
+                className="filter-input"
+                type="datetime-local"
+                value={publishLocal}
+                onChange={(e) => setPublishLocal(e.target.value)}
+              />
+              {publishLocal && form.status !== 'draft' && (
+                <span className="field__error">
+                  Passe le statut en « draft » — la pièce s'activera toute seule à cette date.
+                </span>
+              )}
+              {publishLocal && form.status === 'draft' && (
+                <span className="muted">S'activera automatiquement (compte à rebours côté boutique).</span>
+              )}
             </label>
 
             <label className="field">
