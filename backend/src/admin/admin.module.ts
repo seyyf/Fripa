@@ -17,6 +17,8 @@ import { AdminCustomersService } from './admin-customers.service';
 import { AdminPromosController } from './admin-promos.controller';
 import { AdminPromosService } from './admin-promos.service';
 import { AdminSettingsController } from './admin-settings.controller';
+import { AdminInsightsController } from './admin-insights.controller';
+import { AdminInsightsService } from './admin-insights.service';
 
 @Module({
   imports: [
@@ -42,6 +44,7 @@ import { AdminSettingsController } from './admin-settings.controller';
     AdminCustomersController,
     AdminPromosController,
     AdminSettingsController,
+    AdminInsightsController,
   ],
   providers: [
     AdminService,
@@ -51,6 +54,7 @@ import { AdminSettingsController } from './admin-settings.controller';
     AdminStatsService,
     AdminCustomersService,
     AdminPromosService,
+    AdminInsightsService,
   ],
   // Exported so later admin feature modules can reuse the guard.
   exports: [AdminGuard, JwtModule],

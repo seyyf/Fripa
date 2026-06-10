@@ -8,6 +8,7 @@ import { AdminOrders } from './AdminOrders';
 import { AdminCustomers } from './AdminCustomers';
 import { AdminPromos } from './AdminPromos';
 import { AdminSettings } from './AdminSettings';
+import { AdminInsightsPage } from './AdminInsights';
 import './admin.css';
 
 type AuthState = 'checking' | 'out' | 'in';
@@ -73,6 +74,9 @@ export default function AdminApp() {
           <NavLink to="/admin/customers" className={navClass}>
             Clients
           </NavLink>
+          <NavLink to="/admin/insights" className={navClass}>
+            Analyses
+          </NavLink>
           <NavLink to="/admin/promos" className={navClass}>
             Promos
           </NavLink>
@@ -95,6 +99,7 @@ export default function AdminApp() {
           <Route path="items" element={<AdminItems onAuthError={logout} />} />
           <Route path="orders" element={<AdminOrders onAuthError={logout} />} />
           <Route path="customers" element={<AdminCustomers onAuthError={logout} />} />
+          <Route path="insights" element={<AdminInsightsPage onAuthError={logout} />} />
           <Route path="promos" element={<AdminPromos onAuthError={logout} />} />
           <Route path="settings" element={<AdminSettings onAuthError={logout} />} />
         </Routes>

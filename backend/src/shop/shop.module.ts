@@ -8,6 +8,7 @@ import { PromoService } from './promo.service';
 import { SettingsService } from './settings.service';
 import { NotifyService } from './notify.service';
 import { DropsService } from './drops.service';
+import { SwipeLogService } from './swipe-log.service';
 
 @Module({
   controllers: [ShopController],
@@ -20,6 +21,7 @@ import { DropsService } from './drops.service';
     SettingsService,
     NotifyService,
     DropsService,
+    SwipeLogService,
   ],
   // Exported so a future admin module can reuse the DB connection and trigger a
   // catalogue reload after mutating items.

@@ -87,6 +87,20 @@ model FavoriteItem {
   @@unique([userId, itemId])
 }
 
+// A shopper interaction worth analysing: swipes (pass / keep / favorite) and
+// cart-hold expiries. Phantom-crowd snatches are NOT recorded — they would
+// pollute the demand signal. Powers the admin "Analyses" page.
+model SwipeEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  action    String // pass | keep | favorite | cart_expired
+  createdAt DateTime @default(now())
+
+  @@index([itemId])
+  @@index([action])
+}
+
 // A discount code applied at checkout.
 model PromoCode {
   id        String    @id @default(cuid())

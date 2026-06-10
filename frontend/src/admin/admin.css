@@ -906,3 +906,15 @@
   color: #9a5b00;
   margin-top: 2px;
 }
+
+/* Analyses (insights) page */
+.admin-insights .admin-panel {
+  margin-bottom: 16px;
+}
+.admin-insights .admin-kpis {
+  margin-bottom: 16px;
+}
+.admin-insight-metric {
+  font-weight: 800;
+  white-space: nowrap;
+}

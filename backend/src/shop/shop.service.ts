@@ -1,5 +1,6 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { ITEMS } from './items.data';
+import { SwipeLogService } from './swipe-log.service';
 import {
   CartLine,
   CatalogueResponse,
@@ -75,16 +76,24 @@ interface UserState {
 export class ShopService {
   private states = new Map<string, UserState>();
 
+  // Optional so unit tests can build the service bare (`new ShopService()`);
+  // analytics rows are then simply skipped.
+  constructor(@Optional() private readonly swipeLog?: SwipeLogService) {}
+
   // Injectable randomness so the 90/10 dice and field shuffle are testable.
   private rng: () => number = Math.random;
   // Injectable clock so the cart-hold TTL is testable.
   private now: () => number = () => Date.now();
 
   // Release any cart reservations whose hold has lapsed (lazy expiry on read).
-  private expireCart(s: UserState): void {
+  private expireCart(userId: string, s: UserState): void {
     const now = this.now();
     for (const [id, reservedAt] of s.cart) {
-      if (now - reservedAt >= CART_TTL_MS) s.cart.delete(id);
+      if (now - reservedAt >= CART_TTL_MS) {
+        s.cart.delete(id);
+        // Carted but never bought — the strongest "almost sold" signal.
+        this.swipeLog?.log(userId, id, 'cart_expired');
+      }
     }
   }
 
@@ -102,7 +111,7 @@ export class ShopService {
       this.states.set(userId, s);
     }
     // Authoritative lazy expiry: every read/write first releases stale holds.
-    this.expireCart(s);
+    this.expireCart(userId, s);
     return s;
   }
 
@@ -228,6 +237,7 @@ export class ShopService {
     const s = this.getState(userId);
     this.getItem(itemId); // validate
     s.history.push({ action: 'pass', itemId });
+    this.swipeLog?.log(userId, itemId, 'pass');
     return this.rollPass(s, itemId);
   }
 
@@ -241,7 +251,9 @@ export class ShopService {
 
   // Mutates the cart without recording an undoable swipe (shared by the
   // swipe-keep and the move-from-favorites paths).
-  private cartAdd(s: UserState, itemId: string) {
+  private cartAdd(userId: string, s: UserState, itemId: string) {
+    // A refresh of an existing hold is not a new "keep" signal.
+    if (!s.cart.has(itemId)) this.swipeLog?.log(userId, itemId, 'keep');
     // Start (or refresh) the hold reservation for this piece.
     s.cart.set(itemId, this.now());
     // Once it's in the cart, drop any pending reprise.
@@ -264,7 +276,7 @@ export class ShopService {
     const s = this.getState(userId);
     this.getItem(itemId);
     this.assertCanHold(s, itemId);
-    this.cartAdd(s, itemId);
+    this.cartAdd(userId, s, itemId);
     s.history.push({ action: 'keep', itemId });
     return this.getCart(userId);
   }
@@ -334,6 +346,7 @@ export class ShopService {
   addFavorite(userId: string, itemId: string): FavoritesResponse {
     const s = this.getState(userId);
     this.getItem(itemId); // validate
+    if (!s.favorites.has(itemId)) this.swipeLog?.log(userId, itemId, 'favorite');
     s.favorites.add(itemId);
     // Like the cart, favoriting cancels any pending reprise.
     s.lastChancePool.delete(itemId);
@@ -355,7 +368,7 @@ export class ShopService {
     // leaves the favourite untouched.
     this.assertCanHold(s, itemId);
     s.favorites.delete(itemId);
-    this.cartAdd(s, itemId); // not an undoable swipe
+    this.cartAdd(userId, s, itemId); // not an undoable swipe
     return { cart: this.getCart(userId), favorites: this.getFavorites(userId) };
   }
 

@@ -151,6 +151,30 @@ export interface SettingsResponse {
   config: ShopConfig;
 }
 
+// Swipe analytics + abandoned interest (admin → Analyses).
+export interface ItemSwipeStats {
+  id: string;
+  title: string;
+  brand: string;
+  imageUrl: string;
+  price: number;
+  salePrice: number | null;
+  category: string;
+  status: string;
+  passes: number;
+  keeps: number;
+  favorites: number;
+  cartExpired: number;
+}
+
+export interface AdminInsights {
+  totals: { pass: number; keep: number; favorite: number; cartExpired: number; purchases: number };
+  categories: { category: string; passes: number; keeps: number; favorites: number; keepRate: number }[];
+  topPassed: ItemSwipeStats[];
+  topWanted: ItemSwipeStats[];
+  abandoned: ItemSwipeStats[];
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -235,6 +259,7 @@ export const adminApi = {
     http<SettingsResponse>('/admin/settings', { method: 'PUT', body: JSON.stringify(patch) }),
   testWhatsApp: () =>
     http<{ ok: true }>('/admin/settings/test-whatsapp', { method: 'POST' }),
+  insights: () => http<AdminInsights>('/admin/insights'),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).
