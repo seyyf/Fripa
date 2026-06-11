@@ -51,8 +51,17 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
     lastAction.current = action;
     const canvas = canvasRef.current;
     if (!reducedMotion && canvas) {
-      // Burst from the card's visual centre of mass on the deck.
-      engineRef.current?.burst(action, canvas.clientWidth / 2, canvas.clientHeight * 0.34);
+      // Burst from the edge the card exits through, so the splash visibly
+      // trails the throw: right edge on keep, left on pass, top on favorite.
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const origin =
+        action === 'keep'
+          ? { x: w * 0.8, y: h * 0.3 }
+          : action === 'pass'
+            ? { x: w * 0.2, y: h * 0.3 }
+            : { x: w * 0.5, y: h * 0.1 };
+      engineRef.current?.burst(action, origin.x, origin.y);
     }
     if (action === 'keep') onKeep(item);
     else if (action === 'pass') onPass(item);

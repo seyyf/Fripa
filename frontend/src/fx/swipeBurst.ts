@@ -31,21 +31,21 @@ const RECIPES: Record<
     colors: ['#2bbd6b', '#1f9d55', '#8ee6b4', '#ffffff'],
     shapes: ['dot', 'shard', 'dot', 'shard'],
     angle: 0, // → follows the rightward throw
-    spread: Math.PI / 2.2,
+    spread: Math.PI / 3.2,
     gravity: 900,
   },
   pass: {
     colors: ['#e0231a', '#ff6a5c', '#b3140d', '#ffd2cd'],
     shapes: ['cross', 'shard', 'dot', 'shard'],
     angle: Math.PI, // ← follows the leftward throw
-    spread: Math.PI / 2.2,
+    spread: Math.PI / 3.2,
     gravity: 900,
   },
   favorite: {
     colors: ['#e9b94b', '#c8901a', '#ffd98a', '#fff3d6'],
     shapes: ['star', 'dot', 'star', 'shard'],
     angle: -Math.PI / 2, // ↑ follows the upward throw
-    spread: Math.PI / 1.8,
+    spread: Math.PI / 2.6,
     gravity: 520, // stars hang in the air a touch longer
   },
 };
@@ -91,14 +91,17 @@ export class SwipeBurstEngine {
     if (!this.ctx) return;
     const r = RECIPES[action];
     const count = (this.canvas.clientWidth < 480 ? 18 : 26) + Math.floor(rand(0, 6));
+    // Extra kick along the throw axis, so the cloud clearly streams in the
+    // swiped direction instead of puffing out evenly.
+    const kick = rand(180, 320);
     for (let i = 0; i < count; i++) {
       const angle = r.angle + rand(-r.spread, r.spread);
-      const speed = rand(260, 760);
+      const speed = rand(300, 820);
       this.particles.push({
         x: x + rand(-14, 14),
         y: y + rand(-14, 14),
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - rand(40, 160), // slight initial lift
+        vx: Math.cos(angle) * speed + Math.cos(r.angle) * kick,
+        vy: Math.sin(angle) * speed + Math.sin(r.angle) * kick - rand(20, 90),
         rot: rand(0, Math.PI * 2),
         vr: rand(-9, 9),
         size: rand(4, 9),
