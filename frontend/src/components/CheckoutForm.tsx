@@ -18,20 +18,44 @@ interface Props {
 type Field = keyof CustomerInfo;
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
+// Persist what the shopper typed so closing the cart drawer (or reloading)
+// doesn't wipe the delivery form. Cleared once an order is placed.
+const DRAFT_KEY = 'fripa-checkout-draft';
+const EMPTY_FORM: CustomerInfo = { name: '', email: '', address: '', phone: '', governorate: '' };
+
+interface Draft {
+  form: CustomerInfo;
+  promoInput: string;
+  referralInput: string;
+}
+
+function loadDraft(): Draft {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      return {
+        form: { ...EMPTY_FORM, ...(d.form ?? {}) },
+        promoInput: typeof d.promoInput === 'string' ? d.promoInput : '',
+        referralInput: typeof d.referralInput === 'string' ? d.referralInput : '',
+      };
+    }
+  } catch {
+    /* corrupt/unavailable storage → start blank */
+  }
+  return { form: { ...EMPTY_FORM }, promoInput: '', referralInput: '' };
+}
+
 // The delivery form + validation, shared by the checkout page and the cart
 // drawer so both behave identically.
 export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const { user } = useAccount();
   const config = useShopConfig();
-  const [form, setForm] = useState<CustomerInfo>({
-    name: '',
-    email: '',
-    address: '',
-    phone: '',
-    governorate: '',
-  });
+  const [draft] = useState(loadDraft); // read once on mount
+  const [form, setForm] = useState<CustomerInfo>(draft.form);
 
-  // Prefill from the signed-in account, without overwriting anything typed.
+  // Prefill from the signed-in account, without overwriting anything typed
+  // (or restored from the saved draft).
   useEffect(() => {
     if (!user) return;
     setForm((f) => ({
@@ -45,11 +69,20 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [promoInput, setPromoInput] = useState('');
+  const [promoInput, setPromoInput] = useState(draft.promoInput);
   const [promo, setPromo] = useState<{ code: string; discount: number } | null>(null);
   const [promoMsg, setPromoMsg] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
-  const [referralInput, setReferralInput] = useState('');
+  const [referralInput, setReferralInput] = useState(draft.referralInput);
+
+  // Mirror the form + codes to localStorage so they survive an unmount/reload.
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, promoInput, referralInput }));
+    } catch {
+      /* storage full/unavailable — non-fatal */
+    }
+  }, [form, promoInput, referralInput]);
   // The signed-in shopper's reward standing (loyalty stamps + referrer credits),
   // so we can preview free delivery before the server confirms it.
   const [rewards, setRewards] = useState<RewardsStatus | null>(null);
@@ -177,8 +210,15 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
         applied?.code,
         referralActive ? referralInput.trim() || undefined : undefined,
       );
-      if (res.ok) onSuccess(res);
-      else setFormError(res.message);
+      if (res.ok) {
+        // Order placed — drop the saved draft so the next order starts fresh.
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          /* ignore */
+        }
+        onSuccess(res);
+      } else setFormError(res.message);
     } finally {
       setSubmitting(false);
     }
