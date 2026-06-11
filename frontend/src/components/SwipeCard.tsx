@@ -107,10 +107,15 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
           ? { opacity: 0 }
           : { opacity: 0, scale: 0.92, y: 26, rotateY: -10 }
       }
+      // x/y: 0 matter when an exit is INTERRUPTED — e.g. a keep that the server
+      // refuses (cart full) restores the card mid-throw, and AnimatePresence
+      // animates it back to this target. Without x here the card froze at the
+      // edge of the screen. (Drag is unaffected: the target never changes, so
+      // framer doesn't re-fire it while dragging.)
       animate={
         reducedMotion
-          ? { opacity: 1 }
-          : { opacity: 1, scale: 1, y: 0, rotateY: 0 }
+          ? { opacity: 1, x: 0, y: 0 }
+          : { opacity: 1, scale: 1, x: 0, y: 0, rotateY: 0 }
       }
       transition={{ type: 'spring', stiffness: 360, damping: 26 }}
       variants={{
