@@ -7,7 +7,7 @@ function makeService() {
   const prisma = {
     promoCode: { create, findUnique: vi.fn(async () => ({ id: 'p1' })), update: vi.fn(), delete: vi.fn() },
   } as unknown as PrismaService;
-  return { svc: new AdminPromosService(prisma), create };
+  return { svc: new AdminPromosService(prisma, { log() {} } as any), create };
 }
 
 describe('AdminPromosService.create', () => {

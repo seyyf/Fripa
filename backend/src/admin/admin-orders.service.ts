@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { Order, OrderLine } from '@prisma/client';
 import { PrismaService } from '../shop/prisma.service';
 import { CatalogueLoader } from '../shop/catalogue.loader';
+import { AuditService } from './audit.service';
 
 export type OrderWithLines = Order & { lines: OrderLine[] };
 
@@ -28,6 +29,7 @@ export class AdminOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly loader: CatalogueLoader,
+    private readonly audit: AuditService,
   ) {}
 
   // Persisted orders, newest first, with their snapshotted line items.
@@ -56,7 +58,9 @@ export class AdminOrdersService {
       }
     }
     if (Object.keys(data).length === 0) throw new BadRequestException('Rien à mettre à jour.');
-    return this.prisma.order.update({ where: { id }, data });
+    const order = await this.prisma.order.update({ where: { id }, data });
+    this.audit.log('order.update', order.ref, Object.keys(data).join(', '));
+    return order;
   }
 
   // Mark an order returned and put its (still-sold) one-off pieces back on the
@@ -73,6 +77,7 @@ export class AdminOrdersService {
       this.prisma.order.update({ where: { id }, data: { status: 'Retournée' } }),
     ]);
     await this.loader.reload();
+    this.audit.log('order.return', order.ref, `${itemIds.length} pièce(s) remise(s) en stock`);
     return this.prisma.order.findUniqueOrThrow({ where: { id } });
   }
 }

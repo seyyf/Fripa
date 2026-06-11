@@ -9,7 +9,7 @@ describe('AdminOrdersService.list', () => {
   it('returns orders newest-first, including their lines', async () => {
     const rows = [{ id: 'o1', ref: 'FR-1002', lines: [{ id: 'l1' }] }];
     const prisma = { order: { findMany: vi.fn(async () => rows) } } as unknown as PrismaService;
-    const res = await new AdminOrdersService(prisma, loader).list();
+    const res = await new AdminOrdersService(prisma, loader, { log() {} } as any).list();
     expect(prisma.order.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ include: { lines: true }, orderBy: { createdAt: 'desc' } }),
     );
@@ -20,7 +20,7 @@ describe('AdminOrdersService.list', () => {
 describe('AdminOrdersService.update', () => {
   function svcWith(update = vi.fn(async ({ data }: any) => ({ id: 'o1', ...data }))) {
     const prisma = { order: { update } } as unknown as PrismaService;
-    return { svc: new AdminOrdersService(prisma, loader), update };
+    return { svc: new AdminOrdersService(prisma, loader, { log() {} } as any), update };
   }
 
   it('updates a valid status', async () => {
@@ -62,7 +62,7 @@ describe('AdminOrdersService.returnOrder', () => {
       $transaction: vi.fn(async (ops: any[]) => ops),
     } as unknown as PrismaService;
     const reload = vi.fn(async () => {});
-    const svc = new AdminOrdersService(prisma, { reload } as unknown as CatalogueLoader);
+    const svc = new AdminOrdersService(prisma, { reload } as unknown as CatalogueLoader, { log() {} } as any);
 
     const res = await svc.returnOrder('o1');
 
@@ -76,6 +76,6 @@ describe('AdminOrdersService.returnOrder', () => {
 
   it('throws for an unknown order', async () => {
     const prisma = { order: { findUnique: vi.fn(async () => null) } } as unknown as PrismaService;
-    await expect(new AdminOrdersService(prisma, loader).returnOrder('nope')).rejects.toThrow();
+    await expect(new AdminOrdersService(prisma, loader, { log() {} } as any).returnOrder('nope')).rejects.toThrow();
   });
 });

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, type PromoCode } from '@prisma/client';
 import { PrismaService } from '../shop/prisma.service';
+import { AuditService } from './audit.service';
 
 export const PROMO_TYPES = ['percent', 'fixed'] as const;
 
@@ -16,7 +17,10 @@ export interface PromoInput {
 
 @Injectable()
 export class AdminPromosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   list(): Promise<PromoCode[]> {
     return this.prisma.promoCode.findMany({ orderBy: { createdAt: 'desc' } });
@@ -25,7 +29,9 @@ export class AdminPromosService {
   async create(input: PromoInput): Promise<PromoCode> {
     const data = this.validate(input, { partial: false });
     try {
-      return await this.prisma.promoCode.create({ data: data as Prisma.PromoCodeUncheckedCreateInput });
+      const promo = await this.prisma.promoCode.create({ data: data as Prisma.PromoCodeUncheckedCreateInput });
+      this.audit.log('promo.create', promo.code, `${promo.value}${promo.type === 'percent' ? '%' : ' TND'}`);
+      return promo;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new BadRequestException('Ce code existe déjà.');
@@ -37,12 +43,15 @@ export class AdminPromosService {
   async update(id: string, input: Partial<PromoInput>): Promise<PromoCode> {
     await this.getOrThrow(id);
     const data = this.validate(input, { partial: true });
-    return this.prisma.promoCode.update({ where: { id }, data: data as Prisma.PromoCodeUncheckedUpdateInput });
+    const promo = await this.prisma.promoCode.update({ where: { id }, data: data as Prisma.PromoCodeUncheckedUpdateInput });
+    this.audit.log('promo.update', promo.code, Object.keys(data).join(', '));
+    return promo;
   }
 
   async remove(id: string): Promise<{ ok: true }> {
-    await this.getOrThrow(id);
+    const promo = await this.getOrThrow(id);
     await this.prisma.promoCode.delete({ where: { id } });
+    this.audit.log('promo.delete', promo.code);
     return { ok: true };
   }
 

@@ -3,6 +3,7 @@ import { Prisma, type Item } from '@prisma/client';
 import { PrismaService } from '../shop/prisma.service';
 import { CatalogueLoader } from '../shop/catalogue.loader';
 import { CATEGORIES, CONDITIONS, ITEM_STATUSES, SIZES } from '../shop/types';
+import { AuditService } from './audit.service';
 
 export interface ItemInput {
   title: string;
@@ -78,6 +79,7 @@ export class AdminItemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly loader: CatalogueLoader,
+    private readonly audit: AuditService,
   ) {}
 
   // All items, every status — the admin sees drafts/archived too.
@@ -88,6 +90,7 @@ export class AdminItemsService {
   async create(input: ItemInput): Promise<Item> {
     const item = await this.createRaw(input);
     await this.loader.reload();
+    this.audit.log('item.create', item.title, `${item.price} TND · ${item.status}`);
     return item;
   }
 
@@ -136,6 +139,7 @@ export class AdminItemsService {
       }
     }
     await this.loader.reload();
+    this.audit.log('items.import', `${created} importée(s)`, errors.length ? `${errors.length} erreur(s)` : undefined);
     return { created, errors };
   }
 
@@ -147,13 +151,15 @@ export class AdminItemsService {
       data: data as Prisma.ItemUncheckedUpdateInput,
     });
     await this.loader.reload();
+    this.audit.log('item.update', item.title, Object.keys(data).join(', '));
     return item;
   }
 
   async remove(id: string): Promise<{ ok: true }> {
-    await this.getOrThrow(id);
+    const item = await this.getOrThrow(id);
     await this.prisma.item.delete({ where: { id } });
     await this.loader.reload();
+    this.audit.log('item.delete', item.title);
     return { ok: true };
   }
 
@@ -175,6 +181,7 @@ export class AdminItemsService {
       throw new BadRequestException('Action groupée invalide.');
     }
     await this.loader.reload();
+    this.audit.log('item.bulk', `${count} pièce(s)`, action);
     return { ok: true, count };
   }
 
@@ -202,6 +209,7 @@ export class AdminItemsService {
         ),
       );
       await this.loader.reload();
+      this.audit.log('items.markdown', `${dormant.length} dormante(s)`, `−${percent}% (+${days}j)`);
     }
     return { ok: true, count: dormant.length };
   }

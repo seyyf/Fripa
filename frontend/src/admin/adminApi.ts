@@ -158,6 +158,15 @@ export interface SettingsResponse {
   config: ShopConfig;
 }
 
+export interface AuditEntry {
+  id: string;
+  actor: string;
+  action: string;
+  target: string | null;
+  detail: string | null;
+  createdAt: string;
+}
+
 // Swipe analytics + abandoned interest (admin → Analyses).
 export interface ItemSwipeStats {
   id: string;
@@ -280,6 +289,7 @@ export const adminApi = {
   testWhatsApp: () =>
     http<{ ok: true }>('/admin/settings/test-whatsapp', { method: 'POST' }),
   insights: () => http<AdminInsights>('/admin/insights'),
+  audit: (limit = 200) => http<AuditEntry[]>(`/admin/audit?limit=${limit}`),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).

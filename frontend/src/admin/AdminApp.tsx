@@ -9,6 +9,7 @@ import { AdminCustomers } from './AdminCustomers';
 import { AdminPromos } from './AdminPromos';
 import { AdminSettings } from './AdminSettings';
 import { AdminInsightsPage } from './AdminInsights';
+import { AdminJournal } from './AdminJournal';
 import './admin.css';
 
 type AuthState = 'checking' | 'out' | 'in';
@@ -83,6 +84,9 @@ export default function AdminApp() {
           <NavLink to="/admin/settings" className={navClass}>
             Réglages
           </NavLink>
+          <NavLink to="/admin/journal" className={navClass}>
+            Journal
+          </NavLink>
         </nav>
         <div className="admin__bar-actions">
           <a className="admin__link" href="/" target="_blank" rel="noreferrer">
@@ -102,6 +106,7 @@ export default function AdminApp() {
           <Route path="insights" element={<AdminInsightsPage onAuthError={logout} />} />
           <Route path="promos" element={<AdminPromos onAuthError={logout} />} />
           <Route path="settings" element={<AdminSettings onAuthError={logout} />} />
+          <Route path="journal" element={<AdminJournal onAuthError={logout} />} />
         </Routes>
       </main>
     </div>

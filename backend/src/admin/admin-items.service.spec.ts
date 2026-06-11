@@ -55,7 +55,7 @@ function makeService(seed: Array<{ id: string }> = []) {
     },
   } as unknown as PrismaService;
   const loader = { reload: vi.fn(async () => {}) } as unknown as CatalogueLoader;
-  return { svc: new AdminItemsService(prisma, loader), prisma, loader, store };
+  return { svc: new AdminItemsService(prisma, loader, { log() {} } as any), prisma, loader, store };
 }
 
 describe('AdminItemsService.create', () => {

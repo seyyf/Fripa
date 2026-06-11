@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, Get, Put, Post, UseGuards } from
 import { AdminGuard } from './admin.guard';
 import { GOVERNORATES, SettingsService, ShopConfig } from '../shop/settings.service';
 import { NotifyService } from '../shop/notify.service';
+import { AuditService } from './audit.service';
 
 @Controller('admin/settings')
 @UseGuards(AdminGuard)
@@ -9,6 +10,7 @@ export class AdminSettingsController {
   constructor(
     private readonly settings: SettingsService,
     private readonly notify: NotifyService,
+    private readonly audit: AuditService,
   ) {}
 
   @Get()
@@ -18,7 +20,9 @@ export class AdminSettingsController {
 
   @Put()
   async update(@Body() body: Partial<ShopConfig>) {
-    return { governorates: GOVERNORATES, config: await this.settings.update(body ?? {}) };
+    const config = await this.settings.update(body ?? {});
+    this.audit.log('settings.update', undefined, Object.keys(body ?? {}).join(', ') || '—');
+    return { governorates: GOVERNORATES, config };
   }
 
   // Send a test message to the configured alert number, so the admin can check
