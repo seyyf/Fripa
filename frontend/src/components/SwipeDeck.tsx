@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { FieldItem } from '../types';
 import { SwipeCard } from './SwipeCard';
+import { SwipeBurstEngine, type BurstAction } from '../fx/swipeBurst';
 
 interface Props {
   deck: FieldItem[];
@@ -23,12 +24,47 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
   const top = deck[0];
   const peeks = deck.slice(1, 1 + PEEK_DEPTH.length);
 
+  // Particle layer + the direction of the last decision. The action drives both
+  // the burst colours and the exiting card's throw (via AnimatePresence custom).
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<SwipeBurstEngine | null>(null);
+  const lastAction = useRef<BurstAction | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const engine = new SwipeBurstEngine(canvas);
+    engineRef.current = engine;
+    engine.resize();
+    const onResize = () => engine.resize();
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      engine.destroy();
+      engineRef.current = null;
+    };
+  }, []);
+
+  // Every decision funnels through here (drag, gesture buttons, keyboard):
+  // remember the throw direction, fire the matching burst, notify the parent.
+  function decide(action: BurstAction, item: FieldItem) {
+    lastAction.current = action;
+    const canvas = canvasRef.current;
+    if (!reducedMotion && canvas) {
+      // Burst from the card's visual centre of mass on the deck.
+      engineRef.current?.burst(action, canvas.clientWidth / 2, canvas.clientHeight * 0.34);
+    }
+    if (action === 'keep') onKeep(item);
+    else if (action === 'pass') onPass(item);
+    else onFavorite(item);
+  }
+
   // Desktop: arrow keys act on the top card (← pass, → keep, ↑ favorite).
-  const ref = useRef({ deck, onKeep, onPass, onFavorite });
-  ref.current = { deck, onKeep, onPass, onFavorite };
+  const ref = useRef({ deck, decide });
+  ref.current = { deck, decide };
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const { deck, onKeep, onPass, onFavorite } = ref.current;
+      const { deck, decide } = ref.current;
       const card = deck[0];
       if (!card) return;
       const el = document.activeElement as HTMLElement | null;
@@ -37,13 +73,13 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
       if (document.querySelector('.drawer-backdrop, .modal-backdrop')) return;
       if (e.key === 'ArrowRight') {
         e.preventDefault();
-        onKeep(card);
+        decide('keep', card);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        onPass(card);
+        decide('pass', card);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        onFavorite(card);
+        decide('favorite', card);
       }
     }
     window.addEventListener('keydown', onKey);
@@ -74,18 +110,21 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
           />
         ))}
 
-      <AnimatePresence>
+      <AnimatePresence custom={lastAction.current}>
         {top && (
           <SwipeCard
             key={top.id}
             item={top}
             reducedMotion={reducedMotion}
-            onKeep={onKeep}
-            onPass={onPass}
-            onFavorite={onFavorite}
+            onKeep={(i) => decide('keep', i)}
+            onPass={(i) => decide('pass', i)}
+            onFavorite={(i) => decide('favorite', i)}
           />
         )}
       </AnimatePresence>
+
+      {/* Particle bursts paint above the cards; never intercepts input. */}
+      <canvas ref={canvasRef} className="deck__fx" aria-hidden="true" />
     </div>
   );
 }

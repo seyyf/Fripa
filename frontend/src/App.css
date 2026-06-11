@@ -661,6 +661,34 @@ body {
   outline-offset: -3px;
 }
 
+/* Particle layer for swipe bursts — covers the deck (with margin so confetti
+   can sail past the card edges), never captures input. */
+.deck__fx {
+  position: absolute;
+  inset: -70px;
+  width: calc(100% + 140px);
+  height: calc(100% + 140px);
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* Raking light that slides across the photo opposite the drag — sells the 3D
+   tilt. Transform/opacity only; the gradient itself is painted once. */
+.swipe-card__glare {
+  position: absolute;
+  inset: -30%;
+  z-index: 1; /* same layer as the price pill — DOM order keeps text on top */
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.14) 45%,
+    transparent 72%
+  );
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
 /* Directional edge glow overlay — opacity fades in as you drag (cheap to paint). */
 .swipe-card__glow {
   position: absolute;

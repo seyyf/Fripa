@@ -18,12 +18,29 @@ const THRESHOLDS: SwipeThresholds = { right: 110, left: 110, up: 110 };
 const VELOCITY_PROJECTION = 0.18;
 // Ease used for the fly-off — a gentle "out" curve so the card accelerates away.
 const FLY_EASE = [0.22, 1, 0.36, 1] as const;
+// How far the exiting card is thrown (comfortably past any viewport edge).
+const THROW_X = typeof window !== 'undefined' ? Math.max(640, window.innerWidth * 0.9) : 760;
+const THROW_Y = typeof window !== 'undefined' ? Math.max(760, window.innerHeight * 0.9) : 900;
 
 export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = false }: Props) {
   const { t } = useT();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotate = useTransform(x, [-240, 240], [-14, 14]);
+  // Z-rotation is derived from x with NO clamp: the exit throw pushes x far
+  // past the drag range, so the card keeps rotating as it sails away.
+  const rotate = useTransform(x, [-240, 240], [-14, 14], { clamp: false });
+  // True 3D: the card yaws/pitches toward the drag (the `.deck` supplies the
+  // perspective). Clamped — tilt stays subtle even during the throw.
+  const rotateY = useTransform(x, [-240, 240], [-11, 11]);
+  const rotateX = useTransform(y, [-240, 240], [10, -10]);
+
+  // A sheen that slides across the photo opposite the drag, like light raking
+  // a glossy card. Transform + opacity only — no repaints while dragging.
+  const glareX = useTransform(x, [-240, 240], [110, -110]);
+  const glareY = useTransform(y, [-240, 240], [60, -60]);
+  const glareOpacity = useTransform([x, y], ([vx, vy]: number[]) =>
+    Math.min(0.5, (Math.abs(vx) + Math.abs(vy)) / 320),
+  );
 
   // A colored halo grows around the card in whichever direction you drag,
   // previewing the decision before you commit. Driven by opacity (GPU-cheap)
@@ -41,20 +58,13 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
   const passStamp = useTransform(x, [-120, -40], [1, 0.7]);
   const favoriteStamp = useTransform(y, [-120, -40], [1, 0.7]);
 
+  // Report the decision immediately — the parent removes the card and the
+  // `exit` variant below throws it off-screen from wherever the drag left it.
   function fire(action: SwipeAction) {
+    haptic();
     if (action === 'keep') onKeep(item);
     else if (action === 'pass') onPass(item);
     else onFavorite(item);
-  }
-
-  // Smoothly throw the card off-screen in the committed direction, then report
-  // the decision (which removes it from the deck).
-  function flyOut(action: SwipeAction) {
-    haptic(); // tactile feedback on a committed swipe
-    const opts = { duration: reducedMotion ? 0 : 0.28, ease: FLY_EASE };
-    if (action === 'keep') animate(x, 1000, { ...opts, onComplete: () => fire(action) });
-    else if (action === 'pass') animate(x, -1000, { ...opts, onComplete: () => fire(action) });
-    else animate(y, -1100, { ...opts, onComplete: () => fire(action) });
   }
 
   function springBack() {
@@ -70,7 +80,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
       y: info.offset.y + info.velocity.y * VELOCITY_PROJECTION,
     };
     const action = decideSwipe(projected, THRESHOLDS);
-    if (action) flyOut(action);
+    if (action) fire(action);
     else springBack();
   }
 
@@ -81,13 +91,44 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
   return (
     <motion.div
       className={`swipe-card ${item.lastChance ? 'swipe-card--last-chance' : ''}`}
-      style={{ x, y, rotate }}
+      style={{ x, y, rotate, rotateX, rotateY }}
       drag
       dragMomentum={false}
       onDragEnd={handleDragEnd}
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+      initial={
+        reducedMotion
+          ? { opacity: 0 }
+          : { opacity: 0, scale: 0.92, y: 26, rotateY: -10 }
+      }
+      animate={
+        reducedMotion
+          ? { opacity: 1 }
+          : { opacity: 1, scale: 1, y: 0, rotateY: 0 }
+      }
+      transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+      variants={{
+        // The throw. `custom` (the decided action) arrives from the deck's
+        // AnimatePresence, and the animation starts from the dragged position
+        // because x/y are live motion values.
+        exit: (action: SwipeAction | null) => {
+          if (reducedMotion || !action) {
+            return { opacity: 0, transition: { duration: 0.12 } };
+          }
+          const fly = {
+            duration: 0.5,
+            ease: FLY_EASE,
+            opacity: { delay: 0.32, duration: 0.18 },
+          };
+          if (action === 'favorite') {
+            // Launched skyward with a slight twist (the small x kick spins it).
+            return { y: -THROW_Y, x: 60, scale: 0.9, opacity: 0, transition: fly };
+          }
+          const dir = action === 'keep' ? 1 : -1;
+          // Flung sideways on a rising arc; rotate follows x past the clamp.
+          return { x: dir * THROW_X, y: -90, scale: 0.95, opacity: 0, transition: fly };
+        },
+      }}
+      exit="exit"
     >
       {/* Directional edge glow — opacity-driven, so it stays smooth while dragging. */}
       <motion.span className="swipe-card__glow swipe-card__glow--keep" style={{ opacity: keepGlow }} aria-hidden="true" />
@@ -104,6 +145,12 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         className="swipe-card__image"
         style={{ backgroundImage: `url(${item.imageUrl})` }}
       >
+        {/* Raking light that follows the tilt. */}
+        <motion.span
+          className="swipe-card__glare"
+          style={{ x: glareX, y: glareY, opacity: glareOpacity }}
+          aria-hidden="true"
+        />
         {/* rotate / x are set here (not just in CSS) because framer-motion's
             `scale` writes the whole `transform`, which would otherwise drop the
             stamps' CSS rotation and centering. */}
@@ -150,10 +197,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         <motion.button
           type="button"
           className="round-btn round-btn--pass"
-          onClick={() => {
-            haptic();
-            onPass(item);
-          }}
+          onClick={() => fire('pass')}
           aria-label={t('deck.pass')}
           transition={btnTransition}
           {...press}
@@ -163,10 +207,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         <motion.button
           type="button"
           className="round-btn round-btn--favorite"
-          onClick={() => {
-            haptic();
-            onFavorite(item);
-          }}
+          onClick={() => fire('favorite')}
           aria-label={t('deck.favorite')}
           transition={btnTransition}
           {...press}
@@ -176,10 +217,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
         <motion.button
           type="button"
           className="round-btn round-btn--keep"
-          onClick={() => {
-            haptic();
-            onKeep(item);
-          }}
+          onClick={() => fire('keep')}
           aria-label={t('deck.keep')}
           transition={btnTransition}
           {...press}
