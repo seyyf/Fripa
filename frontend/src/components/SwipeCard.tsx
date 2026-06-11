@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { effectivePrice, isOnSale, type FieldItem } from '../types';
 import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
@@ -22,7 +23,12 @@ const FLY_EASE = [0.22, 1, 0.36, 1] as const;
 const THROW_X = typeof window !== 'undefined' ? Math.max(640, window.innerWidth * 0.9) : 760;
 const THROW_Y = typeof window !== 'undefined' ? Math.max(760, window.innerHeight * 0.9) : 900;
 
-export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = false }: Props) {
+// forwardRef: AnimatePresence mode="popLayout" measures the exiting card via
+// this ref to pin it absolutely while it flies out of the deck's flex flow.
+export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
+  { item, onKeep, onPass, onFavorite, reducedMotion = false }: Props,
+  ref,
+) {
   const { t } = useT();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -90,6 +96,7 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
 
   return (
     <motion.div
+      ref={ref}
       className={`swipe-card ${item.lastChance ? 'swipe-card--last-chance' : ''}`}
       style={{ x, y, rotate, rotateX, rotateY }}
       drag
@@ -227,4 +234,4 @@ export function SwipeCard({ item, onKeep, onPass, onFavorite, reducedMotion = fa
       </div>
     </motion.div>
   );
-}
+});

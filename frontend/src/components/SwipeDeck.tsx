@@ -110,7 +110,10 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
           />
         ))}
 
-      <AnimatePresence custom={lastAction.current}>
+      {/* popLayout pops the exiting card out of the flex flow while it flies,
+          so the incoming card centres immediately instead of sharing the row
+          with the ghost of the old one. */}
+      <AnimatePresence mode="popLayout" custom={lastAction.current}>
         {top && (
           <SwipeCard
             key={top.id}
