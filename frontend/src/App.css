@@ -3115,3 +3115,81 @@ body {
   margin-top: 6px;
   font-size: 12px;
 }
+
+/* Account rewards (loyalty stamp card + referral) */
+.rewards {
+  margin-top: 8px;
+}
+.rewards__card {
+  background: linear-gradient(180deg, var(--paper), var(--paper-2));
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  box-shadow: var(--e1);
+  margin-bottom: 12px;
+}
+.rewards__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.rewards__icon {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.rewards__body strong {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+}
+.rewards__note {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.rewards__note--on {
+  color: #1b7f4d;
+  font-weight: 600;
+}
+.rewards__stamps {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.rewards__stamp {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px dashed #e2cfae;
+  background: #fff;
+}
+.rewards__stamp--on {
+  border-style: solid;
+  border-color: transparent;
+  background: var(--gold-grad);
+  box-shadow: 0 4px 10px -4px rgba(200, 144, 26, 0.6);
+}
+.rewards__code-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+}
+.rewards__code {
+  flex: 1;
+  font-family: "Space Grotesk", var(--sans);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 16px;
+  text-align: center;
+  padding: 11px 14px;
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--line);
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+}
+.rewards__share {
+  width: auto;
+  white-space: nowrap;
+}

@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAccount } from '../account/AccountContext';
+import { accountApi, type RewardsStatus } from '../account/accountApi';
 import { useShopConfig } from '../hooks/useShopConfig';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 
 interface Props {
   cart: CartResponse;
-  onPlaceOrder: (customer: CustomerInfo, promoCode?: string) => Promise<CheckoutResult>;
+  onPlaceOrder: (
+    customer: CustomerInfo,
+    promoCode?: string,
+    referralCode?: string,
+  ) => Promise<CheckoutResult>;
   onSuccess: (result: CheckoutResult) => void;
 }
 
@@ -44,17 +49,42 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const [promo, setPromo] = useState<{ code: string; discount: number } | null>(null);
   const [promoMsg, setPromoMsg] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
+  const [referralInput, setReferralInput] = useState('');
+  // The signed-in shopper's reward standing (loyalty stamps + referrer credits),
+  // so we can preview free delivery before the server confirms it.
+  const [rewards, setRewards] = useState<RewardsStatus | null>(null);
+  useEffect(() => {
+    if (!user) {
+      setRewards(null);
+      return;
+    }
+    accountApi.rewards().then(setRewards).catch(() => setRewards(null));
+  }, [user]);
 
   const discount = promo?.discount ?? 0;
-  const itemsTotal = cart.total - discount;
+  const refereeDiscount =
+    config?.referralEnabled && referralInput.trim() ? config.referralRefereeDiscount : 0;
+  const itemsTotal = Math.max(0, cart.total - discount - refereeDiscount);
 
   // Delivery: per-governorate fee, waived by the free-delivery rule. Mirrors
   // the backend computation; the server stays authoritative at submit time.
   const itemCount = cart.lines.length;
-  const freeDelivery =
+  const bundleFree =
     config != null &&
     ((config.freeDeliveryMinItems != null && itemCount >= config.freeDeliveryMinItems) ||
       (config.freeDeliveryMinTotal != null && itemsTotal >= config.freeDeliveryMinTotal));
+  // A loyalty stamp or referrer credit also waives delivery (server prioritises
+  // bundle > loyalty > referrer; here we just preview "free").
+  const rewardFree =
+    !!rewards && (rewards.loyalty.available > 0 || rewards.referral.available > 0);
+  const freeDelivery = bundleFree || rewardFree;
+  const freeReason = bundleFree
+    ? null
+    : rewards && rewards.loyalty.available > 0
+      ? 'fidélité 🎁'
+      : rewards && rewards.referral.available > 0
+        ? 'parrainage 🤝'
+        : null;
   // Per-governorate override, else the admin's default fee — so a price always
   // shows, even before a governorate is picked.
   const baseFee = config ? config.deliveryFees[form.governorate] ?? config.deliveryFee : null;
@@ -65,6 +95,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
     config?.freeDeliveryMinItems != null && !freeDelivery
       ? config.freeDeliveryMinItems - itemCount
       : null;
+  const referralActive = !!config?.referralEnabled;
 
   // Validate + apply a code. Returns the applied promo (or null). Used by the
   // "Appliquer" button, the field's onBlur, and the submit safety net — so the
@@ -144,6 +175,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
           governorate: form.governorate,
         },
         applied?.code,
+        referralActive ? referralInput.trim() || undefined : undefined,
       );
       if (res.ok) onSuccess(res);
       else setFormError(res.message);
@@ -254,16 +286,39 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
         )}
       </div>
 
+      {referralActive && (
+        <label className="field">
+          <span className="field__label">Code de parrainage (facultatif)</span>
+          <input
+            className="filter-input"
+            placeholder="Le code d'un ami"
+            value={referralInput}
+            onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
+          />
+          {refereeDiscount > 0 && (
+            <span className="muted checkout__promo-hint">
+              −{refereeDiscount} TND sur ta 1ʳᵉ commande si le code est valide.
+            </span>
+          )}
+        </label>
+      )}
+
       {discount > 0 && (
         <div className="total">
           <span>Remise</span>
           <strong>−{discount} TND</strong>
         </div>
       )}
+      {refereeDiscount > 0 && (
+        <div className="total">
+          <span>Parrainage</span>
+          <strong>−{refereeDiscount} TND</strong>
+        </div>
+      )}
 
       {config && (
         <div className="total checkout__delivery">
-          <span>Livraison</span>
+          <span>Livraison{freeReason ? ` · ${freeReason}` : ''}</span>
           <strong>
             {freeDelivery ? (
               <span className="checkout__delivery-free">Offerte 🚚</span>

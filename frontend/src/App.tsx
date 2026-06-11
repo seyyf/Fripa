@@ -272,9 +272,13 @@ export default function App() {
     }
   }
 
-  async function placeOrder(customer: CustomerInfo, promoCode?: string): Promise<CheckoutResult> {
+  async function placeOrder(
+    customer: CustomerInfo,
+    promoCode?: string,
+    referralCode?: string,
+  ): Promise<CheckoutResult> {
     const ids = cart.lines.map((l) => l.id);
-    const res = await api.checkout(customer, promoCode);
+    const res = await api.checkout(customer, promoCode, referralCode);
     if (res.ok) {
       setCart({ lines: [], total: 0 });
       // The bought pieces leave the floor for good.

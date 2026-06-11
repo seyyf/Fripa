@@ -112,6 +112,7 @@ describe('CheckoutPage', () => {
         governorate: 'Tunis',
       },
       undefined, // no promo code applied
+      undefined, // no referral code (referral disabled in this config)
     );
     expect((await screen.findAllByText(/FR-1001/)).length).toBeGreaterThan(0);
   });

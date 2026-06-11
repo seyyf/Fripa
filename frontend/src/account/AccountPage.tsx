@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAccount } from './AccountContext';
-import { accountApi, type AccountOrder } from './accountApi';
+import { accountApi, type AccountOrder, type RewardsStatus } from './accountApi';
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -10,6 +10,8 @@ export function AccountPage() {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [orders, setOrders] = useState<AccountOrder[]>([]);
+  const [rewards, setRewards] = useState<RewardsStatus | null>(null);
+  const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +20,22 @@ export function AccountPage() {
     setName(user.name ?? '');
     setAddress(user.address ?? '');
     accountApi.orders().then(setOrders).catch(() => setOrders([]));
+    accountApi.rewards().then(setRewards).catch(() => setRewards(null));
   }, [user]);
+
+  async function copyReferral(code: string) {
+    const text = `Chine sur Fripa avec mon code ${code} et profite d'une réduction sur ta première commande ! ${location.origin}`;
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      /* user dismissed the share sheet — nothing to do */
+    }
+  }
 
   if (!ready) return <main className="account"><p className="muted">Chargement…</p></main>;
 
@@ -66,6 +83,70 @@ export function AccountPage() {
         </label>
         <button className="btn btn--add" disabled={busy}>{busy ? 'Enregistrement…' : saved ? '✓ Enregistré' : 'Enregistrer'}</button>
       </form>
+
+      {rewards && (rewards.loyalty.enabled || rewards.referral.enabled) && (
+        <section className="rewards">
+          <h2 className="checkout__section">Récompenses</h2>
+
+          {rewards.loyalty.enabled && (
+            <div className="rewards__card">
+              <div className="rewards__row">
+                <span className="rewards__icon" aria-hidden="true">🎁</span>
+                <div className="rewards__body">
+                  <strong>Carte fidélité</strong>
+                  {rewards.loyalty.available > 0 ? (
+                    <p className="rewards__note rewards__note--on">
+                      Tu as {rewards.loyalty.available} livraison{rewards.loyalty.available > 1 ? 's' : ''} offerte
+                      {rewards.loyalty.available > 1 ? 's' : ''} — appliquée à ta prochaine commande !
+                    </p>
+                  ) : (
+                    <p className="rewards__note muted">
+                      Plus que {rewards.loyalty.threshold - rewards.loyalty.progress} commande
+                      {rewards.loyalty.threshold - rewards.loyalty.progress > 1 ? 's' : ''} livrée
+                      {rewards.loyalty.threshold - rewards.loyalty.progress > 1 ? 's' : ''} pour une livraison offerte.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="rewards__stamps">
+                {Array.from({ length: rewards.loyalty.threshold }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`rewards__stamp ${i < rewards.loyalty.progress ? 'rewards__stamp--on' : ''}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {rewards.referral.enabled && (
+            <div className="rewards__card">
+              <div className="rewards__row">
+                <span className="rewards__icon" aria-hidden="true">🤝</span>
+                <div className="rewards__body">
+                  <strong>Parraine tes amis</strong>
+                  <p className="rewards__note muted">
+                    Ils profitent d'une réduction sur leur 1ʳᵉ commande ; tu gagnes une livraison offerte
+                    par filleul livré.
+                    {rewards.referral.available > 0 && (
+                      <> Tu as <strong>{rewards.referral.available}</strong> livraison{rewards.referral.available > 1 ? 's' : ''} offerte{rewards.referral.available > 1 ? 's' : ''} en attente !</>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="rewards__code-row">
+                <code className="rewards__code">{rewards.referralCode}</code>
+                <button type="button" className="btn btn--pass rewards__share" onClick={() => copyReferral(rewards.referralCode)}>
+                  {copied ? '✓ Copié' : 'Partager'}
+                </button>
+              </div>
+              {rewards.referral.referrals > 0 && (
+                <p className="rewards__note muted">{rewards.referral.referrals} ami(s) parrainé(s) jusqu'ici. Merci ! 🙌</p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <h2 className="checkout__section account__orders-title">Mes commandes</h2>
       {orders.length === 0 ? (

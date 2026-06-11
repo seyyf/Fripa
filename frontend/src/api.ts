@@ -113,10 +113,10 @@ export const api = {
       `/cart/${userId()}/promo`,
       { method: 'POST', body: JSON.stringify({ code }) },
     ),
-  checkout: (customer: CustomerInfo, promoCode?: string) =>
+  checkout: (customer: CustomerInfo, promoCode?: string, referralCode?: string) =>
     http<CheckoutResult>(`/cart/${userId()}/checkout`, {
       method: 'POST',
-      body: JSON.stringify({ ...customer, promoCode }),
+      body: JSON.stringify({ ...customer, promoCode, referralCode }),
     }),
   // Public order tracking by reference + phone.
   trackOrder: (ref: string, phone: string) =>

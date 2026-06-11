@@ -13,7 +13,11 @@ interface Props {
   onClose: () => void;
   cart: CartResponse;
   onRemove: (itemId: string) => void;
-  onPlaceOrder: (customer: CustomerInfo, promoCode?: string) => Promise<CheckoutResult>;
+  onPlaceOrder: (
+    customer: CustomerInfo,
+    promoCode?: string,
+    referralCode?: string,
+  ) => Promise<CheckoutResult>;
 }
 
 export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {

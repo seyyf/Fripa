@@ -9,6 +9,19 @@ export interface Account {
   name: string | null;
   address: string | null;
   email: string | null;
+  referralCode?: string | null;
+}
+
+export interface RewardsStatus {
+  referralCode: string;
+  loyalty: {
+    enabled: boolean;
+    threshold: number;
+    delivered: number;
+    progress: number;
+    available: number;
+  };
+  referral: { enabled: boolean; referrals: number; available: number };
 }
 
 export interface AccountOrder {
@@ -66,6 +79,7 @@ export const accountApi = {
   updateProfile: (patch: Partial<Pick<Account, 'name' | 'address' | 'email'>>) =>
     http<Account>('/account/me', { method: 'PATCH', body: JSON.stringify(patch) }),
   orders: () => http<AccountOrder[]>('/account/orders'),
+  rewards: () => http<RewardsStatus>('/account/rewards'),
   favorites: () => http<FavoritesResponse>('/account/favorites'),
   addFavorite: (itemId: string) =>
     http<FavoritesResponse>('/account/favorites', { method: 'POST', body: JSON.stringify({ itemId }) }),

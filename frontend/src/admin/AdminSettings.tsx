@@ -181,6 +181,62 @@ export function AdminSettings({ onAuthError }: Props) {
       </div>
 
       <div className="admin-panel">
+        <h2 className="admin-panel__title">🎁 Fidélité</h2>
+        <label className="field admin-promo-active">
+          <input
+            type="checkbox"
+            checked={config.loyaltyEnabled}
+            onChange={(e) => set('loyaltyEnabled', e.target.checked)}
+          />
+          <span className="field__label">Activer la carte de fidélité</span>
+        </label>
+        <div className="admin-form__grid">
+          <label className="field">
+            <span className="field__label">Commandes livrées pour une livraison offerte</span>
+            <input
+              className="filter-input"
+              type="number"
+              min={1}
+              value={config.loyaltyThreshold}
+              onChange={(e) => set('loyaltyThreshold', Math.max(1, Math.floor(e.target.valueAsNumber || 1)))}
+            />
+          </label>
+        </div>
+        <p className="muted admin-settings__hint">
+          Après ce nombre de commandes livrées, le client gagne une livraison offerte (appliquée
+          automatiquement à sa commande suivante). Visible sur sa page compte.
+        </p>
+      </div>
+
+      <div className="admin-panel">
+        <h2 className="admin-panel__title">🤝 Parrainage</h2>
+        <label className="field admin-promo-active">
+          <input
+            type="checkbox"
+            checked={config.referralEnabled}
+            onChange={(e) => set('referralEnabled', e.target.checked)}
+          />
+          <span className="field__label">Activer le parrainage</span>
+        </label>
+        <div className="admin-form__grid">
+          <label className="field">
+            <span className="field__label">Réduction filleul — 1ʳᵉ commande (TND)</span>
+            <input
+              className="filter-input"
+              type="number"
+              min={0}
+              value={config.referralRefereeDiscount}
+              onChange={(e) => set('referralRefereeDiscount', Math.max(0, Math.floor(e.target.valueAsNumber || 0)))}
+            />
+          </label>
+        </div>
+        <p className="muted admin-settings__hint">
+          Chaque client a un code à partager. Le filleul obtient la réduction sur sa 1ʳᵉ commande ;
+          le parrain gagne une livraison offerte par filleul dont la commande est livrée.
+        </p>
+      </div>
+
+      <div className="admin-panel">
         <h2 className="admin-panel__title">💬 WhatsApp boutique</h2>
         <div className="admin-form__grid">
           <label className="field admin-form__wide">

@@ -70,6 +70,9 @@ export interface CheckoutResult {
   ref?: string;
   orderTotal?: number;
   deliveryFee?: number;
+  referralDiscount?: number;
+  loyaltyApplied?: boolean;
+  referrerRewardApplied?: boolean;
   lines?: CartLine[];
   customer?: CustomerInfo;
 }
@@ -83,6 +86,10 @@ export interface ShopConfig {
   freeDeliveryMinItems: number | null;
   freeDeliveryMinTotal: number | null;
   whatsappShop: string;
+  loyaltyEnabled: boolean;
+  loyaltyThreshold: number;
+  referralEnabled: boolean;
+  referralRefereeDiscount: number;
 }
 
 export interface FieldFilters {

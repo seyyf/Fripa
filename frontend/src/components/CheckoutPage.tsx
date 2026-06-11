@@ -6,7 +6,11 @@ import { WhatsAppConfirm } from './WhatsAppConfirm';
 
 interface Props {
   cart: CartResponse;
-  onPlaceOrder: (customer: CustomerInfo, promoCode?: string) => Promise<CheckoutResult>;
+  onPlaceOrder: (
+    customer: CustomerInfo,
+    promoCode?: string,
+    referralCode?: string,
+  ) => Promise<CheckoutResult>;
 }
 
 export function CheckoutPage({ cart, onPlaceOrder }: Props) {

@@ -144,6 +144,10 @@ export interface ShopConfig {
   whatsappShop: string;
   whatsappAlertPhone: string;
   whatsappAlertApiKey: string;
+  loyaltyEnabled: boolean;
+  loyaltyThreshold: number;
+  referralEnabled: boolean;
+  referralRefereeDiscount: number;
 }
 
 export interface SettingsResponse {
