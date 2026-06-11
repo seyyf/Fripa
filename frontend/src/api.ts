@@ -64,6 +64,9 @@ export const api = {
   },
   // Single piece for the detail page (with its status for this user).
   item: (id: string) => http<ItemDetail>(`/piece/${id}?userId=${userId()}`),
+  // "Pièces similaires" recommendations for the detail page.
+  similar: (id: string, count = 4) =>
+    http<TShirt[]>(`/piece/${id}/similar?userId=${userId()}&count=${count}`),
   // A phantom shopper grabs a piece off the catalogue floor (not undoable).
   crowdSnatch: (itemId: string) =>
     http<{ gone: boolean; eligibleForReprise?: boolean }>(`/crowd/snatch`, {

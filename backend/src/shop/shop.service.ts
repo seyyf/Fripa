@@ -168,6 +168,33 @@ export class ShopService {
     return { items, total };
   }
 
+  // "Pièces similaires" for the detail page — especially useful when a piece is
+  // gone, so the shopper isn't dead-ended. Scores other still-available pieces
+  // by shared category / size / brand / close price, best first.
+  getSimilar(userId: string, id: string, count = 4): TShirt[] {
+    const base = this.findItem(id);
+    if (!base) return [];
+    const s = this.getState(userId);
+    const score = (i: TShirt) =>
+      (i.category === base.category ? 3 : 0) +
+      (i.size === base.size ? 2 : 0) +
+      (i.brand === base.brand ? 2 : 0) +
+      (Math.abs(i.price - base.price) <= base.price * 0.3 ? 1 : 0);
+    return ITEMS.filter(
+      (i) =>
+        i.id !== id &&
+        !s.passed.has(i.id) &&
+        !s.lastChancePool.has(i.id) &&
+        !s.shownLastChance.has(i.id) &&
+        !s.cart.has(i.id),
+    )
+      .map((i) => ({ i, sc: score(i) }))
+      .filter((x) => x.sc > 0)
+      .sort((a, b) => b.sc - a.sc)
+      .slice(0, count)
+      .map((x) => x.i);
+  }
+
   // Single piece for the detail page, with its status for this user.
   getOne(userId: string, id: string): ItemDetail {
     const item = this.getItem(id); // throws NotFound if the id is unknown

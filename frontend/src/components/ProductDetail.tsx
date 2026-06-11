@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
 import type { ItemDetail, TShirt } from '../types';
 import { ProductDetailContent } from './ProductDetailContent';
+import { SimilarPieces } from './SimilarPieces';
 
 interface Props {
   onAddToCart: (item: TShirt) => void | Promise<void>;
@@ -72,6 +73,7 @@ export function ProductDetail({ onAddToCart, onFavorite }: Props) {
         onAddToCart={add}
         onFavorite={fav}
       />
+      <SimilarPieces itemId={detail.item.id} refreshKey={detail.status} />
     </main>
   );
 }

@@ -129,6 +129,17 @@ export class ShopController {
     return this.shop.getOne(userId || 'anon', id);
   }
 
+  // Recommendations shown on the product detail page.
+  @Get('piece/:id/similar')
+  similar(
+    @Param('id') id: string,
+    @Query('userId') userId: string,
+    @Query('count') count?: string,
+  ) {
+    const n = Math.min(Math.max(parseInt(count ?? '4', 10) || 4, 1), 12);
+    return this.shop.getSimilar(userId || 'anon', id, n);
+  }
+
   @Post('swipes/pass')
   pass(@Body() body: { userId: string; itemId: string }) {
     return this.shop.pass(body.userId || 'anon', body.itemId);

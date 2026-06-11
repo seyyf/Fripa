@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ProductDetail } from './ProductDetail';
 import type { ItemStatus } from '../types';
 
-vi.mock('../api', () => ({ api: { item: vi.fn() } }));
+vi.mock('../api', () => ({ api: { item: vi.fn(), similar: vi.fn().mockResolvedValue([]) } }));
 import { api } from '../api';
 const mockItem = api.item as unknown as ReturnType<typeof vi.fn>;
 
