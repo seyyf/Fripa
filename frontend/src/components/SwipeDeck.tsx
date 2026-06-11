@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { FieldItem } from '../types';
 import { SwipeCard } from './SwipeCard';
 import { SwipeBurstEngine, type BurstAction } from '../fx/swipeBurst';
+import { playSwipeSound } from '../fx/swipeSound';
 
 interface Props {
   deck: FieldItem[];
@@ -49,6 +50,7 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
   // remember the throw direction, fire the matching burst, notify the parent.
   function decide(action: BurstAction, item: FieldItem) {
     lastAction.current = action;
+    playSwipeSound(action); // whoosh / pop / sparkle per gesture
     const canvas = canvasRef.current;
     if (!reducedMotion && canvas) {
       // Burst from the edge the card exits through, so the splash visibly

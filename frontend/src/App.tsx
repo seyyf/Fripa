@@ -50,7 +50,7 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [favOpen, setFavOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
   const [outOfCards, setOutOfCards] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
   // A piece just removed from the cart → returned to the floor. The tick lets
@@ -75,9 +75,12 @@ export default function App() {
     filtersRef.current = filters;
   }, [filters]);
 
-  function flash(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast((t) => (t === msg ? null : t)), 2200);
+  // `error` tone = louder treatment (red, shake, icon) and stays up longer —
+  // used for refusals the shopper must read, like the 10-piece cart cap.
+  function flash(msg: string, tone: 'info' | 'error' = 'info') {
+    const entry = { text: msg, tone };
+    setToast(entry);
+    setTimeout(() => setToast((t) => (t === entry ? null : t)), tone === 'error' ? 4500 : 2200);
   }
 
   const refreshCart = useCallback(async () => setCart(await api.cart()), []);
@@ -176,7 +179,7 @@ export default function App() {
     } catch (e) {
       console.error('keep failed', e);
       restore(item);
-      flash(errMsg(e, 'Oups, réessaie.'));
+      flash(errMsg(e, 'Oups, réessaie.'), 'error');
       return;
     }
     void topUp();
@@ -245,7 +248,7 @@ export default function App() {
       flash(`Ajouté au panier — ${item.title}`);
     } catch (e) {
       console.error('add failed', e);
-      flash(errMsg(e, 'Oups, réessaie.'));
+      flash(errMsg(e, 'Oups, réessaie.'), 'error');
     }
   }
 
@@ -299,7 +302,7 @@ export default function App() {
       flash('Déplacé au panier. 🛒');
     } catch (e) {
       console.error('move to cart failed', e);
-      flash(errMsg(e, 'Oups, réessaie.'));
+      flash(errMsg(e, 'Oups, réessaie.'), 'error');
     }
   }
 
@@ -478,9 +481,9 @@ export default function App() {
       <AnimatePresence>
         {toast && (
           <motion.div
-            className="toast"
-            role="status"
-            aria-live="polite"
+            className={`toast ${toast.tone === 'error' ? 'toast--error' : ''}`}
+            role={toast.tone === 'error' ? 'alert' : 'status'}
+            aria-live={toast.tone === 'error' ? 'assertive' : 'polite'}
             initial={reducedMotion ? { opacity: 0, x: '-50%' } : { opacity: 0, x: '-50%', y: 24, scale: 0.9 }}
             animate={{ opacity: 1, x: '-50%', y: 0, scale: 1 }}
             exit={reducedMotion ? { opacity: 0, x: '-50%' } : { opacity: 0, x: '-50%', y: 12, scale: 0.95 }}
@@ -488,8 +491,16 @@ export default function App() {
               reducedMotion ? { duration: 0.15 } : { type: 'spring', stiffness: 420, damping: 28 }
             }
           >
-            <span className="toast__dot" aria-hidden="true" />
-            {toast}
+            {/* The shake lives on the inner span — the outer transform belongs
+                to framer-motion and must not be fought by a CSS animation. */}
+            <span className="toast__inner">
+              {toast.tone === 'error' ? (
+                <span className="toast__warn" aria-hidden="true">⚠️</span>
+              ) : (
+                <span className="toast__dot" aria-hidden="true" />
+              )}
+              {toast.text}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
