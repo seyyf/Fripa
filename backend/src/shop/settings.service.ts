@@ -46,6 +46,14 @@ export interface ShopConfig {
   // Both empty = alerts disabled.
   whatsappAlertPhone: string;
   whatsappAlertApiKey: string;
+  // Loyalty stamp card: after `loyaltyThreshold` delivered orders, the shopper
+  // earns one free-delivery reward (auto-applied on their next paid-fee order).
+  loyaltyEnabled: boolean;
+  loyaltyThreshold: number;
+  // Referral (parrainage): the new buyer's first order gets `referralRefereeDiscount`
+  // TND off; the referrer earns one free-delivery credit per delivered referral.
+  referralEnabled: boolean;
+  referralRefereeDiscount: number;
 }
 
 export const DEFAULT_CONFIG: ShopConfig = {
@@ -56,6 +64,10 @@ export const DEFAULT_CONFIG: ShopConfig = {
   whatsappShop: '',
   whatsappAlertPhone: '',
   whatsappAlertApiKey: '',
+  loyaltyEnabled: false,
+  loyaltyThreshold: 5,
+  referralEnabled: false,
+  referralRefereeDiscount: 5,
 };
 
 const CONFIG_KEY = 'shop-config';
@@ -68,6 +80,10 @@ export interface PublicShopConfig {
   freeDeliveryMinItems: number | null;
   freeDeliveryMinTotal: number | null;
   whatsappShop: string;
+  loyaltyEnabled: boolean;
+  loyaltyThreshold: number;
+  referralEnabled: boolean;
+  referralRefereeDiscount: number;
 }
 
 // Shop configuration persisted in the Setting table (one JSON row), cached in
@@ -102,6 +118,10 @@ export class SettingsService {
       freeDeliveryMinItems: c.freeDeliveryMinItems,
       freeDeliveryMinTotal: c.freeDeliveryMinTotal,
       whatsappShop: c.whatsappShop,
+      loyaltyEnabled: c.loyaltyEnabled,
+      loyaltyThreshold: c.loyaltyThreshold,
+      referralEnabled: c.referralEnabled,
+      referralRefereeDiscount: c.referralRefereeDiscount,
     };
   }
 
@@ -170,6 +190,19 @@ export class SettingsService {
         if (typeof v !== 'string') throw new BadRequestException(`« ${key} » doit être un texte.`);
         out[key] = v.trim();
       }
+    }
+    for (const key of ['loyaltyEnabled', 'referralEnabled'] as const) {
+      if (patch[key] !== undefined) out[key] = !!patch[key];
+    }
+    if (patch.loyaltyThreshold !== undefined) {
+      const v = patch.loyaltyThreshold;
+      if (typeof v !== 'number' || !Number.isInteger(v) || v < 1) {
+        throw new BadRequestException('« loyaltyThreshold » doit être un entier ≥ 1.');
+      }
+      out.loyaltyThreshold = v;
+    }
+    if (patch.referralRefereeDiscount !== undefined) {
+      out.referralRefereeDiscount = intOrNull('referralRefereeDiscount', patch.referralRefereeDiscount, false) as number;
     }
     return out;
   }

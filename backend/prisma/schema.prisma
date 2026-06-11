@@ -28,6 +28,7 @@ model Item {
   seller      String
   category    String // T-shirts | Sweats | Polos | Vestes | Maillots | Shorts | Jeans
   status      String   @default("active") // active | draft | sold | archived
+  cost        Int      @default(0) // what the shop paid for the piece (souk price); powers margin
   // Drop scheduling: a draft with a publishAt goes active automatically at that
   // time (and feeds the public "next drop" countdown teaser).
   publishAt   DateTime?
@@ -53,6 +54,13 @@ model Order {
   paid            Boolean     @default(false) // cash collected (COD reconciliation)
   promoCode       String? // applied promo code, if any
   discount        Int         @default(0) // amount discounted off the original cart total
+  // Loyalty stamp card: this order consumed a "free delivery" reward.
+  loyaltyApplied  Boolean     @default(false)
+  // Referral (parrainage): the code this buyer used, the TND it saved them, and
+  // whether this order consumed one of the referrer's free-delivery credits.
+  referredByCode      String?
+  referralDiscount    Int     @default(0)
+  referrerRewardApplied Boolean @default(false)
   createdAt       DateTime    @default(now())
   lines           OrderLine[]
 }
@@ -67,13 +75,14 @@ model Setting {
 
 // A shopper account, identified by phone (OTP login). No password.
 model User {
-  id        String         @id @default(cuid())
-  phone     String         @unique
-  name      String?
-  address   String?
-  email     String?
-  createdAt DateTime       @default(now())
-  favorites FavoriteItem[]
+  id           String         @id @default(cuid())
+  phone        String         @unique
+  name         String?
+  address      String?
+  email        String?
+  referralCode String?        @unique // personal parrainage code (generated on first login)
+  createdAt    DateTime       @default(now())
+  favorites    FavoriteItem[]
 }
 
 // A favorited piece, persisted per account so favorites sync across devices.
@@ -123,6 +132,20 @@ model OrderLine {
   title    String
   brand    String
   price    Int
+  cost     Int    @default(0) // snapshot of the piece's cost at sale (realized margin)
   size     String
   imageUrl String
+}
+
+// Append-only record of admin actions, for accountability. Written from the
+// admin services; surfaced read-only on the "Journal" page.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String // who acted (admin role for now; ready for named accounts later)
+  action    String // e.g. item.update, order.status, settings.update, items.markdown
+  target    String? // human-readable subject (item title, order ref, …)
+  detail    String? // short description of what changed
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

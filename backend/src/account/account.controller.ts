@@ -45,6 +45,12 @@ export class AccountController {
   }
 
   @UseGuards(AccountGuard)
+  @Get('rewards')
+  rewards(@Req() req: { userId: string }) {
+    return this.account.rewards_(req.userId);
+  }
+
+  @UseGuards(AccountGuard)
   @Get('favorites')
   favorites(@Req() req: { userId: string }) {
     return this.account.favorites(req.userId);

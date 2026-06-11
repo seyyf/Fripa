@@ -189,9 +189,10 @@ export class ShopController {
       phone: string;
       governorate: string;
       promoCode?: string;
+      referralCode?: string;
     },
   ) {
-    return this.checkoutService.checkout(userId, body, body.promoCode);
+    return this.checkoutService.checkout(userId, body, body.promoCode, body.referralCode);
   }
 
   @Post('favorites')

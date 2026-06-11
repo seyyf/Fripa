@@ -3,12 +3,19 @@ import { JwtService } from '@nestjs/jwt';
 import { AccountService } from './account.service';
 import type { PrismaService } from '../shop/prisma.service';
 
-function makeService(user = { id: 'u1', phone: '22000000', name: null, address: null, email: null }) {
+function makeService(
+  user = { id: 'u1', phone: '22000000', name: null, address: null, email: null, referralCode: 'FR0000ABC' },
+) {
   const prisma = {
     user: { upsert: vi.fn(async () => user), findUnique: vi.fn(async () => user) },
   } as unknown as PrismaService;
   const jwt = new JwtService({ secret: 'test', signOptions: { expiresIn: '30d' } });
-  return { svc: new AccountService(prisma, jwt), jwt };
+  const rewards = {
+    ensureReferralCode: vi.fn(async () => user.referralCode ?? 'FR0000ABC'),
+    loyaltyStatus: vi.fn(async () => ({ available: 0 })),
+    referrerStatus: vi.fn(async () => ({ available: 0 })),
+  } as any;
+  return { svc: new AccountService(prisma, jwt, rewards), jwt };
 }
 
 describe('AccountService OTP', () => {

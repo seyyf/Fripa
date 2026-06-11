@@ -50,6 +50,12 @@ function setup(
     feeFor: vi.fn(async () => DELIVERY_FEE),
   };
   const notify = { orderPlaced: vi.fn() };
+  // No loyalty/referral rewards by default; tests that exercise them override.
+  const rewards = {
+    validateReferral: vi.fn(async () => ({ ok: false, message: 'off' })),
+    loyaltyStatus: vi.fn(async () => ({ available: 0 })),
+    referrerStatus: vi.fn(async () => ({ available: 0 })),
+  };
   const service = new CheckoutService(
     prisma,
     loader,
@@ -57,8 +63,9 @@ function setup(
     promoSvc as any,
     settings as any,
     notify as any,
+    rewards as any,
   );
-  return { service, shop, prisma, loader, tx, promoSvc, settings, notify };
+  return { service, shop, prisma, loader, tx, promoSvc, settings, notify, rewards };
 }
 
 describe('CheckoutService.checkout', () => {
@@ -97,6 +104,50 @@ describe('CheckoutService.checkout', () => {
     expect(res.ok).toBe(true);
     expect(res.deliveryFee).toBe(0);
     expect(res.orderTotal).toBe(itemsTotal);
+  });
+
+  it('redeems a loyalty stamp: waives the delivery fee and flags the order', async () => {
+    const { service, shop, tx, rewards } = setup(['t-001']);
+    rewards.loyaltyStatus.mockResolvedValueOnce({ available: 1 });
+    shop.addToCart('u1', 't-001');
+    const itemsTotal = shop.getCart('u1').total;
+
+    const res = await service.checkout('u1', customer);
+
+    expect(res.ok).toBe(true);
+    expect(res.deliveryFee).toBe(0);
+    expect(res.loyaltyApplied).toBe(true);
+    expect(res.orderTotal).toBe(itemsTotal);
+    expect(tx.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ loyaltyApplied: true }) }),
+    );
+  });
+
+  it('applies a referral code: discounts the buyer and records the code', async () => {
+    const { service, shop, tx, rewards } = setup(['t-001']);
+    rewards.validateReferral.mockResolvedValueOnce({ ok: true, code: 'FR1234ABC', discount: 5 });
+    shop.addToCart('u1', 't-001');
+    const itemsTotal = shop.getCart('u1').total;
+
+    const res = await service.checkout('u1', customer, undefined, 'FR1234ABC');
+
+    expect(res.ok).toBe(true);
+    expect(res.referralDiscount).toBe(5);
+    expect(res.orderTotal).toBe(itemsTotal - 5 + DELIVERY_FEE);
+    expect(tx.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ referredByCode: 'FR1234ABC', referralDiscount: 5 }),
+      }),
+    );
+  });
+
+  it('rejects an invalid referral code (no order)', async () => {
+    const { service, shop, prisma, rewards } = setup(['t-001']);
+    rewards.validateReferral.mockResolvedValueOnce({ ok: false, message: 'Code inconnu.' });
+    shop.addToCart('u1', 't-001');
+    const res = await service.checkout('u1', customer, undefined, 'BADREF');
+    expect(res.ok).toBe(false);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('refuses an unknown governorate (no transaction)', async () => {

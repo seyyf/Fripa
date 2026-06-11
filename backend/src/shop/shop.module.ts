@@ -9,6 +9,7 @@ import { SettingsService } from './settings.service';
 import { NotifyService } from './notify.service';
 import { DropsService } from './drops.service';
 import { SwipeLogService } from './swipe-log.service';
+import { RewardsService } from './rewards.service';
 
 @Module({
   controllers: [ShopController],
@@ -22,9 +23,10 @@ import { SwipeLogService } from './swipe-log.service';
     NotifyService,
     DropsService,
     SwipeLogService,
+    RewardsService,
   ],
   // Exported so a future admin module can reuse the DB connection and trigger a
   // catalogue reload after mutating items.
-  exports: [PrismaService, CatalogueLoader, SettingsService, NotifyService],
+  exports: [PrismaService, CatalogueLoader, SettingsService, NotifyService, RewardsService],
 })
 export class ShopModule {}

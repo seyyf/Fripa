@@ -5,6 +5,7 @@ import { ShopService } from './shop.service';
 import { PromoService } from './promo.service';
 import { GOVERNORATES, SettingsService } from './settings.service';
 import { NotifyService } from './notify.service';
+import { RewardsService } from './rewards.service';
 import { CustomerInfo, effectivePrice } from './types';
 
 export interface CheckoutResult {
@@ -13,6 +14,9 @@ export interface CheckoutResult {
   ref?: string;
   orderTotal?: number;
   deliveryFee?: number;
+  referralDiscount?: number;
+  loyaltyApplied?: boolean;
+  referrerRewardApplied?: boolean;
   lines?: unknown[];
   customer?: CustomerInfo;
 }
@@ -29,12 +33,14 @@ export class CheckoutService {
     private readonly promo: PromoService,
     private readonly settings: SettingsService,
     private readonly notify: NotifyService,
+    private readonly rewards: RewardsService,
   ) {}
 
   async checkout(
     userId: string,
     customer: CustomerInfo,
     promoCode?: string,
+    referralCode?: string,
   ): Promise<CheckoutResult> {
     const cart = this.shop.getCart(userId);
     if (cart.lines.length === 0) {
@@ -69,11 +75,41 @@ export class CheckoutService {
         return { ok: false, message: e instanceof Error ? e.message : 'Code promo invalide.' };
       }
     }
-    // Delivery: per-governorate fee, waived by the bundle rule (N+ pieces
-    // and/or a minimum items total — see the admin settings).
-    const itemsTotal = cart.total - discount;
-    const freeDelivery = await this.settings.qualifiesFreeDelivery(cart.lines.length, itemsTotal);
-    const deliveryFee = freeDelivery ? 0 : await this.settings.feeFor(governorate);
+    const phone = customer.phone.trim();
+
+    // Referral (parrainage): a first-time buyer using a valid code gets a one-off
+    // discount. A typed-but-invalid code fails cleanly (like a bad promo).
+    let referredByCode: string | null = null;
+    let referralDiscount = 0;
+    if (referralCode && referralCode.trim()) {
+      const v = await this.rewards.validateReferral(referralCode, phone);
+      if (!v.ok) return { ok: false, message: v.message ?? 'Code de parrainage invalide.' };
+      referredByCode = v.code ?? null;
+      referralDiscount = Math.max(0, Math.min(v.discount ?? 0, cart.total - discount));
+    }
+
+    // Delivery: per-governorate fee, waived by (in priority) the bundle rule, a
+    // loyalty stamp reward, or a referrer credit. A free-delivery reward is only
+    // consumed when it actually waives a non-zero fee.
+    const itemsTotal = cart.total - discount - referralDiscount;
+    const bundleFree = await this.settings.qualifiesFreeDelivery(cart.lines.length, itemsTotal);
+    let deliveryFee = bundleFree ? 0 : await this.settings.feeFor(governorate);
+    let loyaltyApplied = false;
+    let referrerRewardApplied = false;
+    if (deliveryFee > 0) {
+      const loy = await this.rewards.loyaltyStatus(phone);
+      if (loy.available > 0) {
+        deliveryFee = 0;
+        loyaltyApplied = true;
+      } else {
+        const ref = await this.rewards.referrerStatus(phone);
+        if (ref.available > 0) {
+          deliveryFee = 0;
+          referrerRewardApplied = true;
+        }
+      }
+    }
+    const freeDelivery = deliveryFee === 0;
     const finalTotal = itemsTotal + deliveryFee;
     const ids = cart.lines.map((l) => l.id);
 
@@ -83,11 +119,13 @@ export class CheckoutService {
         // be active. If any was just sold by someone else, abort.
         const stillActive = await tx.item.findMany({
           where: { id: { in: ids }, status: 'active' },
-          select: { id: true },
+          select: { id: true, cost: true },
         });
         if (stillActive.length !== ids.length) {
           throw new Error('ITEM_UNAVAILABLE');
         }
+        // Snapshot each piece's cost so realized margin survives later edits.
+        const costById = new Map(stillActive.map((i) => [i.id, i.cost]));
         await tx.item.updateMany({ where: { id: { in: ids } }, data: { status: 'sold' } });
 
         // Atomically claim one promo use (guards against concurrent over-use).
@@ -117,12 +155,17 @@ export class CheckoutService {
             deliveryFee,
             promoCode: promoCodeUpper,
             discount,
+            loyaltyApplied,
+            referredByCode,
+            referralDiscount,
+            referrerRewardApplied,
             lines: {
               create: cart.lines.map((l) => ({
                 itemId: l.id,
                 title: l.title,
                 brand: l.brand,
                 price: effectivePrice(l), // snapshot the price actually paid
+                cost: costById.get(l.id) ?? 0, // snapshot cost for realized margin
                 size: l.size,
                 imageUrl: l.imageUrl,
               })),
@@ -147,15 +190,24 @@ export class CheckoutService {
       });
 
       const savedNote = discount > 0 ? ` (−${discount} TND avec ${promoCodeUpper})` : '';
+      const refNote = referralDiscount > 0 ? `, −${referralDiscount} TND parrainage` : '';
+      const freeReason = loyaltyApplied
+        ? ' (fidélité 🎁)'
+        : referrerRewardApplied
+          ? ' (parrainage 🤝)'
+          : '';
       const deliveryNote = freeDelivery
-        ? ', livraison offerte 🚚'
+        ? `, livraison offerte 🚚${freeReason}`
         : `, dont ${deliveryFee} TND de livraison`;
       return {
         ok: true,
         ref: order.ref,
-        message: `Commande ${order.ref} confirmée — ${finalTotal} TND${savedNote}${deliveryNote}. On te contacte pour la livraison !`,
+        message: `Commande ${order.ref} confirmée — ${finalTotal} TND${savedNote}${refNote}${deliveryNote}. On te contacte pour la livraison !`,
         orderTotal: finalTotal,
         deliveryFee,
+        referralDiscount,
+        loyaltyApplied,
+        referrerRewardApplied,
         lines: cart.lines,
         customer,
       };

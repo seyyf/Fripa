@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { User } from '@prisma/client';
 import { PrismaService } from '../shop/prisma.service';
 import { toTShirt } from '../shop/catalogue.loader';
+import { RewardsService } from '../shop/rewards.service';
 import type { TShirt } from '../shop/types';
 
 const OTP_TTL_MS = 5 * 60 * 1000;
@@ -17,6 +18,7 @@ export class AccountService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly rewards: RewardsService,
   ) {}
 
   requestOtp(phoneRaw: string) {
@@ -37,8 +39,24 @@ export class AccountService {
     }
     this.otps.delete(phone);
     const user = await this.prisma.user.upsert({ where: { phone }, update: {}, create: { phone } });
+    // Give every account a personal parrainage code on first login.
+    if (!user.referralCode) {
+      user.referralCode = await this.rewards.ensureReferralCode(user.id, user.phone);
+    }
     const token = this.jwt.sign({ sub: user.id, phone: user.phone });
     return { token, user: this.publicUser(user) };
+  }
+
+  // Loyalty + referral status for the account "Récompenses" panel.
+  async rewards_(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+    const code = user.referralCode ?? (await this.rewards.ensureReferralCode(user.id, user.phone));
+    const [loyalty, referral] = await Promise.all([
+      this.rewards.loyaltyStatus(user.phone),
+      this.rewards.referrerStatus(user.phone),
+    ]);
+    return { referralCode: code, loyalty, referral };
   }
 
   async me(userId: string) {
@@ -115,6 +133,13 @@ export class AccountService {
   }
 
   private publicUser(u: User) {
-    return { id: u.id, phone: u.phone, name: u.name, address: u.address, email: u.email };
+    return {
+      id: u.id,
+      phone: u.phone,
+      name: u.name,
+      address: u.address,
+      email: u.email,
+      referralCode: u.referralCode,
+    };
   }
 }
