@@ -48,7 +48,8 @@ export function AdminInsightsPage({ onAuthError }: Props) {
   if (error && !data) return <div className="checkout__error admin-items__error">{error}</div>;
   if (!data) return <p className="muted admin-items__empty">Chargement…</p>;
 
-  const { totals, categories, topPassed, topWanted, abandoned } = data;
+  const { totals, categories, topPassed, topWanted, abandoned, sellThrough, medianDaysToSell } = data;
+  const maxSell = Math.max(1, ...sellThrough.map((c) => c.rate));
   const swipes = totals.pass + totals.keep + totals.favorite;
   const keepRate = swipes === 0 ? 0 : Math.round(((totals.keep + totals.favorite) / swipes) * 100);
   const conversion = totals.keep === 0 ? 0 : Math.round((totals.purchases / totals.keep) * 100);
@@ -87,6 +88,36 @@ export function AdminInsightsPage({ onAuthError }: Props) {
             <span className="admin-kpi__sub">{c.sub}</span>
           </div>
         ))}
+      </div>
+
+      <div className="admin-panel">
+        <h2 className="admin-panel__title">
+          Sell-through par catégorie — ce qui part vraiment
+          {medianDaysToSell != null && (
+            <span className="admin-cell-sub"> · médiane {medianDaysToSell} j pour vendre</span>
+          )}
+        </h2>
+        {sellThrough.length === 0 ? (
+          <p className="muted">Pas encore de stock.</p>
+        ) : (
+          <ul className="admin-bars">
+            {sellThrough.map((c) => (
+              <li key={c.category} className="admin-bar">
+                <span className="admin-bar__label">{c.category}</span>
+                <span className="admin-bar__track">
+                  <span className="admin-bar__fill" style={{ width: `${(c.rate / maxSell) * 100}%` }} />
+                </span>
+                <span className="admin-bar__count">
+                  {c.rate}%{' '}
+                  <span className="admin-cell-sub">
+                    ({c.sold} vendue{c.sold > 1 ? 's' : ''}/{c.sold + c.listed}
+                    {c.medianDaysToSell != null ? ` · ${c.medianDaysToSell}j` : ''})
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="admin-panel">

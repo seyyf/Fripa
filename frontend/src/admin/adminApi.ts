@@ -180,6 +180,14 @@ export interface AdminInsights {
   topPassed: ItemSwipeStats[];
   topWanted: ItemSwipeStats[];
   abandoned: ItemSwipeStats[];
+  sellThrough: {
+    category: string;
+    sold: number;
+    listed: number;
+    rate: number;
+    medianDaysToSell: number | null;
+  }[];
+  medianDaysToSell: number | null;
 }
 
 export function getToken(): string | null {

@@ -39,7 +39,26 @@ export interface AdminInsights {
   // Abandoned interest: active pieces that were carted-then-expired or
   // favorited but never bought — prime candidates for a markdown.
   abandoned: ItemSwipeStats[];
+  // Sell-through + aging per category: what actually sells, and how fast — the
+  // buying signal. rate = sold / (sold + still-listed) in %.
+  sellThrough: {
+    category: string;
+    sold: number;
+    listed: number; // active + draft (still on hand, not yet sold)
+    rate: number;
+    medianDaysToSell: number | null;
+  }[];
+  // Overall median days a sold piece spent in stock (null if nothing sold yet).
+  medianDaysToSell: number | null;
 }
+
+const DAY_MS = 86400000;
+const median = (xs: number[]): number | null => {
+  if (xs.length === 0) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
+};
 
 const TOP_N = 8;
 
@@ -48,7 +67,7 @@ export class AdminInsightsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async summary(): Promise<AdminInsights> {
-    const [events, items, purchases] = await Promise.all([
+    const [events, items, purchases, soldLines] = await Promise.all([
       this.prisma.swipeEvent.groupBy({
         by: ['itemId', 'action'],
         _count: { _all: true },
@@ -63,9 +82,14 @@ export class AdminInsightsService {
           salePrice: true,
           category: true,
           status: true,
+          createdAt: true,
         },
       }),
       this.prisma.orderLine.count(),
+      // Sale dates for days-to-sell: each line + when its order was placed.
+      this.prisma.orderLine.findMany({
+        select: { itemId: true, order: { select: { createdAt: true, status: true } } },
+      }),
     ]);
 
     // Per-item counters (events for deleted items are silently dropped).
@@ -122,6 +146,56 @@ export class AdminInsightsService {
       .filter((s) => s.cartExpired > 0 || s.favorites > 0)
       .sort((a, b) => b.cartExpired + b.favorites - (a.cartExpired + a.favorites));
 
-    return { totals, categories, topPassed, topWanted, abandoned };
+    // Days-to-sell: earliest non-void sale date per item − its listing date.
+    const itemCreated = new Map(items.map((i) => [i.id, i.createdAt]));
+    const itemCategory = new Map(items.map((i) => [i.id, i.category]));
+    const soldAt = new Map<string, Date>();
+    for (const l of soldLines) {
+      if (l.order.status === 'Annulée' || l.order.status === 'Retournée') continue;
+      const cur = soldAt.get(l.itemId);
+      if (!cur || l.order.createdAt < cur) soldAt.set(l.itemId, l.order.createdAt);
+    }
+    const daysAll: number[] = [];
+    const daysByCat = new Map<string, number[]>();
+    for (const [itemId, when] of soldAt) {
+      const created = itemCreated.get(itemId);
+      if (!created) continue;
+      const days = Math.max(0, Math.round((when.getTime() - created.getTime()) / DAY_MS));
+      daysAll.push(days);
+      const cat = itemCategory.get(itemId) ?? '—';
+      (daysByCat.get(cat) ?? daysByCat.set(cat, []).get(cat)!).push(days);
+    }
+
+    // Sell-through per category: sold / (sold + still-listed).
+    const sellAgg = new Map<string, { sold: number; listed: number }>();
+    for (const it of items) {
+      const a = sellAgg.get(it.category) ?? { sold: 0, listed: 0 };
+      if (it.status === 'sold') a.sold += 1;
+      else if (it.status === 'active' || it.status === 'draft') a.listed += 1;
+      sellAgg.set(it.category, a);
+    }
+    const sellThrough = [...sellAgg.entries()]
+      .map(([category, a]) => {
+        const denom = a.sold + a.listed;
+        return {
+          category,
+          sold: a.sold,
+          listed: a.listed,
+          rate: denom === 0 ? 0 : Math.round((a.sold / denom) * 100),
+          medianDaysToSell: median(daysByCat.get(category) ?? []),
+        };
+      })
+      .filter((c) => c.sold + c.listed > 0)
+      .sort((a, b) => b.rate - a.rate);
+
+    return {
+      totals,
+      categories,
+      topPassed,
+      topWanted,
+      abandoned,
+      sellThrough,
+      medianDaysToSell: median(daysAll),
+    };
   }
 }
