@@ -55,10 +55,9 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
     config != null &&
     ((config.freeDeliveryMinItems != null && itemCount >= config.freeDeliveryMinItems) ||
       (config.freeDeliveryMinTotal != null && itemsTotal >= config.freeDeliveryMinTotal));
-  const baseFee =
-    config && form.governorate
-      ? config.deliveryFees[form.governorate] ?? config.deliveryFee
-      : null;
+  // Per-governorate override, else the admin's default fee — so a price always
+  // shows, even before a governorate is picked.
+  const baseFee = config ? config.deliveryFees[form.governorate] ?? config.deliveryFee : null;
   const deliveryFee = config == null ? null : freeDelivery ? 0 : baseFee;
   const payable = itemsTotal + (deliveryFee ?? 0);
   // How many more pieces until free delivery (the bundle nudge).
@@ -268,10 +267,8 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
           <strong>
             {freeDelivery ? (
               <span className="checkout__delivery-free">Offerte 🚚</span>
-            ) : deliveryFee != null ? (
-              `${deliveryFee} TND`
             ) : (
-              '— selon le gouvernorat'
+              `${deliveryFee ?? 0} TND`
             )}
           </strong>
         </div>
