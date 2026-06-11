@@ -63,6 +63,17 @@ export function AdminOverview({ onAuthError }: Props) {
       sub: `${stats.collected.count} commande${stats.collected.count > 1 ? 's' : ''} payée${stats.collected.count > 1 ? 's' : ''}`,
       accent: true,
     },
+    {
+      label: 'Marge réalisée',
+      value: `${stats.margin.realized} TND`,
+      sub: `${stats.margin.gross} TND brute (toutes commandes)`,
+      accent: true,
+    },
+    {
+      label: 'Valeur du stock',
+      value: `${stats.margin.activeStockCost} TND`,
+      sub: `coût d'achat des pièces actives`,
+    },
     { label: 'Vendues', value: stats.items.sold ?? 0, sub: `${stats.items.draft ?? 0} brouillons` },
   ];
 

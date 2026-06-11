@@ -255,8 +255,8 @@ export function AdminItems({ onAuthError }: Props) {
             onClick={() =>
               downloadCsv(
                 'fripa-pieces.csv',
-                ['id', 'title', 'description', 'imageUrl', 'price', 'salePrice', 'size', 'brand', 'condition', 'color', 'seller', 'category', 'status'],
-                items.map((i) => [i.id, i.title, i.description, i.imageUrl, i.price, i.salePrice ?? '', i.size, i.brand, i.condition, i.color, i.seller, i.category, i.status]),
+                ['id', 'title', 'description', 'imageUrl', 'price', 'cost', 'salePrice', 'size', 'brand', 'condition', 'color', 'seller', 'category', 'status'],
+                items.map((i) => [i.id, i.title, i.description, i.imageUrl, i.price, i.cost ?? 0, i.salePrice ?? '', i.size, i.brand, i.condition, i.color, i.seller, i.category, i.status]),
               )
             }
           >

@@ -41,6 +41,7 @@ const EMPTY: ItemInput = {
   imageUrl: '',
   images: [],
   price: 0,
+  cost: 0,
   salePrice: null,
   size: 'M',
   brand: '',
@@ -60,6 +61,7 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
           imageUrl: initial.imageUrl,
           images: parseImages(initial.images),
           price: initial.price,
+          cost: initial.cost ?? 0,
           salePrice: initial.salePrice ?? null,
           size: initial.size,
           brand: initial.brand,
@@ -144,6 +146,7 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
       await onSave({
         ...form,
         price: Number(form.price),
+        cost: Number(form.cost ?? 0),
         salePrice: form.salePrice == null ? null : Number(form.salePrice),
         publishAt: publishLocal ? new Date(publishLocal).toISOString() : null,
       });
@@ -184,6 +187,25 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
                 value={form.price}
                 onChange={(e) => set('price', e.target.valueAsNumber || 0)}
               />
+            </label>
+
+            <label className="field">
+              <span className="field__label">Coût d'achat (TND)</span>
+              <input
+                className="filter-input"
+                type="number"
+                min={0}
+                value={form.cost ?? 0}
+                placeholder="souk"
+                onChange={(e) => set('cost', e.target.valueAsNumber || 0)}
+              />
+              {Number(form.cost) > 0 && Number(form.price) > 0 && (
+                <span className="muted">
+                  Marge : {Number(form.price) - Number(form.cost)} TND (
+                  {Math.round(((Number(form.price) - Number(form.cost)) / Number(form.price)) * 100)}
+                  %)
+                </span>
+              )}
             </label>
 
             <label className="field">

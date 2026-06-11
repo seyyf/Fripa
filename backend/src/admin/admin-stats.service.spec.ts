@@ -17,8 +17,16 @@ describe('AdminStatsService.summary', () => {
           { category: 'Maillots', _count: { _all: 5 } },
           { category: 'T-shirts', _count: { _all: 20 } },
         ]),
+        aggregate: vi.fn(async () => ({ _sum: { cost: 120 } })),
       },
       order: { findMany: vi.fn(async () => orders) },
+      orderLine: {
+        findMany: vi.fn(async () => [
+          { price: 30, cost: 10, order: { status: 'Livrée' } }, // realized + gross
+          { price: 50, cost: 20, order: { status: 'Nouvelle' } }, // gross only
+          { price: 99, cost: 5, order: { status: 'Annulée' } }, // voided → neither
+        ]),
+      },
     } as unknown as PrismaService;
 
     const s = await new AdminStatsService(prisma).summary();
@@ -34,6 +42,8 @@ describe('AdminStatsService.summary', () => {
     // delivered = only the "Livrée" order (30 TND), distinct from total revenue (80)
     expect(s.delivered).toEqual({ count: 1, revenue: 30 });
     expect(s.collected).toEqual({ count: 1, revenue: 30 }); // only the paid order
+    // margin: realized = (30−10)=20; gross = 20 + (50−20)=50; Annulée line excluded
+    expect(s.margin).toEqual({ gross: 50, realized: 20, activeStockCost: 120 });
 
     // sorted by count desc
     expect(s.topCategories[0]).toEqual({ category: 'T-shirts', count: 20 });

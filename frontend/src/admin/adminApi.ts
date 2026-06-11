@@ -24,6 +24,7 @@ export interface AdminItem {
   imageUrl: string;
   images?: string | null; // raw JSON array string from the DB
   price: number;
+  cost: number; // what the shop paid (souk price); powers margin
   salePrice?: number | null;
   size: string;
   brand: string;
@@ -39,9 +40,10 @@ export interface AdminItem {
 
 export type ItemInput = Omit<
   AdminItem,
-  'id' | 'createdAt' | 'updatedAt' | 'status' | 'images'
+  'id' | 'createdAt' | 'updatedAt' | 'status' | 'images' | 'cost'
 > & {
   status?: string;
+  cost?: number; // optional; defaults to 0 server-side
   images?: string[] | null; // sent as an array; stored as JSON server-side
 };
 
@@ -113,6 +115,7 @@ export interface AdminStats {
   orders: { total: number; revenue: number; today: number; revenueToday: number };
   delivered: { count: number; revenue: number };
   collected: { count: number; revenue: number };
+  margin: { gross: number; realized: number; activeStockCost: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
   revenueSeries: { date: string; revenue: number }[];

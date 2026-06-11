@@ -10,6 +10,9 @@ export interface AdminStats {
   delivered: { count: number; revenue: number };
   // Cash actually in hand: orders flagged paid (COD collected).
   collected: { count: number; revenue: number };
+  // Margin = sold-line revenue − snapshotted cost. `realized` counts only
+  // delivered orders; `gross` counts every placed order's lines.
+  margin: { gross: number; realized: number; activeStockCost: number };
   ordersByStatus: Record<string, number>;
   topCategories: { category: string; count: number }[];
   // Daily gross revenue for the last 90 days (oldest → newest).
@@ -25,7 +28,7 @@ export class AdminStatsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async summary(): Promise<AdminStats> {
-    const [total, byStatus, orders, grouped] = await Promise.all([
+    const [total, byStatus, orders, grouped, lines, activeCost] = await Promise.all([
       this.prisma.item.count(),
       Promise.all(
         ITEM_STATUSES.map(async (s) => [s, await this.prisma.item.count({ where: { status: s } })] as const),
@@ -36,6 +39,11 @@ export class AdminStatsService {
         where: { status: 'active' },
         _count: { _all: true },
       }),
+      // Sold-line margin needs each line's price + cost and its order's status.
+      this.prisma.orderLine.findMany({
+        select: { price: true, cost: true, order: { select: { status: true } } },
+      }),
+      this.prisma.item.aggregate({ _sum: { cost: true }, where: { status: 'active' } }),
     ]);
 
     const items: AdminStats['items'] = { total };
@@ -53,6 +61,16 @@ export class AdminStatsService {
     const topCategories = grouped
       .map((g) => ({ category: g.category, count: g._count._all }))
       .sort((a, b) => b.count - a.count);
+
+    // Margin from snapshotted line cost. Voided orders don't count toward gross.
+    const VOID = new Set(['Annulée', 'Retournée']);
+    let grossMargin = 0;
+    let realizedMargin = 0;
+    for (const l of lines) {
+      const m = l.price - l.cost;
+      if (!VOID.has(l.order.status)) grossMargin += m;
+      if (l.order.status === 'Livrée') realizedMargin += m;
+    }
 
     // Bucket order revenue by local day, then emit a continuous last-90-days series.
     const buckets = new Map<string, number>();
@@ -83,6 +101,11 @@ export class AdminStatsService {
       collected: {
         count: collectedOrders.length,
         revenue: collectedOrders.reduce((sum, o) => sum + o.total, 0),
+      },
+      margin: {
+        gross: grossMargin,
+        realized: realizedMargin,
+        activeStockCost: activeCost._sum.cost ?? 0,
       },
       ordersByStatus,
       topCategories,

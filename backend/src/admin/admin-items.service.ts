@@ -10,6 +10,7 @@ export interface ItemInput {
   imageUrl: string;
   images?: string[] | null;
   price: number;
+  cost?: number; // what the shop paid (souk price); powers margin
   salePrice?: number | null;
   size: string;
   brand: string;
@@ -117,6 +118,7 @@ export class AdminItemsService {
         description: o.description,
         imageUrl: o.imageUrl,
         price: Number(o.price),
+        cost: o.cost === '' || o.cost == null ? undefined : Number(o.cost),
         salePrice: o.salePrice === '' || o.salePrice == null ? null : Number(o.salePrice),
         size: o.size,
         brand: o.brand,
@@ -243,6 +245,15 @@ export class AdminItemsService {
         throw new BadRequestException('Le prix doit être un entier positif.');
       }
       out.price = p;
+    }
+
+    // cost: optional (defaults to 0); validated when provided.
+    if (input.cost !== undefined) {
+      const c = input.cost;
+      if (typeof c !== 'number' || !Number.isInteger(c) || c < 0) {
+        throw new BadRequestException('Le coût doit être un entier positif ou vide.');
+      }
+      out.cost = c;
     }
 
     // images: undefined → leave as-is; array → store as JSON (filtered, trimmed).
