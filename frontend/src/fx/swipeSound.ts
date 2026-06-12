@@ -84,9 +84,13 @@ export function playSwipeSound(action: SoundAction): void {
       src.start(t);
       src.stop(t + 0.32);
     } else if (action === 'keep') {
-      // Upbeat "pop-ding" — a rising blip with a bright harmonic on top.
-      note(ac, { type: 'triangle', from: 392, to: 587, at: t, dur: 0.14, peak: 0.9 });
-      note(ac, { type: 'sine', from: 1175, at: t + 0.06, dur: 0.18, peak: 0.5 });
+      // "Cha-ching" win — the classic two-step coin ping (B5 → E6) riding a
+      // warm rising swell, with a faint octave shimmer on the tail. Reads as
+      // "you just scored that piece".
+      note(ac, { type: 'triangle', from: 523, to: 784, at: t, dur: 0.13, peak: 0.7 }); // warm rise
+      note(ac, { type: 'square', from: 988, at: t, dur: 0.08, peak: 0.26 }); // coin ping (B5)
+      note(ac, { type: 'square', from: 1319, at: t + 0.08, dur: 0.34, peak: 0.3 }); // win tail (E6)
+      note(ac, { type: 'sine', from: 1976, at: t + 0.1, dur: 0.28, peak: 0.18 }); // shimmer (B6)
     } else {
       // Star sparkle — a quick ascending major arpeggio.
       note(ac, { type: 'sine', from: 1047, at: t, dur: 0.12, peak: 0.55 }); // C6
