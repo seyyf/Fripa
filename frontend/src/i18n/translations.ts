@@ -23,6 +23,8 @@ export const STRINGS = {
   'deck.keep': { fr: 'Garder', ar: 'احتفظ', en: 'Keep' },
   'deck.favorite': { fr: 'Favori', ar: 'مفضّل', en: 'Favorite' },
   'deck.undo': { fr: '↩ Reviens', ar: '↩ تراجع', en: '↩ Undo' },
+  'deck.prevPhoto': { fr: 'Photo précédente', ar: 'الصورة السابقة', en: 'Previous photo' },
+  'deck.nextPhoto': { fr: 'Photo suivante', ar: 'الصورة التالية', en: 'Next photo' },
   'deck.filter': { fr: '⚙ Filtrer', ar: '⚙ تصفية', en: '⚙ Filter' },
   'deck.hint': {
     fr: '← Passer · → Garder · ↑ Favori · ou utilise les boutons.',
@@ -46,6 +48,11 @@ export const STRINGS = {
     fr: 'Ou utilise les boutons sous la carte.',
     ar: 'أو استعمل الأزرار تحت البطاقة.',
     en: 'Or use the buttons under the card.',
+  },
+  'coach.photos': {
+    fr: '💡 Tape la photo pour voir les autres angles.',
+    ar: '💡 انقر على الصورة لرؤية زوايا أخرى.',
+    en: '💡 Tap the photo to see other angles.',
   },
   'coach.cta': { fr: 'C’est parti →', ar: 'هيا بنا →', en: 'Let’s go →' },
 

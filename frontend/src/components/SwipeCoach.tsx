@@ -43,6 +43,7 @@ export function SwipeCoach() {
           ))}
         </ul>
         <p className="coach__note">{t('coach.note')}</p>
+        <p className="coach__note">{t('coach.photos')}</p>
         <button className="btn btn--add btn--wide" onClick={dismiss}>
           {t('coach.cta')}
         </button>

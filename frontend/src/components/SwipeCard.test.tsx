@@ -49,6 +49,41 @@ describe('SwipeCard', () => {
     expect(onFavorite).toHaveBeenCalledWith(item);
   });
 
+  it('cycles photo angles on tap (with wrap-around) without firing a decision', async () => {
+    const onKeep = vi.fn();
+    const onPass = vi.fn();
+    const multi = {
+      ...item,
+      images: ['https://example.test/b.jpg', 'https://example.test/c.jpg'],
+    };
+    const { container } = render(
+      <SwipeCard item={multi} onKeep={onKeep} onPass={onPass} onFavorite={noop} />,
+    );
+    const bg = () =>
+      (container.querySelector('.swipe-card__image') as HTMLElement).style.backgroundImage;
+
+    expect(bg()).toContain('x.jpg'); // cover first
+    expect(container.querySelectorAll('.swipe-card__segment')).toHaveLength(3);
+
+    await userEvent.click(screen.getByRole('button', { name: /Photo suivante/i }));
+    expect(bg()).toContain('b.jpg');
+    await userEvent.click(screen.getByRole('button', { name: /Photo précédente/i }));
+    expect(bg()).toContain('x.jpg');
+    await userEvent.click(screen.getByRole('button', { name: /Photo précédente/i }));
+    expect(bg()).toContain('c.jpg'); // wraps backward to the last angle
+
+    expect(onKeep).not.toHaveBeenCalled();
+    expect(onPass).not.toHaveBeenCalled();
+  });
+
+  it('shows no tap zones or segments for single-photo pieces', () => {
+    const { container } = render(
+      <SwipeCard item={item} onKeep={noop} onPass={noop} onFavorite={noop} />,
+    );
+    expect(screen.queryByRole('button', { name: /Photo suivante/i })).not.toBeInTheDocument();
+    expect(container.querySelector('.swipe-card__segment')).not.toBeInTheDocument();
+  });
+
   it('renders the Dernière chance banner only when lastChance is set', () => {
     const { rerender } = render(
       <SwipeCard item={item} onKeep={noop} onPass={noop} onFavorite={noop} />,

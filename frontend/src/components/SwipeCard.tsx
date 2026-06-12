@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { effectivePrice, isOnSale, type FieldItem } from '../types';
 import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
@@ -30,6 +30,30 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
   ref,
 ) {
   const { t } = useT();
+
+  // --- Photo angles (Tinder pattern: tap to change angle, drag to decide) ---
+  // Cover first, then the extra angles; empty/duplicate URLs dropped.
+  const photos = useMemo(() => {
+    const all = [item.imageUrl, ...(item.images ?? [])].filter(Boolean);
+    return [...new Set(all)];
+  }, [item.imageUrl, item.images]);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  // Preload the other angles as soon as this card is on top, so taps swap
+  // with zero flash.
+  useEffect(() => {
+    for (const url of photos.slice(1)) {
+      const img = new Image();
+      img.src = url;
+    }
+  }, [photos]);
+  // A tap is only a tap if the card didn't move: while a drag is in flight we
+  // swallow the click the browser fires on release.
+  const draggingRef = useRef(false);
+  function cyclePhoto(dir: 1 | -1) {
+    if (draggingRef.current || photos.length < 2) return;
+    setPhotoIndex((i) => (i + dir + photos.length) % photos.length);
+  }
+
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   // Z-rotation is derived from x with NO clamp: the exit throw pushes x far
@@ -80,6 +104,11 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
   }
 
   function handleDragEnd(_: unknown, info: PanInfo) {
+    // Clear AFTER the click the browser fires on release, so a drag never
+    // doubles as a photo tap.
+    setTimeout(() => {
+      draggingRef.current = false;
+    }, 0);
     // Project the release velocity forward so a flick counts as a swipe.
     const projected = {
       x: info.offset.x + info.velocity.x * VELOCITY_PROJECTION,
@@ -101,6 +130,9 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
       style={{ x, y, rotate, rotateX, rotateY }}
       drag
       dragMomentum={false}
+      onDragStart={() => {
+        draggingRef.current = true;
+      }}
       onDragEnd={handleDragEnd}
       initial={
         reducedMotion
@@ -155,8 +187,35 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
 
       <div
         className="swipe-card__image"
-        style={{ backgroundImage: `url(${item.imageUrl})` }}
+        style={{ backgroundImage: `url(${photos[photoIndex]})` }}
       >
+        {photos.length > 1 && (
+          <>
+            {/* Segment bars: which angle you're on (stories pattern). */}
+            <div className="swipe-card__segments" aria-hidden="true">
+              {photos.map((url, i) => (
+                <span
+                  key={url}
+                  className={`swipe-card__segment ${i === photoIndex ? 'swipe-card__segment--on' : ''}`}
+                />
+              ))}
+            </div>
+            {/* Invisible halves: tap left/right to change angle. Drags pass
+                through to the card; a drag-release click is swallowed. */}
+            <button
+              type="button"
+              className="swipe-card__tap swipe-card__tap--prev"
+              aria-label={t('deck.prevPhoto')}
+              onClick={() => cyclePhoto(-1)}
+            />
+            <button
+              type="button"
+              className="swipe-card__tap swipe-card__tap--next"
+              aria-label={t('deck.nextPhoto')}
+              onClick={() => cyclePhoto(1)}
+            />
+          </>
+        )}
         {/* Raking light that follows the tilt. */}
         <motion.span
           className="swipe-card__glare"
