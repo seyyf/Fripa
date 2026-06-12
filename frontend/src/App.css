@@ -100,6 +100,16 @@ body {
   background: rgba(224, 35, 26, 0.16);
 }
 
+/* The card throw flies ~800px past the right edge; without this the page
+   widens and flashes a horizontal scrollbar mid-animation. `clip` (unlike
+   `hidden`) creates no scroll container, so the sticky header keeps working;
+   the `hidden` line is the fallback for older browsers. */
+html,
+body {
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
 .app {
   max-width: none;
   margin: 0 auto;
