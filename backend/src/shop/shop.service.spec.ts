@@ -370,22 +370,22 @@ describe('ShopService.undo', () => {
     expect(s.getField('u1', 60).items.some((i) => i.id === 't-001')).toBe(true);
   });
 
-  it('undoing a keep removes it from the cart', () => {
+  it('a keep is NOT undoable — the piece stays in the cart', () => {
     const s = new ShopService();
     s.addToCart('u1', 't-001');
-    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(true);
 
     const res = s.undo('u1');
-    expect(res.undone?.action).toBe('keep');
-    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+    expect(res.undone).toBeNull();
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(true);
   });
 
-  it('undoing a favorite removes it from favorites', () => {
+  it('a favorite is NOT undoable — the piece stays in favorites', () => {
     const s = new ShopService();
     s.addFavorite('u1', 't-001');
+
     const res = s.undo('u1');
-    expect(res.undone?.action).toBe('favorite');
-    expect(s.getFavorites('u1').lines.some((l) => l.id === 't-001')).toBe(false);
+    expect(res.undone).toBeNull();
+    expect(s.getFavorites('u1').lines.some((l) => l.id === 't-001')).toBe(true);
   });
 
   it('returns null when there is nothing to undo', () => {
@@ -393,13 +393,19 @@ describe('ShopService.undo', () => {
     expect(s.undo('u1').undone).toBeNull();
   });
 
-  it('undoes actions in reverse order, one per hour', () => {
+  it('skips keeps/favorites and only ever brings back passes, in reverse order', () => {
     const { s, advance } = withClock(0);
-    s.addToCart('u1', 't-001');
-    s.addFavorite('u1', 't-002');
-    expect(s.undo('u1').undone?.action).toBe('favorite');
+    s.pass('u1', 't-001');
+    s.addToCart('u1', 't-002');
+    s.pass('u1', 't-003');
+    s.addFavorite('u1', 't-004');
+    expect(s.undo('u1').undone?.item.id).toBe('t-003');
+    // The deliberate saves were untouched (checked before the clock jump —
+    // the cart hold legitimately lapses after its 10-minute TTL).
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-002')).toBe(true);
     advance(60 * 60 * 1000 + 1); // next hour
-    expect(s.undo('u1').undone?.action).toBe('keep');
+    expect(s.undo('u1').undone?.item.id).toBe('t-001');
+    expect(s.getFavorites('u1').lines.some((l) => l.id === 't-004')).toBe(true);
   });
 
   it('allows one undo, then rate-limits within the hour', () => {
@@ -433,9 +439,9 @@ describe('ShopService.undo', () => {
     const s = new ShopService();
     s.addFavorite('u1', 't-001');
     s.moveFavoriteToCart('u1', 't-001');
-    // The only undoable action is the original favorite, not the move.
-    expect(s.undo('u1').undone?.action).toBe('favorite');
+    // Neither the favorite nor the move is undoable — only passes are.
     expect(s.undo('u1').undone).toBeNull();
+    expect(s.getCart('u1').lines.some((l) => l.id === 't-001')).toBe(true);
   });
 });
 

@@ -174,7 +174,6 @@ export default function App() {
     dropTop(item.id);
     try {
       setCart(await api.add(item.id));
-      setHistoryCount((c) => c + 1);
       flash(`Ajouté au panier — ${item.title}`);
     } catch (e) {
       console.error('keep failed', e);
@@ -206,7 +205,6 @@ export default function App() {
       await api.favorite(item.id);
       if (user) await accountApi.addFavorite(item.id);
       await refreshFavorites();
-      setHistoryCount((c) => c + 1);
       flash(`Gardé pour plus tard — ${item.title} ⭐`);
     } catch (e) {
       console.error('favorite failed', e);
@@ -228,13 +226,11 @@ export default function App() {
         setHistoryCount(0);
         return;
       }
-      const { action, item } = res.undone;
+      const { item } = res.undone; // always a pass — keeps/favorites aren't undoable
       setHistoryCount((c) => Math.max(0, c - 1));
       // The piece is available again — drop it back on top of the deck.
       restore({ ...item, lastChance: false });
       setOutOfCards(false);
-      if (action === 'keep') await refreshCart();
-      if (action === 'favorite') await refreshFavorites();
       flash(`Reviens ! — ${item.title}`);
     } catch (e) {
       console.error('undo failed', e);
@@ -403,7 +399,7 @@ export default function App() {
                   className="toolbar-btn"
                   onClick={handleUndo}
                   disabled={historyCount === 0}
-                  title="Annule ton dernier swipe — 1 fois par heure"
+                  title="Reprends la dernière pièce passée (swipe gauche) — 1 fois par heure"
                 >
                   {t('deck.undo')}
                 </button>

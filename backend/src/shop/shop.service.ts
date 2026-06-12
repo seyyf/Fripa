@@ -304,12 +304,14 @@ export class ShopService {
     this.getItem(itemId);
     this.assertCanHold(s, itemId);
     this.cartAdd(userId, s, itemId);
-    s.history.push({ action: 'keep', itemId });
+    // Deliberately NOT recorded in the undo history: "Reviens !" only brings
+    // back passed pieces — cart/favorites have their own removal flows.
     return this.getCart(userId);
   }
 
-  // Reverse the most recent swipe. Returns the restored item so the client can
-  // drop it back on top of the deck. See feature "Reviens !".
+  // Bring back the most recent PASSED piece (the only regrettable swipe —
+  // cart and favorites are deliberate saves with their own removal flows).
+  // Returns the restored item so the client can drop it back on the deck.
   undo(userId: string): {
     undone: { action: SwipeAction; item: TShirt } | null;
     rateLimited?: boolean;
@@ -321,19 +323,13 @@ export class ShopService {
     if (s.lastUndoAt != null && now - s.lastUndoAt < UNDO_COOLDOWN_MS) {
       return { undone: null, rateLimited: true, retryAfterMs: s.lastUndoAt + UNDO_COOLDOWN_MS - now };
     }
-    const last = s.history.pop();
+    const last = s.history.pop(); // history only ever records passes
     if (!last) return { undone: null };
     const { action, itemId } = last;
-    if (action === 'keep') {
-      s.cart.delete(itemId); // one-off piece — no quantities
-    } else if (action === 'favorite') {
-      s.favorites.delete(itemId);
-    } else {
-      // pass — make it eligible for the deck again, whatever the dice did.
-      s.passed.delete(itemId);
-      s.lastChancePool.delete(itemId);
-      s.shownLastChance.delete(itemId);
-    }
+    // Make it eligible for the deck again, whatever the dice did.
+    s.passed.delete(itemId);
+    s.lastChancePool.delete(itemId);
+    s.shownLastChance.delete(itemId);
     s.lastUndoAt = now; // start the hourly cooldown
     return { undone: { action, item: this.getItem(itemId) } };
   }
@@ -375,9 +371,9 @@ export class ShopService {
     this.getItem(itemId); // validate
     if (!s.favorites.has(itemId)) this.swipeLog?.log(userId, itemId, 'favorite');
     s.favorites.add(itemId);
-    // Like the cart, favoriting cancels any pending reprise.
+    // Like the cart, favoriting cancels any pending reprise. Not undoable —
+    // un-starring the drawer is the way back.
     s.lastChancePool.delete(itemId);
-    s.history.push({ action: 'favorite', itemId });
     return this.getFavorites(userId);
   }
 
