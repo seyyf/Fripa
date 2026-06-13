@@ -9,6 +9,7 @@ import { RecentlyViewed } from './RecentlyViewed';
 import { formatHold } from '../cart/holdTimer';
 import { usePhantomCrowd } from '../crowd/usePhantomCrowd';
 import { FilterDrawer } from './FilterDrawer';
+import { getSizeProfile, setSizeProfile, sizesEqual, useSizeProfile } from '../filters/sizeProfile';
 import { Modal } from './Modal';
 import { ProductDetailContent } from './ProductDetailContent';
 import { DropBanner } from './DropBanner';
@@ -37,7 +38,11 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
   const [items, setItems] = useState<CatalogueItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
-  const [filters, setFilters] = useState<FieldFilters>({});
+  // Seed from the anonymous size profile (shared with the deck, no login).
+  const [filters, setFilters] = useState<FieldFilters>(() => {
+    const s = getSizeProfile();
+    return s.length ? { sizes: s } : {};
+  });
   const [filterOpen, setFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -76,6 +81,17 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
   useEffect(() => {
     api.categories().then(setCategories).catch(() => {});
   }, []);
+
+  // Adopt size-profile changes made elsewhere (deck / first-run prompt). The
+  // load effect above reruns when `filters` changes, refreshing the floor.
+  const sizeProfile = useSizeProfile();
+  useEffect(() => {
+    setFilters((f) =>
+      sizesEqual(sizeProfile, f.sizes)
+        ? f
+        : { ...f, sizes: sizeProfile.length ? sizeProfile : undefined },
+    );
+  }, [sizeProfile]);
 
   // Tick every second: update countdowns + release any hold that has lapsed
   // (the piece un-blurs and becomes grabbable again).
@@ -388,10 +404,12 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
         filters={filters}
         onApply={(f) => {
           setFilters(f);
+          setSizeProfile(f.sizes ?? []); // remember the size choice (no login)
           setFilterOpen(false);
         }}
         onClear={() => {
           setFilters({});
+          setSizeProfile([]);
           setFilterOpen(false);
         }}
         onClose={() => setFilterOpen(false)}

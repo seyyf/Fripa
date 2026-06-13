@@ -56,6 +56,15 @@ export const STRINGS = {
   },
   'coach.cta': { fr: 'C’est parti →', ar: 'هيا بنا →', en: 'Let’s go →' },
 
+  'size.title': { fr: 'Quelle est ta taille ?', ar: 'ما هو مقاسك؟', en: "What's your size?" },
+  'size.text': {
+    fr: 'On t’affiche d’abord ce qui te va — pas besoin de compte. Modifiable quand tu veux.',
+    ar: 'نعرض لك أولاً ما يناسبك — بدون حساب. يمكنك تغييره وقتما تشاء.',
+    en: 'We’ll show what fits you first — no account needed. Change it anytime.',
+  },
+  'size.all': { fr: 'Toutes les tailles', ar: 'كل المقاسات', en: 'All sizes' },
+  'size.save': { fr: 'C’est bon', ar: 'تمّ', en: 'Done' },
+
   'home.badge': { fr: '🇹🇳 Friperie en ligne', ar: '🇹🇳 ملابس مستعملة أونلاين', en: '🇹🇳 Online thrift' },
   'home.tagline': {
     fr: 'Le vide-dressing tunisien qui file vite. Tu swipes, tu gardes, tu chines.',

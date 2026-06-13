@@ -12,7 +12,15 @@ import type {
   TShirt,
 } from './types';
 import { activeFilterCount } from './filters/fieldQuery';
+import {
+  getSizeProfile,
+  setSizeProfile,
+  sizesEqual,
+  useSizeProfile,
+  type Size,
+} from './filters/sizeProfile';
 import { holdState } from './cart/holdTimer';
+import { SizePrompt } from './components/SizePrompt';
 import { SwipeDeck } from './components/SwipeDeck';
 import { SwipeCoach } from './components/SwipeCoach';
 import { QuickFilters } from './components/QuickFilters';
@@ -46,7 +54,11 @@ export default function App() {
   const [deck, setDeck] = useState<FieldItem[]>([]);
   const [cart, setCart] = useState<CartResponse>({ lines: [], total: 0 });
   const [favorites, setFavorites] = useState<FavoritesResponse>({ lines: [] });
-  const [filters, setFilters] = useState<FieldFilters>({});
+  // Seed the deck filter from the saved size profile (anonymous, no login).
+  const [filters, setFilters] = useState<FieldFilters>(() => {
+    const s = getSizeProfile();
+    return s.length ? { sizes: s } : {};
+  });
   const [cartOpen, setCartOpen] = useState(false);
   const [favOpen, setFavOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -312,11 +324,14 @@ export default function App() {
     }
   }
 
-  // Replace the deck with a fresh batch under a new filter set.
+  // Replace the deck with a fresh batch under a new filter set. The chosen
+  // sizes are mirrored to the anonymous size profile so they stick across
+  // visits/devices with no login.
   const reloadDeck = useCallback(
     async (next: FieldFilters) => {
       filtersRef.current = next;
       setFilters(next);
+      setSizeProfile((next.sizes as Size[] | undefined) ?? []);
       deckRef.current = [];
       setDeck([]);
       setOutOfCards(false);
@@ -330,6 +345,19 @@ export default function App() {
     setFilterOpen(false);
     void reloadDeck({});
   };
+
+  // Keep the deck in sync if the size profile changes elsewhere (e.g. from the
+  // catalogue or the first-run prompt). Guarded so it never loops with the
+  // mirror above.
+  const sizeProfile = useSizeProfile();
+  useEffect(() => {
+    if (!sizesEqual(sizeProfile, filtersRef.current.sizes)) {
+      void reloadDeck({
+        ...filtersRef.current,
+        sizes: sizeProfile.length ? sizeProfile : undefined,
+      });
+    }
+  }, [sizeProfile, reloadDeck]);
 
   async function refresh(opts: { keepCart: boolean }) {
     if (opts.keepCart) {
@@ -413,6 +441,7 @@ export default function App() {
               </div>
 
               <QuickFilters filters={filters} onApply={applyFilters} />
+              <SizePrompt />
 
               {showEmpty ? (
                 filteredEmpty ? (
