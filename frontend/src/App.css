@@ -2522,10 +2522,18 @@ body {
 
   /* Swipe deck — fit the whole card in the viewport so there's no page scroll
      (the card captures touch for dragging, so scrolling past it is painful).
-     dvh tracks the real visible height as the iOS address bar shows/hides. */
+     Instead of guessing the chrome height, lock the shop screen to the visible
+     viewport and let flex hand the leftover space to the card — adapts to ANY
+     phone (header that wraps, address bar showing/hiding, font scaling…).
+     `:has(.stage)` matches only the shop route, so other pages still scroll. */
+  .app:has(.stage) {
+    height: 100dvh;
+    overflow: hidden;
+  }
   .stage {
     padding: 8px 10px 6px;
     gap: 8px;
+    min-height: 0; /* allow the column to shrink to the locked height */
   }
   .shop-toolbar {
     max-width: 100%;
@@ -2545,8 +2553,9 @@ body {
   .quickfilters__sep {
     flex: 0 0 auto;
   }
-  /* The deck takes the leftover height; the card fills it. */
+  /* The deck takes all leftover height in the column; the card fills the deck. */
   .deck {
+    flex: 1 1 auto;
     min-height: 0;
     perspective: 900px;
   }
@@ -2558,9 +2567,7 @@ body {
   .swipe-card {
     display: flex;
     flex-direction: column;
-    /* Fixed height = viewport − chrome, so the flex photo has room to fill and
-       the whole card lands on screen without page scroll. */
-    height: calc(100dvh - 236px); /* ≈ header + toolbar + chips + hint + gaps */
+    height: 100%; /* fill the deck; the photo (flex) absorbs the leftover space */
   }
   /* Photo fills the remaining card height instead of forcing a tall 3:4 box. */
   .swipe-card__image {
