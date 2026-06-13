@@ -878,6 +878,8 @@ body {
   border: 2px solid #eee2cf;
   background: #fff;
   font-size: 22px;
+  line-height: 1; /* center the glyph vertically (emoji baselines run low) */
+  padding: 0;
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -2518,12 +2520,70 @@ body {
     padding: 8px 12px;
   }
 
-  /* Swipe deck */
+  /* Swipe deck — fit the whole card in the viewport so there's no page scroll
+     (the card captures touch for dragging, so scrolling past it is painful).
+     dvh tracks the real visible height as the iOS address bar shows/hides. */
   .stage {
-    padding: 12px 12px 18px;
+    padding: 8px 10px 6px;
+    gap: 8px;
   }
   .shop-toolbar {
     max-width: 100%;
+  }
+  /* Quick-filter chips: one horizontally-scrollable row, not two wrapped ones,
+     to claw back vertical space for the card. */
+  .quickfilters__chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .quickfilters__chips::-webkit-scrollbar {
+    display: none;
+  }
+  .quickfilters__chips .chip,
+  .quickfilters__sep {
+    flex: 0 0 auto;
+  }
+  /* The deck takes the leftover height; the card fills it. */
+  .deck {
+    min-height: 0;
+    perspective: 900px;
+  }
+  /* Decorative stacked peeks assume a 3:4 card; with a flexible-height card on
+     mobile they'd poke out, so drop them here. */
+  .deck__peek {
+    display: none;
+  }
+  .swipe-card {
+    display: flex;
+    flex-direction: column;
+    /* Fixed height = viewport − chrome, so the flex photo has room to fill and
+       the whole card lands on screen without page scroll. */
+    height: calc(100dvh - 236px); /* ≈ header + toolbar + chips + hint + gaps */
+  }
+  /* Photo fills the remaining card height instead of forcing a tall 3:4 box. */
+  .swipe-card__image {
+    aspect-ratio: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .swipe-card__body {
+    padding: 10px 16px 2px;
+  }
+  /* Description lives on the detail page; hide it on the card to save height. */
+  .swipe-card__desc {
+    display: none;
+  }
+  .swipe-card__meta {
+    margin-bottom: 6px;
+  }
+  .swipe-card__actions {
+    padding: 8px 16px 12px;
+    gap: 16px;
+  }
+  .hint {
+    margin: 0;
   }
 
   /* Home — tighten the bands */
