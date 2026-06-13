@@ -13,8 +13,16 @@ import type {
   TShirt,
 } from './types';
 import { buildFieldQuery } from './filters/fieldQuery';
+import { mockFetch } from './demo/mockApi';
 
 const BASE = '/api';
+
+// DEMO MODE: if no backend is reachable (e.g. the Netlify frontend with no API),
+// fall back to an in-browser mock so the whole UI stays usable. Latched on the
+// first failed call. Never active under tests (which stub the api module).
+const DEMO_ALLOWED = import.meta.env.MODE !== 'test';
+let demoMode = false;
+export const isDemoMode = () => demoMode;
 
 function userId() {
   let id = localStorage.getItem('fripa-user');
@@ -26,10 +34,33 @@ function userId() {
 }
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(BASE + path, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-  });
+  if (demoMode) return mockFetch<T>(path, init);
+
+  let res: Response;
+  try {
+    res = await fetch(BASE + path, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+    });
+  } catch {
+    // Transport failure — no backend reachable. Switch to the in-browser demo.
+    if (DEMO_ALLOWED) {
+      demoMode = true;
+      return mockFetch<T>(path, init);
+    }
+    throw new Error('Réseau indisponible.');
+  }
+
+  // No backend deployed → /api/* hit the SPA fallback and returned HTML.
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    if (DEMO_ALLOWED) {
+      demoMode = true;
+      return mockFetch<T>(path, init);
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
+
   if (!res.ok) {
     // Surface the server's message (e.g. the cart-hold cap) when there is one.
     let message = '';
