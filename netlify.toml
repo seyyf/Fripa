@@ -1,0 +1,29 @@
+# Netlify build config. The deployable app is the Vite frontend in `frontend/`;
+# the NestJS API in `backend/` is hosted separately (see the /api proxy below).
+[build]
+  base = "frontend"          # run the build inside frontend/
+  command = "npm run build"  # tsc -b && vite build
+  publish = "dist"           # relative to base → frontend/dist
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# --- API proxy -------------------------------------------------------------
+# The frontend calls same-origin "/api/*". Netlify only hosts the static site,
+# so forward those calls to the deployed backend. Deploy backend/ somewhere
+# (Render, Railway, Fly…), then replace the host below and uncomment.
+# This MUST come before the SPA catch-all so /api isn't swallowed by it.
+#
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://YOUR-BACKEND-HOST/api/:splat"
+#   status = 200
+#   force = true
+
+# --- SPA fallback ----------------------------------------------------------
+# Client-side routing: serve index.html for any path that isn't a real file,
+# so deep links and refreshes work (e.g. /catalogue, /piece/123, /suivi).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
