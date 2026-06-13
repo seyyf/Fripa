@@ -2460,37 +2460,53 @@ body {
 
 /* ---------- Responsive: small screens ---------- */
 @media (max-width: 600px) {
-  /* Header — keep it to two compact rows */
+  /* Header — compact two-row bar (logo + controls, then nav) so it doesn't
+     eat the screen, with a tighter control cluster that won't crowd the logo. */
   .app-header__inner {
-    padding: 10px 14px;
-    gap: 6px 8px;
+    padding: 7px 12px;
+    gap: 4px 6px;
+  }
+  .logo {
+    gap: 8px;
   }
   .logo p {
     display: none;
   }
   .logo h1 {
-    font-size: 19px;
+    font-size: 18px;
   }
   .logo__mark {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+    border-radius: 10px;
   }
   .app-nav {
     order: 3;
     width: 100%;
     justify-content: center;
     gap: 2px;
+    margin-top: 1px;
   }
   .nav-link {
     font-size: 13px;
-    padding: 6px 10px;
+    padding: 5px 8px;
+    margin: 0 3px;
+  }
+  /* Control cluster: smaller, evenly-spaced, single row. */
+  .header-actions {
+    gap: 5px;
   }
   .cart-btn,
   .ghost-btn {
-    padding: 8px 10px;
-    font-size: 16px;
-    border-radius: 12px;
+    padding: 6px 8px;
+    font-size: 15px;
+    border-radius: 11px;
+  }
+  .lang-switch__btn {
+    padding: 3px 6px;
+    font-size: 11px;
+    min-width: 20px;
   }
 
   /* Catalogue / live floor */
