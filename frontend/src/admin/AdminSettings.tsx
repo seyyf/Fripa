@@ -237,6 +237,22 @@ export function AdminSettings({ onAuthError }: Props) {
       </div>
 
       <div className="admin-panel">
+        <h2 className="admin-panel__title">🎟️ Codes promo</h2>
+        <label className="field admin-promo-active">
+          <input
+            type="checkbox"
+            checked={config.promoEnabled}
+            onChange={(e) => set('promoEnabled', e.target.checked)}
+          />
+          <span className="field__label">Afficher le champ « Code promo » au checkout</span>
+        </label>
+        <p className="muted admin-settings__hint">
+          Décoche pour masquer le champ partout au checkout. Les codes se gèrent dans l'onglet
+          Promos ; ceci contrôle seulement leur visibilité côté client.
+        </p>
+      </div>
+
+      <div className="admin-panel">
         <h2 className="admin-panel__title">💬 WhatsApp boutique</h2>
         <div className="admin-form__grid">
           <label className="field admin-form__wide">

@@ -54,6 +54,9 @@ export interface ShopConfig {
   // TND off; the referrer earns one free-delivery credit per delivered referral.
   referralEnabled: boolean;
   referralRefereeDiscount: number;
+  // Show the "Code promo" field at checkout. Off hides the field everywhere
+  // (existing codes still validate if one is somehow submitted).
+  promoEnabled: boolean;
 }
 
 export const DEFAULT_CONFIG: ShopConfig = {
@@ -68,6 +71,7 @@ export const DEFAULT_CONFIG: ShopConfig = {
   loyaltyThreshold: 5,
   referralEnabled: false,
   referralRefereeDiscount: 5,
+  promoEnabled: true, // promos have always been on; default preserves that
 };
 
 const CONFIG_KEY = 'shop-config';
@@ -84,6 +88,7 @@ export interface PublicShopConfig {
   loyaltyThreshold: number;
   referralEnabled: boolean;
   referralRefereeDiscount: number;
+  promoEnabled: boolean;
 }
 
 // Shop configuration persisted in the Setting table (one JSON row), cached in
@@ -122,6 +127,7 @@ export class SettingsService {
       loyaltyThreshold: c.loyaltyThreshold,
       referralEnabled: c.referralEnabled,
       referralRefereeDiscount: c.referralRefereeDiscount,
+      promoEnabled: c.promoEnabled,
     };
   }
 
@@ -191,7 +197,7 @@ export class SettingsService {
         out[key] = v.trim();
       }
     }
-    for (const key of ['loyaltyEnabled', 'referralEnabled'] as const) {
+    for (const key of ['loyaltyEnabled', 'referralEnabled', 'promoEnabled'] as const) {
       if (patch[key] !== undefined) out[key] = !!patch[key];
     }
     if (patch.loyaltyThreshold !== undefined) {

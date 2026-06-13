@@ -90,6 +90,7 @@ export interface ShopConfig {
   loyaltyThreshold: number;
   referralEnabled: boolean;
   referralRefereeDiscount: number;
+  promoEnabled: boolean;
 }
 
 export interface FieldFilters {

@@ -129,6 +129,9 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       ? config.freeDeliveryMinItems - itemCount
       : null;
   const referralActive = !!config?.referralEnabled;
+  // Promo field shows by default (its long-standing behaviour); only an
+  // explicit `promoEnabled: false` from the backend hides it.
+  const promoActive = config?.promoEnabled !== false;
 
   // Validate + apply a code. Returns the applied promo (or null). Used by the
   // "Appliquer" button, the field's onBlur, and the submit safety net — so the
@@ -292,39 +295,41 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
         {errors.phone && <span className="field__error">{errors.phone}</span>}
       </label>
 
-      <div className="checkout__promo">
-        {promo ? (
-          <div className="checkout__promo-applied">
-            <span>Code <strong>{promo.code}</strong> appliqué · −{discount} TND</span>
-            <button type="button" className="btn--ghost" onClick={clearPromo}>Retirer</button>
-          </div>
-        ) : (
-          <div className="checkout__promo-row">
-            <input
-              className="filter-input"
-              placeholder="Code promo"
-              value={promoInput}
-              onChange={(e) => {
-                setPromoInput(e.target.value.toUpperCase());
-                setPromoMsg(null);
-              }}
-              onBlur={() => void applyPromo()}
-            />
-            <button
-              type="button"
-              className="btn btn--pass"
-              onClick={() => void applyPromo()}
-              disabled={promoBusy || !promoInput.trim()}
-            >
-              {promoBusy ? '…' : 'Appliquer'}
-            </button>
-          </div>
-        )}
-        {promoMsg && <span className="field__error">{promoMsg}</span>}
-        {promoInput.trim() && !promo && !promoMsg && (
-          <span className="muted checkout__promo-hint">Ton code sera appliqué à la commande.</span>
-        )}
-      </div>
+      {promoActive && (
+        <div className="checkout__promo">
+          {promo ? (
+            <div className="checkout__promo-applied">
+              <span>Code <strong>{promo.code}</strong> appliqué · −{discount} TND</span>
+              <button type="button" className="btn--ghost" onClick={clearPromo}>Retirer</button>
+            </div>
+          ) : (
+            <div className="checkout__promo-row">
+              <input
+                className="filter-input"
+                placeholder="Code promo"
+                value={promoInput}
+                onChange={(e) => {
+                  setPromoInput(e.target.value.toUpperCase());
+                  setPromoMsg(null);
+                }}
+                onBlur={() => void applyPromo()}
+              />
+              <button
+                type="button"
+                className="btn btn--pass"
+                onClick={() => void applyPromo()}
+                disabled={promoBusy || !promoInput.trim()}
+              >
+                {promoBusy ? '…' : 'Appliquer'}
+              </button>
+            </div>
+          )}
+          {promoMsg && <span className="field__error">{promoMsg}</span>}
+          {promoInput.trim() && !promo && !promoMsg && (
+            <span className="muted checkout__promo-hint">Ton code sera appliqué à la commande.</span>
+          )}
+        </div>
+      )}
 
       {referralActive && (
         <label className="field">
