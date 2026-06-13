@@ -870,6 +870,13 @@ body {
   gap: 18px;
   padding: 12px 16px 18px;
   border-top: 1px dashed #eee2cf;
+  /* Swipe gestures are physical (drag-left = pass, drag-right = keep), so this
+     row must NOT mirror in RTL: ✕ stays left, 🛒 stays right in every language. */
+  direction: ltr;
+}
+/* Same reasoning for the directional hint (← Passer · → Garder · ↑ Favori). */
+.hint {
+  direction: ltr;
 }
 .round-btn {
   width: 56px;
