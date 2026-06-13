@@ -10,6 +10,7 @@ import { formatHold } from '../cart/holdTimer';
 import { usePhantomCrowd } from '../crowd/usePhantomCrowd';
 import { FilterDrawer } from './FilterDrawer';
 import { getSizeProfile, setSizeProfile, sizesEqual, useSizeProfile } from '../filters/sizeProfile';
+import { useT } from '../i18n/LanguageContext';
 import { Modal } from './Modal';
 import { ProductDetailContent } from './ProductDetailContent';
 import { DropBanner } from './DropBanner';
@@ -35,6 +36,7 @@ const CROWD_HOLD_MS = 30 * 1000; // a phantom shopper holds a piece this long
 type Hold = { by: 'you' | 'crowd'; until: number };
 
 export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, purchased }: Props) {
+  const { t } = useT();
   const [items, setItems] = useState<CatalogueItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
@@ -199,10 +201,12 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
     <main className="catalogue">
       <div className="catalogue__head">
         <div>
-          <h1 className="catalogue__title">Le rayon</h1>
+          <h1 className="catalogue__title">{t('cat.title')}</h1>
           <p className="catalogue__count">
             <span className="live-dot" aria-hidden="true" />
-            {loading ? 'Chargement…' : `${available} pièce${available > 1 ? 's' : ''} dispo · en direct`}
+            {loading
+              ? t('common.loading')
+              : t(available > 1 ? 'cat.countMany' : 'cat.countOne', { n: available })}
           </p>
         </div>
         <button
@@ -210,7 +214,7 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
           className={`toolbar-btn ${filterCount > 0 ? 'toolbar-btn--active' : ''}`}
           onClick={() => setFilterOpen(true)}
         >
-          ⚙ Filtrer{filterCount > 0 ? ` (${filterCount})` : ''}
+          {t('deck.filter')}{filterCount > 0 ? ` (${filterCount})` : ''}
         </button>
       </div>
 
@@ -222,7 +226,7 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
           className={`cat-tab ${!category ? 'cat-tab--on' : ''}`}
           onClick={() => setCategory(null)}
         >
-          Tout
+          {t('cat.all')}
         </button>
         {categories.map((c) => (
           <button
@@ -237,7 +241,7 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
       </div>
 
       <div className="floor-ticker" aria-live="polite">
-        {ticker ? `⏱ ${ticker}` : '👀 D’autres chinent en direct. Les pièces prises reviennent quand le chineur lâche.'}
+        {ticker ? t('cat.tickerPrefix', { msg: ticker }) : t('cat.tickerIdle')}
       </div>
 
       <RecentlyViewed />
@@ -257,12 +261,8 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
       ) : !loading && items.length === 0 ? (
         <div className="empty">
           <div className="empty__emoji">🧺</div>
-          <h2>{filterCount > 0 || category ? 'Aucune pièce ne correspond.' : 'Le rayon est vide.'}</h2>
-          <p>
-            {filterCount > 0 || category
-              ? 'Essaie d’élargir tes filtres.'
-              : 'Tout est parti. Reviens plus tard.'}
-          </p>
+          <h2>{filterCount > 0 || category ? t('cat.emptyTitle') : t('cat.emptyRackTitle')}</h2>
+          <p>{filterCount > 0 || category ? t('cat.emptyText') : t('cat.emptyRackText')}</p>
           {(filterCount > 0 || category) && (
             <div className="empty__actions">
               <button
@@ -272,7 +272,7 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
                   setCategory(null);
                 }}
               >
-                Effacer les filtres
+                {t('cat.clearFilters')}
               </button>
             </div>
           )}
@@ -311,9 +311,9 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
                     </div>
                     <div className="hold-overlay">
                       <span className="hold-label">
-                        {hold.by === 'you' ? '🛒 Réservé' : '⏱ Pris'}
+                        {hold.by === 'you' ? t('cat.heldYou') : t('cat.heldCrowd')}
                       </span>
-                      <span className="hold-count">Revient dans {formatHold(hold.until - now)}</span>
+                      <span className="hold-count">{t('cat.returnIn', { time: formatHold(hold.until - now) })}</span>
                     </div>
                   </motion.div>
                 );
@@ -342,7 +342,7 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
                       className="cat-card__img"
                       style={{ backgroundImage: `url(${item.imageUrl})` }}
                     >
-                      {isFav && <span className="cat-card__fav-ribbon">⭐ Favori</span>}
+                      {isFav && <span className="cat-card__fav-ribbon">{t('cat.favRibbon')}</span>}
                     </span>
                     <span className="cat-card__body">
                       <span className="cat-card__title">{item.title}</span>
@@ -361,16 +361,16 @@ export function Catalogue({ onAddToCart, onFavorite, onUnfavorite, returned, pur
                       type="button"
                       className="grab-btn grab-btn--cart"
                       onClick={() => handleGrab(item)}
-                      aria-label={`Prendre ${item.title}`}
+                      aria-label={t('cat.grabAria', { title: item.title })}
                     >
-                      🛒 Prendre
+                      {t('cat.grab')}
                     </button>
                     <button
                       type="button"
                       className={`grab-btn grab-btn--fav ${isFav ? 'grab-btn--fav-on' : ''}`}
                       aria-pressed={isFav}
                       onClick={() => handleFav(item)}
-                      aria-label={`Garder pour plus tard ${item.title}`}
+                      aria-label={t('cat.favAria', { title: item.title })}
                     >
                       ⭐
                     </button>

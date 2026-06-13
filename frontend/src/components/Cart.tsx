@@ -5,6 +5,7 @@ import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 import { effectivePrice, isOnSale } from '../types';
 import { holdState, formatHold } from '../cart/holdTimer';
 import { useShopConfig } from '../hooks/useShopConfig';
+import { useT } from '../i18n/LanguageContext';
 import { CheckoutForm } from './CheckoutForm';
 import { WhatsAppConfirm } from './WhatsAppConfirm';
 
@@ -23,6 +24,7 @@ interface Props {
 export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
   const reduce = useReducedMotion();
   const config = useShopConfig();
+  const { t } = useT();
   const [now, setNow] = useState(() => Date.now());
   // Two-step flow inside the one drawer: review the cart, then fill the form.
   const [step, setStep] = useState<'cart' | 'pay'>('cart');
@@ -61,11 +63,10 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
   const bundleNote =
     empty || missingForFree == null ? null : missingForFree > 0 ? (
       <p className="cart-free-note">
-        🚚 Plus que {missingForFree} pièce{missingForFree > 1 ? 's' : ''} pour la livraison
-        offerte !
+        {t(missingForFree > 1 ? 'cart.freeMany' : 'cart.freeOne', { n: missingForFree })}
       </p>
     ) : (
-      <p className="cart-free-note cart-free-note--on">🚚 Livraison offerte sur cette commande !</p>
+      <p className="cart-free-note cart-free-note--on">{t('cart.freeOn')}</p>
     );
 
   const itemList = (
@@ -98,10 +99,10 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
                 <span
                   className={`cart-line__hold ${phase === 'warning' ? 'cart-line__hold--warn' : ''}`}
                 >
-                  ⏳ Réservé · {formatHold(remainingMs)}
+                  {t('cart.reserved', { time: formatHold(remainingMs) })}
                 </span>
               </div>
-              <button className="icon-btn" onClick={() => onRemove(line.id)} aria-label="Retirer">
+              <button className="icon-btn" onClick={() => onRemove(line.id)} aria-label={t('common.remove')}>
                 🗑
               </button>
             </motion.li>
@@ -116,61 +117,59 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
       <aside className="drawer drawer--side" onClick={(e) => e.stopPropagation()}>
         <header className="drawer__head">
           {step === 'pay' && !done ? (
-            <button className="icon-btn" onClick={() => setStep('cart')} aria-label="Retour au panier">
+            <button className="icon-btn" onClick={() => setStep('cart')} aria-label={t('cart.title')}>
               ←
             </button>
           ) : (
             <span />
           )}
-          <h2>{done ? 'Commande confirmée' : step === 'pay' ? 'Finaliser' : 'Mon panier'}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Fermer">✕</button>
+          <h2>{done ? t('cart.confirmed') : step === 'pay' ? t('cart.finalize') : t('cart.title')}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </header>
 
         {done ? (
           <div className="drawer__confirmation">
             <div className="confirmation__icon">✓</div>
-            <h3>Merci ! C'est commandé.</h3>
-            <p className="checkout__ref">Référence : {done.ref}</p>
+            <h3>{t('cart.thanks')}</h3>
+            <p className="checkout__ref">{t('cart.ref', { ref: done.ref ?? '' })}</p>
             <p className="muted">{done.message}</p>
-            <p className="muted">💵 Paiement à la livraison — on te contacte pour confirmer.</p>
+            <p className="muted">{t('cart.codNote')}</p>
             <WhatsAppConfirm orderRef={done.ref} name={done.customer?.name} />
             <Link
               to={`/suivi?ref=${done.ref}`}
               className="drawer__track-link"
               onClick={onClose}
             >
-              Suivre ma commande →
+              {t('cart.track')}
             </Link>
             <button className="btn btn--add btn--full" onClick={onClose}>
-              Continuer à chiner
+              {t('cart.continue')}
             </button>
           </div>
         ) : empty ? (
           <div className="drawer__empty">
-            <p>Ton panier est vide.</p>
-            <p className="muted">Tape une pièce qui flotte, puis 🛒 pour la garder avant les autres.</p>
+            <p>{t('cart.empty')}</p>
+            <p className="muted">{t('cart.emptyHint')}</p>
           </div>
         ) : step === 'cart' ? (
           <>
-            <p className="cart-hold-note muted">
-              ⏳ Chaque pièce est réservée 10 min. Passe commande avant que ça reparte.
-            </p>
+            <p className="cart-hold-note muted">{t('cart.holdNote')}</p>
             {itemList}
             <footer className="drawer__foot">
               {bundleNote}
               <div className="total">
-                <span>Total</span>
+                <span>{t('cart.total')}</span>
                 <strong>{cart.total} TND</strong>
               </div>
               <button className="btn btn--add btn--full" onClick={() => setStep('pay')}>
-                Passer commande
+                {t('cart.checkout')}
               </button>
             </footer>
           </>
         ) : (
           <div className="drawer__pay">
             <p className="cart-hold-note muted">
-              📦 {cart.lines.length} pièce{cart.lines.length > 1 ? 's' : ''} · tu peux encore en retirer avant de confirmer.
+              {t(cart.lines.length > 1 ? 'cart.payNoteMany' : 'cart.payNote', { n: cart.lines.length })}
             </p>
             {itemList}
             <CheckoutForm cart={cart} onPlaceOrder={onPlaceOrder} onSuccess={setDone} />

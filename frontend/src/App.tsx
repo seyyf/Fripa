@@ -160,13 +160,13 @@ export default function App() {
         if (phase === 'expired') {
           if (!expiredHolds.current.has(key)) {
             expiredHolds.current.add(key);
-            flash(`Trop tard — ${line.title} est reparti dans le rayon. 👋`);
+            flash(t('toast.expired', { title: line.title }));
             setReturned((r) => ({ item: line, tick: (r?.tick ?? 0) + 1 }));
             released = true;
           }
         } else if (phase === 'warning' && !warnedHolds.current.has(key)) {
           warnedHolds.current.add(key);
-          flash(`⏳ ${line.title} expire bientôt !`);
+          flash(t('toast.expiring', { title: line.title }));
         }
       }
       if (released) void refreshCart();
@@ -186,11 +186,11 @@ export default function App() {
     dropTop(item.id);
     try {
       setCart(await api.add(item.id));
-      flash(`Ajouté au panier — ${item.title}`);
+      flash(t('toast.added', { title: item.title }));
     } catch (e) {
       console.error('keep failed', e);
       restore(item);
-      flash(errMsg(e, 'Oups, réessaie.'), 'error');
+      flash(errMsg(e, t('toast.retry')), 'error');
       return;
     }
     void topUp();
@@ -204,10 +204,10 @@ export default function App() {
     } catch (e) {
       console.error('pass failed', e);
       restore(item);
-      flash('Oups, réessaie.');
+      flash(t('toast.retry'));
       return;
     }
-    if (item.lastChance) flash('Parti pour de bon. 👋');
+    if (item.lastChance) flash(t('toast.goneForGood'));
     void topUp();
   }
 
@@ -217,11 +217,11 @@ export default function App() {
       await api.favorite(item.id);
       if (user) await accountApi.addFavorite(item.id);
       await refreshFavorites();
-      flash(`Gardé pour plus tard — ${item.title} ⭐`);
+      flash(t('toast.favorited', { title: item.title }));
     } catch (e) {
       console.error('favorite failed', e);
       restore(item);
-      flash('Oups, réessaie.');
+      flash(t('toast.retry'));
       return;
     }
     void topUp();
@@ -231,7 +231,7 @@ export default function App() {
     try {
       const res = await api.undo();
       if (res.rateLimited) {
-        flash('↩ Reviens : une seule fois par heure. À tout à l’heure !');
+        flash(t('toast.undoLimited'));
         return;
       }
       if (!res.undone) {
@@ -243,7 +243,7 @@ export default function App() {
       // The piece is available again — drop it back on top of the deck.
       restore({ ...item, lastChance: false });
       setOutOfCards(false);
-      flash(`Reviens ! — ${item.title}`);
+      flash(t('toast.undone', { title: item.title }));
     } catch (e) {
       console.error('undo failed', e);
     }
@@ -253,10 +253,10 @@ export default function App() {
   async function addToCart(item: TShirt) {
     try {
       setCart(await api.add(item.id));
-      flash(`Ajouté au panier — ${item.title}`);
+      flash(t('toast.added', { title: item.title }));
     } catch (e) {
       console.error('add failed', e);
-      flash(errMsg(e, 'Oups, réessaie.'), 'error');
+      flash(errMsg(e, t('toast.retry')), 'error');
     }
   }
 
@@ -265,10 +265,10 @@ export default function App() {
       await api.favorite(item.id);
       if (user) await accountApi.addFavorite(item.id);
       await refreshFavorites();
-      flash(`Gardé pour plus tard — ${item.title} ⭐`);
+      flash(t('toast.favorited', { title: item.title }));
     } catch (e) {
       console.error('favorite failed', e);
-      flash('Oups, réessaie.');
+      flash(t('toast.retry'));
     }
   }
 
@@ -307,10 +307,10 @@ export default function App() {
       setCart(res.cart);
       if (user) await accountApi.removeFavorite(itemId);
       await refreshFavorites();
-      flash('Déplacé au panier. 🛒');
+      flash(t('toast.movedToCart'));
     } catch (e) {
       console.error('move to cart failed', e);
-      flash(errMsg(e, 'Oups, réessaie.'), 'error');
+      flash(errMsg(e, t('toast.retry')), 'error');
     }
   }
 

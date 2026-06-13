@@ -1,3 +1,5 @@
+import { useT } from '../i18n/LanguageContext';
+
 interface Props {
   onStockRefresh: () => void;
   onHardReset: () => void;
@@ -6,25 +8,23 @@ interface Props {
 }
 
 export function EmptyState({ onStockRefresh, onHardReset, onOpenCart, cartCount }: Props) {
+  const { t } = useT();
   return (
     <div className="empty">
       <div className="empty__emoji">🪙</div>
-      <h2>Tu as tout vu.</h2>
-      <p>
-        Toute la fripa est passée devant tes yeux. On peut rouvrir le rayon —
-        ton panier reste comme tu l'as laissé.
-      </p>
+      <h2>{t('empty.title')}</h2>
+      <p>{t('empty.text')}</p>
       <div className="empty__actions">
         {cartCount > 0 && (
           <button className="btn btn--add" onClick={onOpenCart}>
-            Voir mon panier ({cartCount})
+            {t('empty.cart', { n: cartCount })}
           </button>
         )}
         <button className="btn btn--add btn--wide" onClick={onStockRefresh}>
-          ✨ Voir d'autres pièces
+          {t('empty.more')}
         </button>
         <button className="btn btn--pass btn--ghost" onClick={onHardReset}>
-          Tout recommencer (vide le panier)
+          {t('empty.restart')}
         </button>
       </div>
     </div>

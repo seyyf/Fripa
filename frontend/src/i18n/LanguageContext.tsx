@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { LANGS, STRINGS, type Lang, type StringKey } from './translations';
+import { LANGS, translate, type Lang, type StringKey, type TVars } from './translations';
 
 const KEY = 'fripa-lang';
 
@@ -16,13 +16,13 @@ function initialLang(): Lang {
 interface Ctx {
   lang: Lang;
   setLang: (l: Lang) => void;
-  t: (key: StringKey) => string;
+  t: (key: StringKey, vars?: TVars) => string;
 }
 
 const LangCtx = createContext<Ctx>({
   lang: 'fr',
   setLang: () => {},
-  t: (key) => STRINGS[key]?.fr ?? key,
+  t: (key, vars) => translate('fr', key, vars),
 });
 
 export const useT = () => useContext(LangCtx);
@@ -46,7 +46,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLangState(l);
   }, []);
 
-  const t = useCallback((key: StringKey) => STRINGS[key]?.[lang] ?? STRINGS[key]?.fr ?? key, [lang]);
+  const t = useCallback((key: StringKey, vars?: TVars) => translate(lang, key, vars), [lang]);
 
   return <LangCtx.Provider value={{ lang, setLang, t }}>{children}</LangCtx.Provider>;
 }

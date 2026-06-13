@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FieldFilters, TShirt } from '../types';
+import { useT } from '../i18n/LanguageContext';
 
 interface Props {
   open: boolean;
@@ -22,6 +23,7 @@ function toggle<T>(list: T[], value: T): T[] {
 }
 
 export function FilterDrawer({ open, filters, onApply, onClear, onClose }: Props) {
+  const { t } = useT();
   const [q, setQ] = useState(filters.q ?? '');
   const [sizes, setSizes] = useState<TShirt['size'][]>(filters.sizes ?? []);
   const [conditions, setConditions] = useState<TShirt['condition'][]>(filters.conditions ?? []);
@@ -56,24 +58,24 @@ export function FilterDrawer({ open, filters, onApply, onClear, onClose }: Props
     <div className="drawer-backdrop drawer-backdrop--side" onClick={onClose}>
       <aside className="drawer drawer--filters drawer--side" onClick={(e) => e.stopPropagation()}>
         <header className="drawer__head">
-          <h2>Filtrer</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Fermer">✕</button>
+          <h2>{t('filter.title')}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </header>
 
         <div className="filter-body">
           <label className="filter-field">
-            <span className="filter-label">Recherche</span>
+            <span className="filter-label">{t('filter.search')}</span>
             <input
               className="filter-input"
               type="search"
-              placeholder="Rechercher (marque, modèle, couleur…)"
+              placeholder={t('filter.searchPlaceholder')}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </label>
 
           <div className="filter-field">
-            <span className="filter-label">Taille</span>
+            <span className="filter-label">{t('filter.size')}</span>
             <div className="chip-row">
               {SIZES.map((s) => (
                 <button
@@ -90,7 +92,7 @@ export function FilterDrawer({ open, filters, onApply, onClear, onClose }: Props
           </div>
 
           <div className="filter-field">
-            <span className="filter-label">État</span>
+            <span className="filter-label">{t('filter.condition')}</span>
             <div className="chip-row">
               {CONDITIONS.map((c) => (
                 <button
@@ -107,12 +109,12 @@ export function FilterDrawer({ open, filters, onApply, onClear, onClose }: Props
           </div>
 
           <label className="filter-field">
-            <span className="filter-label">Prix max (TND)</span>
+            <span className="filter-label">{t('filter.maxPrice')}</span>
             <input
               className="filter-input"
               type="number"
               min={0}
-              placeholder="ex. 30"
+              placeholder={t('filter.maxPricePlaceholder')}
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
             />
@@ -121,10 +123,10 @@ export function FilterDrawer({ open, filters, onApply, onClear, onClose }: Props
 
         <footer className="drawer__foot filter-foot">
           <button className="btn btn--pass btn--ghost" onClick={onClear}>
-            Réinitialiser
+            {t('filter.reset')}
           </button>
           <button className="btn btn--add" onClick={apply}>
-            Appliquer
+            {t('common.apply')}
           </button>
         </footer>
       </aside>

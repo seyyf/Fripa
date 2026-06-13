@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ItemStatus, TShirt } from '../types';
 import { effectivePrice, isOnSale } from '../types';
+import { useT } from '../i18n/LanguageContext';
 import { shareItem } from '../util/share';
 import { addRecent } from '../util/recentlyViewed';
 
@@ -14,6 +15,7 @@ interface Props {
 // Presentational detail layout, shared by the standalone /piece/:id page and
 // the catalogue quick-look modal.
 export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: Props) {
+  const { t } = useT();
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   const [sel, setSel] = useState(0);
   const [zoom, setZoom] = useState(false);
@@ -26,15 +28,15 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
 
   async function onShare() {
     const res = await shareItem(item);
-    if (res === 'copied') setShareMsg('Lien copié !');
-    else if (res === 'failed') setShareMsg('Partage indisponible.');
+    if (res === 'copied') setShareMsg(t('pd.linkCopied'));
+    else if (res === 'failed') setShareMsg(t('pd.shareFailed'));
     if (res !== 'shared') setTimeout(() => setShareMsg(null), 2000);
   }
 
   return (
     <div className="pd__layout">
       <div className="pd__media">
-        <button type="button" className="pd__img-btn" onClick={() => setZoom(true)} aria-label="Agrandir">
+        <button type="button" className="pd__img-btn" onClick={() => setZoom(true)} aria-label={t('pd.enlarge')}>
           <img
             className="pd__img"
             src={gallery[sel] ?? item.imageUrl}
@@ -52,7 +54,7 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
                 className={`pd__thumb ${i === sel ? 'is-active' : ''}`}
                 style={{ backgroundImage: `url(${src})` }}
                 onClick={() => setSel(i)}
-                aria-label={`Photo ${i + 1}`}
+                aria-label={t('pd.photoN', { n: i + 1 })}
               />
             ))}
           </div>
@@ -63,8 +65,8 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
         <div className="pd__title-row">
           <h1 className="pd__title">{item.title}</h1>
           <span className="pd__brand">{item.brand}</span>
-          <button type="button" className="pd__share" onClick={onShare} aria-label="Partager">
-            ↗ {shareMsg ?? 'Partager'}
+          <button type="button" className="pd__share" onClick={onShare} aria-label={t('pd.shareAria')}>
+            ↗ {shareMsg ?? t('pd.share')}
           </button>
         </div>
         <div className="pd__price">
@@ -74,7 +76,7 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
         </div>
 
         <div className="pd__chips">
-          <span className="chip">Taille {item.size}</span>
+          <span className="chip">{t('pd.size', { size: item.size })}</span>
           <span className="chip">{item.condition}</span>
           <span className="chip">{item.color}</span>
         </div>
@@ -83,26 +85,24 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
         <p className="pd__seller">📍 {item.seller}</p>
 
         {status === 'gone' ? (
-          <div className="pd__gone">
-            Cette pièce est partie. 👋 Quelqu'un d'autre l'a chinée avant toi.
-          </div>
+          <div className="pd__gone">{t('pd.gone')}</div>
         ) : (
           <>
-            {status === 'inCart' && <p className="pd__note">✓ Déjà dans ton panier.</p>}
-            {status === 'inFavorites' && <p className="pd__note">⭐ Déjà dans tes favoris.</p>}
+            {status === 'inCart' && <p className="pd__note">{t('pd.inCart')}</p>}
+            {status === 'inFavorites' && <p className="pd__note">{t('pd.inFav')}</p>}
             <div className="pd__actions">
               <button
                 type="button"
                 className="btn btn--add btn--full"
                 onClick={() => onAddToCart(item)}
               >
-                🛒 Ajouter au panier
+                {t('pd.addToCart')}
               </button>
               <button
                 type="button"
                 className="btn btn--pass"
                 onClick={() => onFavorite(item)}
-                aria-label="Mettre en favori"
+                aria-label={t('pd.favAria')}
               >
                 ⭐
               </button>
@@ -113,11 +113,11 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
 
       {zoom && (
         <div className="lightbox" onClick={() => setZoom(false)}>
-          <button className="lightbox__close" aria-label="Fermer">✕</button>
+          <button className="lightbox__close" aria-label={t('common.close')}>✕</button>
           {gallery.length > 1 && (
             <button
               className="lightbox__nav lightbox__nav--prev"
-              aria-label="Précédent"
+              aria-label={t('pd.prev')}
               onClick={(e) => {
                 e.stopPropagation();
                 setSel((s) => (s - 1 + gallery.length) % gallery.length);
@@ -135,7 +135,7 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
           {gallery.length > 1 && (
             <button
               className="lightbox__nav lightbox__nav--next"
-              aria-label="Suivant"
+              aria-label={t('pd.next')}
               onClick={(e) => {
                 e.stopPropagation();
                 setSel((s) => (s + 1) % gallery.length);

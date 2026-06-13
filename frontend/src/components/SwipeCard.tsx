@@ -257,7 +257,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
         </div>
         <p className="swipe-card__desc">{item.description}</p>
         <div className="swipe-card__meta">
-          <span className="chip">Taille {item.size}</span>
+          <span className="chip">{t('pd.size', { size: item.size })}</span>
           <span className="chip">{item.condition}</span>
           <span className="chip">{item.color}</span>
         </div>

@@ -1,4 +1,5 @@
 import type { FavoritesResponse } from '../types';
+import { useT } from '../i18n/LanguageContext';
 
 interface Props {
   open: boolean;
@@ -9,20 +10,21 @@ interface Props {
 }
 
 export function FavoritesDrawer({ open, onClose, favorites, onMoveToCart, onRemove }: Props) {
+  const { t } = useT();
   if (!open) return null;
 
   return (
     <div className="drawer-backdrop drawer-backdrop--side" onClick={onClose}>
       <aside className="drawer drawer--side" onClick={(e) => e.stopPropagation()}>
         <header className="drawer__head">
-          <h2>Mes favoris</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Fermer">✕</button>
+          <h2>{t('fav.title')}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </header>
 
         {favorites.lines.length === 0 ? (
           <div className="drawer__empty">
-            <p>Aucun favori pour l'instant.</p>
-            <p className="muted">Swipe une pièce vers le haut ⭐ pour la garder pour plus tard.</p>
+            <p>{t('fav.empty')}</p>
+            <p className="muted">{t('fav.emptyHint')}</p>
           </div>
         ) : (
           <ul className="cart-list">
@@ -39,12 +41,12 @@ export function FavoritesDrawer({ open, onClose, favorites, onMoveToCart, onRemo
                     className="btn btn--add btn--sm"
                     onClick={() => onMoveToCart(line.id)}
                   >
-                    🛒 Au panier
+                    {t('fav.toCart')}
                   </button>
                   <button
                     className="icon-btn"
                     onClick={() => onRemove(line.id)}
-                    aria-label="Retirer des favoris"
+                    aria-label={t('fav.removeAria')}
                   >
                     🗑
                   </button>

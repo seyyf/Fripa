@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAccount } from './AccountContext';
 import { accountApi, type AccountOrder, type RewardsStatus } from './accountApi';
+import { useT } from '../i18n/LanguageContext';
+import type { StringKey } from '../i18n/translations';
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 export function AccountPage() {
+  const { t } = useT();
   const { user, ready, openLogin, logout, setUser } = useAccount();
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -24,7 +27,7 @@ export function AccountPage() {
   }, [user]);
 
   async function copyReferral(code: string) {
-    const text = `Chine sur Fripa avec mon code ${code} et profite d'une réduction sur ta première commande ! ${location.origin}`;
+    const text = t('account.shareText', { code, url: location.origin });
     try {
       if (navigator.share) await navigator.share({ text });
       else {
@@ -37,14 +40,14 @@ export function AccountPage() {
     }
   }
 
-  if (!ready) return <main className="account"><p className="muted">Chargement…</p></main>;
+  if (!ready) return <main className="account"><p className="muted">{t('common.loading')}</p></main>;
 
   if (!user) {
     return (
       <main className="account account--guest">
-        <h1 className="account__title">Mon compte</h1>
-        <p className="muted">Connecte-toi pour retrouver tes commandes et ton adresse.</p>
-        <button className="btn btn--add" onClick={openLogin}>Se connecter</button>
+        <h1 className="account__title">{t('account.title')}</h1>
+        <p className="muted">{t('account.guestIntro')}</p>
+        <button className="btn btn--add" onClick={openLogin}>{t('account.signIn')}</button>
       </main>
     );
   }
@@ -66,44 +69,52 @@ export function AccountPage() {
   return (
     <main className="account">
       <div className="account__head">
-        <h1 className="account__title">Mon compte</h1>
-        <button className="btn--ghost" onClick={logout}>Se déconnecter</button>
+        <h1 className="account__title">{t('account.title')}</h1>
+        <button className="btn--ghost" onClick={logout}>{t('account.logout')}</button>
       </div>
-      <p className="muted">Connecté avec {user.phone}</p>
+      <p className="muted">{t('account.connectedAs', { phone: user.phone })}</p>
 
       <form className="account__profile" onSubmit={saveProfile}>
-        <h2 className="checkout__section">Mes infos</h2>
+        <h2 className="checkout__section">{t('account.myInfo')}</h2>
         <label className="field">
-          <span className="field__label">Nom</span>
+          <span className="field__label">{t('account.name')}</span>
           <input className="filter-input" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label className="field">
-          <span className="field__label">Adresse de livraison</span>
+          <span className="field__label">{t('account.address')}</span>
           <input className="filter-input" value={address} onChange={(e) => setAddress(e.target.value)} />
         </label>
-        <button className="btn btn--add" disabled={busy}>{busy ? 'Enregistrement…' : saved ? '✓ Enregistré' : 'Enregistrer'}</button>
+        <button className="btn btn--add" disabled={busy}>{busy ? t('account.saving') : saved ? t('account.saved') : t('account.save')}</button>
       </form>
 
       {rewards && (rewards.loyalty.enabled || rewards.referral.enabled) && (
         <section className="rewards">
-          <h2 className="checkout__section">Récompenses</h2>
+          <h2 className="checkout__section">{t('account.rewards')}</h2>
 
           {rewards.loyalty.enabled && (
             <div className="rewards__card">
               <div className="rewards__row">
                 <span className="rewards__icon" aria-hidden="true">🎁</span>
                 <div className="rewards__body">
-                  <strong>Carte fidélité</strong>
+                  <strong>{t('account.loyalty')}</strong>
                   {rewards.loyalty.available > 0 ? (
                     <p className="rewards__note rewards__note--on">
-                      Tu as {rewards.loyalty.available} livraison{rewards.loyalty.available > 1 ? 's' : ''} offerte
-                      {rewards.loyalty.available > 1 ? 's' : ''} — appliquée à ta prochaine commande !
+                      {t(
+                        rewards.loyalty.available > 1
+                          ? 'account.loyaltyReadyMany'
+                          : 'account.loyaltyReadyOne',
+                        { n: rewards.loyalty.available },
+                      )}
                     </p>
                   ) : (
                     <p className="rewards__note muted">
-                      Plus que {rewards.loyalty.threshold - rewards.loyalty.progress} commande
-                      {rewards.loyalty.threshold - rewards.loyalty.progress > 1 ? 's' : ''} livrée
-                      {rewards.loyalty.threshold - rewards.loyalty.progress > 1 ? 's' : ''} pour une livraison offerte.
+                      {(() => {
+                        const left = rewards.loyalty.threshold - rewards.loyalty.progress;
+                        return t(
+                          left > 1 ? 'account.loyaltyProgressMany' : 'account.loyaltyProgressOne',
+                          { n: left },
+                        );
+                      })()}
                     </p>
                   )}
                 </div>
@@ -124,33 +135,36 @@ export function AccountPage() {
               <div className="rewards__row">
                 <span className="rewards__icon" aria-hidden="true">🤝</span>
                 <div className="rewards__body">
-                  <strong>Parraine tes amis</strong>
+                  <strong>{t('account.referralTitle')}</strong>
                   <p className="rewards__note muted">
-                    Ils profitent d'une réduction sur leur 1ʳᵉ commande ; tu gagnes une livraison offerte
-                    par filleul livré.
-                    {rewards.referral.available > 0 && (
-                      <> Tu as <strong>{rewards.referral.available}</strong> livraison{rewards.referral.available > 1 ? 's' : ''} offerte{rewards.referral.available > 1 ? 's' : ''} en attente !</>
-                    )}
+                    {t('account.referralText')}
+                    {rewards.referral.available > 0 &&
+                      t(
+                        rewards.referral.available > 1
+                          ? 'account.referralPendingMany'
+                          : 'account.referralPendingOne',
+                        { n: rewards.referral.available },
+                      )}
                   </p>
                 </div>
               </div>
               <div className="rewards__code-row">
                 <code className="rewards__code">{rewards.referralCode}</code>
                 <button type="button" className="btn btn--pass rewards__share" onClick={() => copyReferral(rewards.referralCode)}>
-                  {copied ? '✓ Copié' : 'Partager'}
+                  {copied ? t('account.copied') : t('account.share')}
                 </button>
               </div>
               {rewards.referral.referrals > 0 && (
-                <p className="rewards__note muted">{rewards.referral.referrals} ami(s) parrainé(s) jusqu'ici. Merci ! 🙌</p>
+                <p className="rewards__note muted">{t('account.referralCount', { n: rewards.referral.referrals })}</p>
               )}
             </div>
           )}
         </section>
       )}
 
-      <h2 className="checkout__section account__orders-title">Mes commandes</h2>
+      <h2 className="checkout__section account__orders-title">{t('account.ordersTitle')}</h2>
       {orders.length === 0 ? (
-        <p className="muted">Aucune commande pour l’instant.</p>
+        <p className="muted">{t('account.noOrders')}</p>
       ) : (
         <ul className="account__orders">
           {orders.map((o) => (
@@ -160,13 +174,13 @@ export function AccountPage() {
                   <strong>{o.ref}</strong>
                   <span className="muted"> · {dateFmt.format(new Date(o.createdAt))}</span>
                 </div>
-                <span className="chip">{o.status}</span>
+                <span className="chip">{t(`status.${o.status}` as StringKey)}</span>
               </div>
               <div className="account__order-foot">
                 <span className="muted">{o.lines.map((l) => l.title).join(', ')}</span>
                 <span className="account__order-total">{o.total} TND</span>
               </div>
-              <Link to={`/suivi?ref=${o.ref}`} className="account__order-track">Suivre →</Link>
+              <Link to={`/suivi?ref=${o.ref}`} className="account__order-track">{t('account.track')}</Link>
             </li>
           ))}
         </ul>

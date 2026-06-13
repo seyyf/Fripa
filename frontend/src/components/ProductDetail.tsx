@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
 import type { ItemDetail, TShirt } from '../types';
+import { useT } from '../i18n/LanguageContext';
 import { ProductDetailContent } from './ProductDetailContent';
 import { SimilarPieces } from './SimilarPieces';
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ProductDetail({ onAddToCart, onFavorite }: Props) {
+  const { t } = useT();
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<ItemDetail | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'notfound'>('loading');
@@ -44,7 +46,7 @@ export function ProductDetail({ onAddToCart, onFavorite }: Props) {
   if (state === 'loading') {
     return (
       <main className="pd">
-        <p className="loader">Chargement de la pièce…</p>
+        <p className="loader">{t('pd.loading')}</p>
       </main>
     );
   }
@@ -53,10 +55,10 @@ export function ProductDetail({ onAddToCart, onFavorite }: Props) {
     return (
       <main className="pd pd--empty">
         <div className="empty__emoji">🤷</div>
-        <h1>Pièce introuvable</h1>
-        <p>Cette pièce n'existe pas (ou plus).</p>
+        <h1>{t('pd.notFoundTitle')}</h1>
+        <p>{t('pd.notFoundText')}</p>
         <Link to="/catalogue" className="btn btn--add btn--wide">
-          ← Retour au catalogue
+          {t('pd.backCatalogueFull')}
         </Link>
       </main>
     );
@@ -65,7 +67,7 @@ export function ProductDetail({ onAddToCart, onFavorite }: Props) {
   return (
     <main className="pd">
       <Link to="/catalogue" className="pd__back">
-        ← Catalogue
+        {t('pd.backCatalogue')}
       </Link>
       <ProductDetailContent
         item={detail.item}

@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useAccount } from '../account/AccountContext';
 import { accountApi, type RewardsStatus } from '../account/accountApi';
 import { useShopConfig } from '../hooks/useShopConfig';
+import { useT } from '../i18n/LanguageContext';
 import type { CartResponse, CheckoutResult, CustomerInfo } from '../types';
 
 interface Props {
@@ -51,6 +52,7 @@ function loadDraft(): Draft {
 export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const { user } = useAccount();
   const config = useShopConfig();
+  const { t } = useT();
   const [draft] = useState(loadDraft); // read once on mount
   const [form, setForm] = useState<CustomerInfo>(draft.form);
 
@@ -114,9 +116,9 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
   const freeReason = bundleFree
     ? null
     : rewards && rewards.loyalty.available > 0
-      ? 'fidélité 🎁'
+      ? t('checkout.freeLoyalty')
       : rewards && rewards.referral.available > 0
-        ? 'parrainage 🤝'
+        ? t('checkout.freeReferral')
         : null;
   // Per-governorate override, else the admin's default fee — so a price always
   // shows, even before a governorate is picked.
@@ -152,7 +154,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       return applied;
     } catch (e) {
       setPromo(null);
-      setPromoMsg(e instanceof Error && e.message && !e.message.startsWith('HTTP') ? e.message : 'Code invalide.');
+      setPromoMsg(e instanceof Error && e.message && !e.message.startsWith('HTTP') ? e.message : t('checkout.promoInvalid'));
       return null;
     } finally {
       setPromoBusy(false);
@@ -171,13 +173,13 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
 
   function validate(): boolean {
     const e: Partial<Record<Field, string>> = {};
-    if (!form.name.trim()) e.name = 'Le nom est obligatoire.';
-    if (!form.email.trim()) e.email = "L'email est obligatoire.";
-    else if (!EMAIL_RE.test(form.email.trim())) e.email = 'Email invalide.';
-    if (!form.governorate) e.governorate = 'Choisis ton gouvernorat.';
-    if (!form.address.trim()) e.address = "L'adresse est obligatoire.";
-    if (!form.phone.trim()) e.phone = 'Le téléphone est obligatoire.';
-    else if (form.phone.replace(/\D/g, '').length < 8) e.phone = 'Numéro trop court.';
+    if (!form.name.trim()) e.name = t('checkout.errName');
+    if (!form.email.trim()) e.email = t('checkout.errEmail');
+    else if (!EMAIL_RE.test(form.email.trim())) e.email = t('checkout.errEmailBad');
+    if (!form.governorate) e.governorate = t('checkout.errGov');
+    if (!form.address.trim()) e.address = t('checkout.errAddress');
+    if (!form.phone.trim()) e.phone = t('checkout.errPhone');
+    else if (form.phone.replace(/\D/g, '').length < 8) e.phone = t('checkout.errPhoneShort');
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -195,7 +197,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
     if (typed && (!promo || promo.code.toUpperCase() !== typed.toUpperCase())) {
       applied = await applyPromo(typed);
       if (!applied) {
-        setFormError('Code promo non valide — corrige-le ou efface-le pour continuer.');
+        setFormError(t('checkout.promoBad'));
         return;
       }
     }
@@ -229,10 +231,10 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
 
   return (
     <form className="checkout__form" onSubmit={submit} noValidate>
-      <h2 className="checkout__section">Livraison</h2>
+      <h2 className="checkout__section">{t('checkout.delivery')}</h2>
 
       <label className="field">
-        <span className="field__label">Nom complet</span>
+        <span className="field__label">{t('checkout.name')}</span>
         <input
           className="filter-input"
           value={form.name}
@@ -243,7 +245,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       </label>
 
       <label className="field">
-        <span className="field__label">Email</span>
+        <span className="field__label">{t('checkout.email')}</span>
         <input
           className="filter-input"
           type="email"
@@ -255,13 +257,13 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       </label>
 
       <label className="field">
-        <span className="field__label">Gouvernorat</span>
+        <span className="field__label">{t('checkout.governorate')}</span>
         <select
           className="filter-input"
           value={form.governorate}
           onChange={(e) => set('governorate', e.target.value)}
         >
-          <option value="">— Choisir —</option>
+          <option value="">{t('checkout.govChoose')}</option>
           {(config?.governorates ?? []).map((g) => (
             <option key={g} value={g}>
               {g}
@@ -272,7 +274,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       </label>
 
       <label className="field">
-        <span className="field__label">Adresse de livraison</span>
+        <span className="field__label">{t('checkout.address')}</span>
         <input
           className="filter-input"
           value={form.address}
@@ -283,7 +285,7 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       </label>
 
       <label className="field">
-        <span className="field__label">Téléphone</span>
+        <span className="field__label">{t('checkout.phone')}</span>
         <input
           className="filter-input"
           type="tel"
@@ -299,14 +301,14 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
         <div className="checkout__promo">
           {promo ? (
             <div className="checkout__promo-applied">
-              <span>Code <strong>{promo.code}</strong> appliqué · −{discount} TND</span>
-              <button type="button" className="btn--ghost" onClick={clearPromo}>Retirer</button>
+              <span>{t('checkout.promoApplied', { code: promo.code, discount })}</span>
+              <button type="button" className="btn--ghost" onClick={clearPromo}>{t('common.remove')}</button>
             </div>
           ) : (
             <div className="checkout__promo-row">
               <input
                 className="filter-input"
-                placeholder="Code promo"
+                placeholder={t('checkout.promoPlaceholder')}
                 value={promoInput}
                 onChange={(e) => {
                   setPromoInput(e.target.value.toUpperCase());
@@ -320,29 +322,29 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
                 onClick={() => void applyPromo()}
                 disabled={promoBusy || !promoInput.trim()}
               >
-                {promoBusy ? '…' : 'Appliquer'}
+                {promoBusy ? '…' : t('common.apply')}
               </button>
             </div>
           )}
           {promoMsg && <span className="field__error">{promoMsg}</span>}
           {promoInput.trim() && !promo && !promoMsg && (
-            <span className="muted checkout__promo-hint">Ton code sera appliqué à la commande.</span>
+            <span className="muted checkout__promo-hint">{t('checkout.promoHint')}</span>
           )}
         </div>
       )}
 
       {referralActive && (
         <label className="field">
-          <span className="field__label">Code de parrainage (facultatif)</span>
+          <span className="field__label">{t('checkout.referralLabel')}</span>
           <input
             className="filter-input"
-            placeholder="Le code d'un ami"
+            placeholder={t('checkout.referralPlaceholder')}
             value={referralInput}
             onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
           />
           {refereeDiscount > 0 && (
             <span className="muted checkout__promo-hint">
-              −{refereeDiscount} TND sur ta 1ʳᵉ commande si le code est valide.
+              {t('checkout.referralHint', { discount: refereeDiscount })}
             </span>
           )}
         </label>
@@ -350,23 +352,23 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
 
       {discount > 0 && (
         <div className="total">
-          <span>Remise</span>
+          <span>{t('checkout.discount')}</span>
           <strong>−{discount} TND</strong>
         </div>
       )}
       {refereeDiscount > 0 && (
         <div className="total">
-          <span>Parrainage</span>
+          <span>{t('checkout.referralRow')}</span>
           <strong>−{refereeDiscount} TND</strong>
         </div>
       )}
 
       {config && (
         <div className="total checkout__delivery">
-          <span>Livraison{freeReason ? ` · ${freeReason}` : ''}</span>
+          <span>{t('checkout.delivery')}{freeReason ? ` · ${freeReason}` : ''}</span>
           <strong>
             {freeDelivery ? (
-              <span className="checkout__delivery-free">Offerte 🚚</span>
+              <span className="checkout__delivery-free">{t('checkout.deliveryFree')}</span>
             ) : (
               `${deliveryFee ?? 0} TND`
             )}
@@ -375,18 +377,15 @@ export function CheckoutForm({ cart, onPlaceOrder, onSuccess }: Props) {
       )}
       {missingForFree != null && missingForFree > 0 && (
         <p className="muted checkout__free-hint">
-          🚚 Plus que {missingForFree} pièce{missingForFree > 1 ? 's' : ''} pour la livraison
-          offerte !
+          {t(missingForFree > 1 ? 'checkout.freeMany' : 'checkout.freeOne', { n: missingForFree })}
         </p>
       )}
 
       {formError && <div className="checkout__error">{formError}</div>}
       <button type="submit" className="btn btn--add btn--full" disabled={submitting}>
-        {submitting ? 'Envoi…' : `Confirmer la commande — ${payable} TND`}
+        {submitting ? t('checkout.submitting') : t('checkout.confirm', { total: payable })}
       </button>
-      <p className="muted checkout__pay-note">
-        💵 Paiement à la livraison. Le paiement en ligne arrive bientôt.
-      </p>
+      <p className="muted checkout__pay-note">{t('checkout.payNote')}</p>
     </form>
   );
 }

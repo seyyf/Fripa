@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import type { TShirt } from '../types';
 import { effectivePrice, isOnSale } from '../types';
+import { useT } from '../i18n/LanguageContext';
 
 interface Props {
   itemId: string;
@@ -13,6 +14,7 @@ interface Props {
 // "Pièces similaires" rail — keeps the shopper moving when a piece is gone, and
 // surfaces alternatives otherwise. Renders nothing when there are no matches.
 export function SimilarPieces({ itemId, refreshKey }: Props) {
+  const { t } = useT();
   const [items, setItems] = useState<TShirt[]>([]);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function SimilarPieces({ itemId, refreshKey }: Props) {
 
   return (
     <section className="similar">
-      <h2 className="similar__title">Pièces similaires</h2>
+      <h2 className="similar__title">{t('pd.similar')}</h2>
       <div className="preview-grid">
         {items.map((it) => (
           <Link key={it.id} to={`/piece/${it.id}`} className="preview-card">
