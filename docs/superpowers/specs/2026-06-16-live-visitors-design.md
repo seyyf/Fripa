@@ -154,3 +154,10 @@ Windows).
 - SSE/WebSocket upgrade of the admin read-side (intentionally deferred).
 - Persisting live presence to the DB (it is ephemeral by design).
 - i18n of the new admin view.
+- **Higher-accuracy GeoIP via MaxMind GeoLite2-City.** `geoip-lite` ships first
+  for zero-config offline resolution. If governorate accuracy proves too coarse,
+  swap the lookup to MaxMind GeoLite2-City (free account + license key, DB read
+  with the `maxmind` npm reader, refreshed periodically). To keep this a drop-in
+  swap, the GeoIP lookup is isolated behind a single `resolveGovernorate(ip)`
+  function/provider so only that module changes — `PresenceService` and the
+  `TN-xx → governorate` mapping table stay put.
