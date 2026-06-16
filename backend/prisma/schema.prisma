@@ -149,3 +149,14 @@ model AuditLog {
 
   @@index([createdAt])
 }
+
+// Hourly rollup of live-visitor presence, for day-over-day traffic charts.
+// `governorates` holds the peak-hour breakdown as JSON [{ name, count }].
+model VisitorSnapshot {
+  id           String   @id @default(cuid())
+  hour         DateTime @unique
+  peakOnline   Int
+  avgOnline    Int
+  governorates String   @default("[]") // JSON string (SQLite has no JSON type)
+  createdAt    DateTime @default(now())
+}
