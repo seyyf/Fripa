@@ -21,11 +21,15 @@ import { AdminInsightsController } from './admin-insights.controller';
 import { AdminInsightsService } from './admin-insights.service';
 import { AuditController } from './audit.controller';
 import { AuditService } from './audit.service';
+import { PresenceModule } from '../presence/presence.module';
+import { AdminPresenceController } from '../presence/admin-presence.controller';
 
 @Module({
   imports: [
     // Reuse the shop's Prisma connection + catalogue loader for item CRUD.
     ShopModule,
+    // Provides PresenceService for the guarded live-visitors endpoints below.
+    PresenceModule,
     // Secret is resolved at init time from config, so .env is already loaded.
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -48,6 +52,7 @@ import { AuditService } from './audit.service';
     AdminSettingsController,
     AdminInsightsController,
     AuditController,
+    AdminPresenceController,
   ],
   providers: [
     AdminService,
