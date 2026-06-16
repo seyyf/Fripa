@@ -200,6 +200,20 @@ export interface AdminInsights {
   medianDaysToSell: number | null;
 }
 
+export interface LivePresence {
+  online: number;
+  byGovernorate: { name: string; count: number }[];
+  topPieces: { pieceId: string; title: string; count: number }[];
+  activeCarts: number;
+  swipeRatePerMin: number;
+}
+
+export interface VisitorHistoryPoint {
+  hour: string;
+  peakOnline: number;
+  avgOnline: number;
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -291,6 +305,9 @@ export const adminApi = {
     http<{ ok: true }>('/admin/settings/test-whatsapp', { method: 'POST' }),
   insights: () => http<AdminInsights>('/admin/insights'),
   audit: (limit = 200) => http<AuditEntry[]>(`/admin/audit?limit=${limit}`),
+  presence: () => http<LivePresence>('/admin/presence'),
+  presenceHistory: (hours = 48) =>
+    http<VisitorHistoryPoint[]>(`/admin/presence/history?hours=${hours}`),
 
   // Multipart upload — can't go through `http` (which forces a JSON content-type;
   // the browser must set the multipart boundary itself).
