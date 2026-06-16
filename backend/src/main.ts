@@ -8,6 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({ origin: true, credentials: true });
   app.setGlobalPrefix('api');
+  // Behind a reverse proxy in prod, honour X-Forwarded-For so req.ip is the
+  // real client (geoip needs it). Harmless in dev (localhost -> "Inconnu").
+  app.set('trust proxy', true);
   // Serve admin-uploaded images. Path lives under /api so the dev proxy covers it.
   const uploadsDir = join(process.cwd(), 'uploads');
   mkdirSync(uploadsDir, { recursive: true });
