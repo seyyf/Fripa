@@ -11,6 +11,10 @@ interface Props {
   onPass: (item: FieldItem) => void;
   onFavorite: (item: FieldItem) => void;
   reducedMotion?: boolean;
+  // First-visit teaching: play a one-time scripted nudge (right→left→up) so the
+  // shopper sees each gesture and its feedback before touching anything.
+  demo?: boolean;
+  onDemoEnd?: () => void;
 }
 
 const THRESHOLDS: SwipeThresholds = { right: 110, left: 110, up: 110 };
@@ -26,7 +30,7 @@ const THROW_Y = typeof window !== 'undefined' ? Math.max(760, window.innerHeight
 // forwardRef: AnimatePresence mode="popLayout" measures the exiting card via
 // this ref to pin it absolutely while it flies out of the deck's flex flow.
 export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
-  { item, onKeep, onPass, onFavorite, reducedMotion = false }: Props,
+  { item, onKeep, onPass, onFavorite, reducedMotion = false, demo = false, onDemoEnd }: Props,
   ref,
 ) {
   const { t } = useT();
@@ -88,6 +92,64 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
   const passStamp = useTransform(x, [-120, -40], [1, 0.7]);
   const favoriteStamp = useTransform(y, [-120, -40], [1, 0.7]);
 
+  // --- First-visit demo --------------------------------------------------
+  // Scripted nudge that drives the same x/y the shopper would — so the glow
+  // and the GARDER/PASSER/FAVORI stamps light up exactly as during a real
+  // swipe. A floating hand cue rides along. Cancels the instant the shopper
+  // touches the card, and runs at most once (gated by the parent).
+  const [demoing, setDemoing] = useState(false);
+  const demoCancel = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!demo || reducedMotion) return;
+    let cancelled = false;
+    const controls: { stop: () => void }[] = [];
+    const step = (mv: typeof x, to: number, dur: number) =>
+      new Promise<void>((resolve) => {
+        controls.push(animate(mv, to, { duration: dur, ease: FLY_EASE, onComplete: resolve }));
+      });
+    const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    const A = 96; // amplitude — past the 40px stamp threshold, so feedback shows
+
+    demoCancel.current = () => {
+      if (cancelled) return;
+      cancelled = true;
+      controls.forEach((c) => c.stop());
+      setDemoing(false);
+      animate(x, 0, { duration: 0.18 });
+      animate(y, 0, { duration: 0.18 });
+      onDemoEnd?.();
+    };
+
+    (async () => {
+      await wait(550); // let the card settle before demonstrating
+      if (cancelled) return;
+      setDemoing(true);
+      const seq: [typeof x, number, number, number][] = [
+        [x, A, 0.5, 430], // → Garder
+        [x, 0, 0.4, 200],
+        [x, -A, 0.5, 430], // ← Passer
+        [x, 0, 0.4, 200],
+        [y, -A, 0.5, 430], // ↑ Favori
+        [y, 0, 0.45, 0],
+      ];
+      for (const [mv, to, dur, pause] of seq) {
+        await step(mv, to, dur);
+        if (cancelled) return;
+        if (pause) await wait(pause);
+        if (cancelled) return;
+      }
+      setDemoing(false);
+      onDemoEnd?.();
+    })();
+
+    return () => {
+      cancelled = true;
+      controls.forEach((c) => c.stop());
+      demoCancel.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, reducedMotion]);
+
   // Report the decision immediately — the parent removes the card and the
   // `exit` variant below throws it off-screen from wherever the drag left it.
   function fire(action: SwipeAction) {
@@ -132,6 +194,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
       dragMomentum={false}
       onDragStart={() => {
         draggingRef.current = true;
+        demoCancel.current?.(); // the shopper took over — stop demonstrating
       }}
       onDragEnd={handleDragEnd}
       initial={
@@ -178,6 +241,13 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
       <motion.span className="swipe-card__glow swipe-card__glow--keep" style={{ opacity: keepGlow }} aria-hidden="true" />
       <motion.span className="swipe-card__glow swipe-card__glow--pass" style={{ opacity: passGlow }} aria-hidden="true" />
       <motion.span className="swipe-card__glow swipe-card__glow--favorite" style={{ opacity: favoriteGlow }} aria-hidden="true" />
+
+      {/* Hand cue during the first-visit demo — rides along with the card. */}
+      {demoing && (
+        <span className="swipe-card__demo-hand" aria-hidden="true">
+          👆
+        </span>
+      )}
 
       {item.lastChance && (
         <div className="last-chance-banner">

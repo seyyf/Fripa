@@ -22,7 +22,6 @@ import {
 import { holdState } from './cart/holdTimer';
 import { SizePrompt } from './components/SizePrompt';
 import { SwipeDeck } from './components/SwipeDeck';
-import { SwipeCoach } from './components/SwipeCoach';
 import { QuickFilters } from './components/QuickFilters';
 import { TrackOrder } from './components/TrackOrder';
 import { useAccount } from './account/AccountContext';
@@ -472,7 +471,6 @@ export default function App() {
                   onFavorite={handleFavorite}
                 />
               )}
-              {!showEmpty && deck.length > 0 && <SwipeCoach />}
               {!showEmpty && (
                 <p className="hint">{t('deck.hint')}</p>
               )}

@@ -1,9 +1,19 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { FieldItem } from '../types';
 import { SwipeCard } from './SwipeCard';
 import { SwipeBurstEngine, type BurstAction } from '../fx/swipeBurst';
 import { playSwipeSound } from '../fx/swipeSound';
+
+// One-time onboarding flag (shared with the old coach key).
+const COACH_KEY = 'fripa-coached';
+function coachSeen(): boolean {
+  try {
+    return !!localStorage.getItem(COACH_KEY);
+  } catch {
+    return true;
+  }
+}
 
 interface Props {
   deck: FieldItem[];
@@ -31,6 +41,17 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
   const engineRef = useRef<SwipeBurstEngine | null>(null);
   const lastAction = useRef<BurstAction | null>(null);
 
+  // First-visit teaching demo on the top card (skipped for reduced-motion).
+  const [demo, setDemo] = useState(() => !reducedMotion && !coachSeen());
+  function endDemo() {
+    setDemo(false);
+    try {
+      localStorage.setItem(COACH_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  }
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -50,6 +71,7 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
   // remember the throw direction, fire the matching burst, notify the parent.
   function decide(action: BurstAction, item: FieldItem) {
     lastAction.current = action;
+    if (demo) endDemo(); // a real swipe means they've got it
     playSwipeSound(action); // whoosh / pop / sparkle per gesture
     const canvas = canvasRef.current;
     if (!reducedMotion && canvas) {
@@ -130,6 +152,8 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
             key={top.id}
             item={top}
             reducedMotion={reducedMotion}
+            demo={demo}
+            onDemoEnd={endDemo}
             onKeep={(i) => decide('keep', i)}
             onPass={(i) => decide('pass', i)}
             onFavorite={(i) => decide('favorite', i)}
