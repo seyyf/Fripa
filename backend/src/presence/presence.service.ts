@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import { PrismaService } from '../shop/prisma.service';
 import { ITEMS } from '../shop/items.data';
 import { resolveGovernorate } from './geoip';
@@ -26,11 +26,20 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
   // Mutable so a test can shrink it; defaults to the constant.
   maxEntries = PRESENCE_MAX_ENTRIES;
 
+  private readonly now: Clock;
+  private readonly geo: Geo;
+
+  // `now`/`geo` are @Optional so Nest DI doesn't try to resolve the bare
+  // Function types (it ignores default param values). Tests still pass them
+  // positionally; in the app they fall back to the real clock + geoip lookup.
   constructor(
     private readonly prisma: PrismaService,
-    private readonly now: Clock = () => Date.now(),
-    private readonly geo: Geo = resolveGovernorate,
-  ) {}
+    @Optional() now?: Clock,
+    @Optional() geo?: Geo,
+  ) {
+    this.now = now ?? (() => Date.now());
+    this.geo = geo ?? resolveGovernorate;
+  }
 
   onModuleInit(): void {
     this.sampleTimer = setInterval(() => this.sampleNow(), SAMPLE_INTERVAL_MS);
