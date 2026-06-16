@@ -74,3 +74,40 @@ describe('PresenceService', () => {
     expect(online).toBeLessThanOrEqual(3);
   });
 });
+
+describe('PresenceService rollup', () => {
+  it('writes peak + avg from the minute samples for the current hour', async () => {
+    let t = new Date('2026-06-16T10:00:00Z').getTime();
+    const writes: any[] = [];
+    const prisma = {
+      visitorSnapshot: {
+        upsert: async (arg: any) => { writes.push(arg); },
+        findMany: async () => [],
+      },
+    } as any;
+    const svc = new PresenceService(prisma, () => t, (ip?: string) => ip ?? 'Inconnu');
+
+    svc.ping('u1', 'Tunis', { page: 'home', hasCart: false, swipesSincePing: 0 });
+    svc.sampleNow(); // sample = 1
+    svc.ping('u2', 'Sfax', { page: 'home', hasCart: false, swipesSincePing: 0 });
+    svc.sampleNow(); // sample = 2
+
+    await svc.flushHour();
+
+    expect(writes).toHaveLength(1);
+    const data = writes[0].create;
+    expect(data.peakOnline).toBe(2);
+    expect(data.avgOnline).toBe(2); // round((1+2)/2) = 2
+    expect(new Date(data.hour).toISOString()).toBe('2026-06-16T10:00:00.000Z');
+    // samples reset after a flush
+    expect(svc.pendingSampleCount()).toBe(0);
+  });
+
+  it('skips the write when no samples were collected', async () => {
+    const writes: any[] = [];
+    const prisma = { visitorSnapshot: { upsert: async (a: any) => { writes.push(a); }, findMany: async () => [] } } as any;
+    const svc = new PresenceService(prisma, () => 0, () => 'Inconnu');
+    await svc.flushHour();
+    expect(writes).toHaveLength(0);
+  });
+});

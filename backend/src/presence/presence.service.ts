@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../shop/prisma.service';
 import { ITEMS } from '../shop/items.data';
 import { resolveGovernorate } from './geoip';
@@ -6,6 +6,8 @@ import {
   ONLINE_WINDOW_MS,
   SWIPE_RATE_WINDOW_MS,
   PRESENCE_MAX_ENTRIES,
+  SAMPLE_INTERVAL_MS,
+  ROLLUP_INTERVAL_MS,
 } from './presence.constants';
 import type { PresenceEntry, PingContext, PresenceSnapshot } from './presence.types';
 
@@ -13,10 +15,14 @@ type Clock = () => number;
 type Geo = (ip: string | undefined) => string;
 
 @Injectable()
-export class PresenceService {
+export class PresenceService implements OnModuleInit, OnModuleDestroy {
   private readonly entries = new Map<string, PresenceEntry>();
   // Trailing buffer of swipe timestamps (ms) for the rate calc.
   private swipeTimes: number[] = [];
+  // Online counts sampled once a minute; flushed into one hourly row.
+  private samples: number[] = [];
+  private sampleTimer?: ReturnType<typeof setInterval>;
+  private rollupTimer?: ReturnType<typeof setInterval>;
   // Mutable so a test can shrink it; defaults to the constant.
   maxEntries = PRESENCE_MAX_ENTRIES;
 
@@ -25,6 +31,60 @@ export class PresenceService {
     private readonly now: Clock = () => Date.now(),
     private readonly geo: Geo = resolveGovernorate,
   ) {}
+
+  onModuleInit(): void {
+    this.sampleTimer = setInterval(() => this.sampleNow(), SAMPLE_INTERVAL_MS);
+    this.sampleTimer.unref?.();
+    this.rollupTimer = setInterval(() => void this.flushHour(), ROLLUP_INTERVAL_MS);
+    this.rollupTimer.unref?.();
+  }
+
+  onModuleDestroy(): void {
+    if (this.sampleTimer) clearInterval(this.sampleTimer);
+    if (this.rollupTimer) clearInterval(this.rollupTimer);
+  }
+
+  // Record the current online count for the rollup. Called every minute.
+  sampleNow(): void {
+    this.samples.push(this.onlineCount());
+  }
+
+  pendingSampleCount(): number {
+    return this.samples.length;
+  }
+
+  // Roll the collected minute-samples into one row for the current hour, then
+  // reset. Best-effort: never throws into the timer.
+  async flushHour(): Promise<void> {
+    const samples = this.samples;
+    this.samples = [];
+    if (samples.length === 0) return;
+    const peakOnline = Math.max(...samples);
+    const avgOnline = Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
+    const hour = new Date(this.now());
+    hour.setMinutes(0, 0, 0);
+    const governorates = JSON.stringify(this.snapshot().byGovernorate);
+    try {
+      await this.prisma.visitorSnapshot.upsert({
+        where: { hour },
+        create: { hour, peakOnline, avgOnline, governorates },
+        update: { peakOnline, avgOnline, governorates },
+      });
+    } catch {
+      /* best-effort rollup; a failed write must not crash the timer */
+    }
+  }
+
+  // Recent hourly history for the admin traffic chart (oldest -> newest).
+  async history(hours = 48): Promise<{ hour: string; peakOnline: number; avgOnline: number }[]> {
+    const rows = await this.prisma.visitorSnapshot.findMany({
+      orderBy: { hour: 'desc' },
+      take: hours,
+    });
+    return rows
+      .reverse()
+      .map((r) => ({ hour: r.hour.toISOString(), peakOnline: r.peakOnline, avgOnline: r.avgOnline }));
+  }
 
   // Record a heartbeat. `ip` is used transiently for geo on first sight only;
   // it is never stored — only the resolved governorate is kept.
