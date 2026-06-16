@@ -37,6 +37,8 @@ import { FavoritesDrawer } from './components/FavoritesDrawer';
 import { FilterDrawer } from './components/FilterDrawer';
 import { Header } from './components/Header';
 import { EmptyState } from './components/EmptyState';
+import { usePresenceHeartbeat } from './presence/usePresenceHeartbeat';
+import { bumpSwipe } from './presence/presenceState';
 
 const BATCH = 60; // how many items we ask the backend for per refill
 const LOW_WATER = 6; // refill the deck when it drops to this many cards
@@ -53,6 +55,8 @@ export default function App() {
   const [deck, setDeck] = useState<FieldItem[]>([]);
   const [cart, setCart] = useState<CartResponse>({ lines: [], total: 0 });
   const [favorites, setFavorites] = useState<FavoritesResponse>({ lines: [] });
+  // Live-visitor heartbeat (powers the admin "En direct" view).
+  usePresenceHeartbeat(cart.lines.length > 0);
   // Seed the deck filter from the saved size profile (anonymous, no login).
   const [filters, setFilters] = useState<FieldFilters>(() => {
     const s = getSizeProfile();
@@ -182,6 +186,7 @@ export default function App() {
   }
 
   async function handleKeep(item: FieldItem) {
+    bumpSwipe();
     dropTop(item.id);
     try {
       setCart(await api.add(item.id));
@@ -196,6 +201,7 @@ export default function App() {
   }
 
   async function handlePass(item: FieldItem) {
+    bumpSwipe();
     dropTop(item.id);
     try {
       await api.pass(item.id);
@@ -211,6 +217,7 @@ export default function App() {
   }
 
   async function handleFavorite(item: FieldItem) {
+    bumpSwipe();
     dropTop(item.id);
     try {
       await api.favorite(item.id);
