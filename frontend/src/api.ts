@@ -161,4 +161,30 @@ export const api = {
     http<{ ok: boolean }>(`/session/${userId()}/reset`, { method: 'POST' }),
   resetSwipes: () =>
     http<{ ok: boolean }>(`/session/${userId()}/reset-swipes`, { method: 'POST' }),
+
+  // Live-visitor heartbeat. Fire-and-forget: must never throw or disturb the
+  // shopper, so it bypasses `http` (which throws on non-2xx).
+  presencePing: (ctx: {
+    page: string;
+    pieceId?: string;
+    hasCart: boolean;
+    swipesSincePing: number;
+  }): void => {
+    const payload = JSON.stringify({ userId: userId(), ...ctx });
+    try {
+      // sendBeacon survives page unload; fall back to a best-effort fetch.
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/presence/ping', new Blob([payload], { type: 'application/json' }));
+      } else {
+        void fetch('/api/presence/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    } catch {
+      /* best-effort — never disturb the shopper */
+    }
+  },
 };
