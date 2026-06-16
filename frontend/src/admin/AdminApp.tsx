@@ -10,6 +10,7 @@ import { AdminPromos } from './AdminPromos';
 import { AdminSettings } from './AdminSettings';
 import { AdminInsightsPage } from './AdminInsights';
 import { AdminJournal } from './AdminJournal';
+import { AdminLive } from './AdminLive';
 import './admin.css';
 
 type AuthState = 'checking' | 'out' | 'in';
@@ -66,6 +67,9 @@ export default function AdminApp() {
           <NavLink to="/admin" end className={navClass}>
             Tableau de bord
           </NavLink>
+          <NavLink to="/admin/live" className={navClass}>
+            En direct
+          </NavLink>
           <NavLink to="/admin/items" className={navClass}>
             Pièces
           </NavLink>
@@ -100,6 +104,7 @@ export default function AdminApp() {
       <main className="admin__main">
         <Routes>
           <Route index element={<AdminOverview onAuthError={logout} />} />
+          <Route path="live" element={<AdminLive onAuthError={logout} />} />
           <Route path="items" element={<AdminItems onAuthError={logout} />} />
           <Route path="orders" element={<AdminOrders onAuthError={logout} />} />
           <Route path="customers" element={<AdminCustomers onAuthError={logout} />} />
