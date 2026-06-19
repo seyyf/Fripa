@@ -36,25 +36,13 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
         </div>
       </NavLink>
 
+      {/* Home + catalogue nav hidden — the app focuses on the swipe deck. */}
       <nav className="app-nav">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
-        >
-          {t('nav.home')}
-        </NavLink>
         <NavLink
           to="/shop"
           className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
         >
           {t('nav.shop')}
-        </NavLink>
-        <NavLink
-          to="/catalogue"
-          className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
-        >
-          {t('nav.catalogue')}
         </NavLink>
       </nav>
 

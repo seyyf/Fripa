@@ -20,18 +20,15 @@ function renderHeader() {
 }
 
 describe('Header navigation', () => {
-  it('links to the home page', () => {
-    renderHeader();
-    expect(screen.getByRole('link', { name: /Accueil/i })).toHaveAttribute('href', '/');
-  });
-
   it('links to the shop (deck) page', () => {
     renderHeader();
     expect(screen.getByRole('link', { name: /Boutique/i })).toHaveAttribute('href', '/shop');
   });
 
-  it('links to the catalogue grid', () => {
+  // Home + catalogue nav links are intentionally hidden — the app focuses on
+  // the swipe deck, and those routes redirect to /shop.
+  it('does not show the catalogue grid link', () => {
     renderHeader();
-    expect(screen.getByRole('link', { name: /Catalogue/i })).toHaveAttribute('href', '/catalogue');
+    expect(screen.queryByRole('link', { name: /Catalogue/i })).toBeNull();
   });
 });

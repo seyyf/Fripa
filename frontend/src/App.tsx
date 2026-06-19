@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { api } from './api';
 import type {
   CartResponse,
@@ -28,8 +28,6 @@ import { useAccount } from './account/AccountContext';
 import { useT } from './i18n/LanguageContext';
 import { accountApi } from './account/accountApi';
 import { AccountPage } from './account/AccountPage';
-import { HomePage } from './components/HomePage';
-import { Catalogue } from './components/Catalogue';
 import { ProductDetail } from './components/ProductDetail';
 import { CheckoutPage } from './components/CheckoutPage';
 import { Cart } from './components/Cart';
@@ -68,11 +66,11 @@ export default function App() {
   const [toast, setToast] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
   const [outOfCards, setOutOfCards] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
-  // A piece just removed from the cart → returned to the floor. The tick lets
-  // the catalogue react even if the same piece is returned twice.
-  const [returned, setReturned] = useState<{ item: TShirt; tick: number } | null>(null);
+  // A piece just removed from the cart → returned to the floor. Consumed by the
+  // catalogue (currently hidden); the setter still runs so a revert is trivial.
+  const [, setReturned] = useState<{ item: TShirt; tick: number } | null>(null);
   // Pieces bought at checkout → the catalogue removes them from the floor.
-  const [purchased, setPurchased] = useState<{ ids: string[]; tick: number } | null>(null);
+  const [, setPurchased] = useState<{ ids: string[]; tick: number } | null>(null);
 
   const { user } = useAccount();
   const { t } = useT();
@@ -400,19 +398,11 @@ export default function App() {
       />
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route
-          path="/catalogue"
-          element={
-            <Catalogue
-              onAddToCart={addToCart}
-              onFavorite={addFavorite}
-              onUnfavorite={removeFavorite}
-              returned={returned}
-              purchased={purchased}
-            />
-          }
-        />
+        {/* Home + catalogue grid hidden — the app focuses on the swipe deck.
+            Both redirect to /shop so old links/bookmarks still land on it.
+            (HomePage/Catalogue components kept for an easy revert.) */}
+        <Route path="/" element={<Navigate to="/shop" replace />} />
+        <Route path="/catalogue" element={<Navigate to="/shop" replace />} />
         <Route
           path="/piece/:id"
           element={<ProductDetail onAddToCart={addToCart} onFavorite={addFavorite} />}
