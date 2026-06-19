@@ -4,6 +4,7 @@ import type { FieldItem } from '../types';
 import { SwipeCard } from './SwipeCard';
 import { SwipeBurstEngine, type BurstAction } from '../fx/swipeBurst';
 import { playSwipeSound } from '../fx/swipeSound';
+import { useIdleNudge } from '../swipe/useIdleNudge';
 
 // One-time onboarding flag (shared with the old coach key).
 const COACH_KEY = 'fripa-coached';
@@ -43,6 +44,8 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
 
   // First-visit teaching demo on the top card (skipped for reduced-motion).
   const [demo, setDemo] = useState(() => !reducedMotion && !coachSeen());
+  // Once the shopper makes any real swipe, the idle re-nudge is done for good.
+  const [hasSwiped, setHasSwiped] = useState(false);
   function endDemo() {
     setDemo(false);
     try {
@@ -51,6 +54,18 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
       /* ignore */
     }
   }
+
+  // The idle re-nudge may run only when a card is on top, motion is allowed,
+  // no drawer/modal is covering the deck, and the demo isn't already playing.
+  const overlayOpen =
+    typeof document !== 'undefined' &&
+    !!document.querySelector('.drawer-backdrop, .modal-backdrop');
+  const nudgeActive = !!top && !reducedMotion && !demo && !overlayOpen;
+  const { noteInteraction } = useIdleNudge({
+    active: nudgeActive,
+    hasSwiped,
+    onNudge: () => setDemo(true), // replay the existing first-visit demo
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,6 +85,7 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
   // Every decision funnels through here (drag, gesture buttons, keyboard):
   // remember the throw direction, fire the matching burst, notify the parent.
   function decide(action: BurstAction, item: FieldItem) {
+    setHasSwiped(true); // any committed swipe ends the onboarding nudge
     lastAction.current = action;
     if (demo) endDemo(); // a real swipe means they've got it
     playSwipeSound(action); // whoosh / pop / sparkle per gesture
@@ -154,6 +170,7 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
             reducedMotion={reducedMotion}
             demo={demo}
             onDemoEnd={endDemo}
+            onInteract={noteInteraction}
             onKeep={(i) => decide('keep', i)}
             onPass={(i) => decide('pass', i)}
             onFavorite={(i) => decide('favorite', i)}
