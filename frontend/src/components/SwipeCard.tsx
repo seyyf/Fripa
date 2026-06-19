@@ -15,6 +15,9 @@ interface Props {
   // shopper sees each gesture and its feedback before touching anything.
   demo?: boolean;
   onDemoEnd?: () => void;
+  // Fired on a non-committing interaction (drag attempt, photo tap) so the deck
+  // can reset its idle re-nudge timer.
+  onInteract?: () => void;
 }
 
 const THRESHOLDS: SwipeThresholds = { right: 110, left: 110, up: 110 };
@@ -30,7 +33,7 @@ const THROW_Y = typeof window !== 'undefined' ? Math.max(760, window.innerHeight
 // forwardRef: AnimatePresence mode="popLayout" measures the exiting card via
 // this ref to pin it absolutely while it flies out of the deck's flex flow.
 export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
-  { item, onKeep, onPass, onFavorite, reducedMotion = false, demo = false, onDemoEnd }: Props,
+  { item, onKeep, onPass, onFavorite, reducedMotion = false, demo = false, onDemoEnd, onInteract }: Props,
   ref,
 ) {
   const { t } = useT();
@@ -55,6 +58,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
   const draggingRef = useRef(false);
   function cyclePhoto(dir: 1 | -1) {
     if (draggingRef.current || photos.length < 2) return;
+    onInteract?.();
     setPhotoIndex((i) => (i + dir + photos.length) % photos.length);
   }
 
@@ -195,6 +199,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
       onDragStart={() => {
         draggingRef.current = true;
         demoCancel.current?.(); // the shopper took over — stop demonstrating
+        onInteract?.(); // a drag attempt counts as engagement
       }}
       onDragEnd={handleDragEnd}
       initial={
