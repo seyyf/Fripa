@@ -287,7 +287,10 @@
   background: var(--a-surface);
   border: 1px solid var(--a-line-soft);
   border-radius: var(--r-md);
-  overflow: hidden;
+  /* Scroll wide tables horizontally inside their card on narrow screens
+     instead of clipping/crushing the columns. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--a-shadow);
 }
 .admin-table {
@@ -954,14 +957,27 @@
   font-size: 14px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   .admin__bar {
     flex-wrap: wrap;
+    padding: 11px 16px;
+    gap: 10px;
   }
+  /* Keep the 9 nav links on one swipeable row instead of wrapping to 3 rows. */
   .admin__nav {
     order: 3;
     width: 100%;
-    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .admin__nav::-webkit-scrollbar {
+    display: none;
+  }
+  .admin__nav-link {
+    white-space: nowrap;
   }
 }
 @media (max-width: 600px) {
@@ -1067,3 +1083,56 @@
 .admin-live__hist { display: flex; align-items: flex-end; gap: 2px; height: 120px; }
 .admin-live__hist-bar { flex: 1; min-height: 2px; background: var(--a-ink); opacity: .55; border-radius: 2px 2px 0 0; }
 .admin-muted { color: var(--a-ink); opacity: .6; font-size: .9rem; }
+
+/* ---------- Responsive: tablet & phone ---------- */
+@media (max-width: 760px) {
+  .admin__main {
+    padding: 18px;
+  }
+  /* Wide data tables get a sensible floor so they scroll (see .admin-table-wrap)
+     rather than crushing every column to illegibility. */
+  .admin-table {
+    min-width: 600px;
+  }
+}
+@media (max-width: 520px) {
+  .admin__bar {
+    padding: 10px 14px;
+  }
+  .admin__brand-sub {
+    display: none;
+  }
+  .admin__main {
+    padding: 13px;
+  }
+  .admin-kpis {
+    grid-template-columns: 1fr;
+  }
+  .admin-items__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .admin-items__head-actions {
+    flex-wrap: wrap;
+  }
+  .admin-items__title {
+    font-size: 24px;
+  }
+  .admin-order__head {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .admin-order-detail__controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-modal-backdrop {
+    padding: 16px 10px;
+  }
+  .admin-live__hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
