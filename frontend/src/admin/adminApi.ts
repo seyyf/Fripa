@@ -34,6 +34,7 @@ export interface AdminItem {
   category: string;
   status: string;
   publishAt?: string | null; // scheduled draft → active promotion (drop)
+  baleId?: string | null; // wholesale bale this piece came from
   createdAt: string;
   updatedAt: string;
 }
@@ -214,6 +215,47 @@ export interface VisitorHistoryPoint {
   avgOnline: number;
 }
 
+export interface BaleSummary {
+  id: string;
+  label: string;
+  totalCost: number;
+  itemCount: number;
+  soldCount: number;
+  recoupedPct: number;
+  netGain: number;
+}
+
+export interface BaleInput {
+  label: string;
+  totalCost: number;
+  supplier?: string | null;
+  purchasedAt?: string | null;
+  note?: string | null;
+}
+
+export interface BaleMember {
+  id: string;
+  title: string;
+  status: string;
+  cost: number;
+  soldPrice: number | null;
+}
+
+export interface BaleDetail extends BaleSummary {
+  supplier: string | null;
+  purchasedAt: string | null;
+  note: string | null;
+  remainingCount: number;
+  realizedRevenue: number;
+  costOfSold: number;
+  grossGain: number;
+  discounts: number;
+  freeDelivery: { count: number; estimated: number };
+  remainingCost: number;
+  potentialRevenue: number;
+  members: BaleMember[];
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -305,6 +347,19 @@ export const adminApi = {
     http<{ ok: true }>('/admin/settings/test-whatsapp', { method: 'POST' }),
   insights: () => http<AdminInsights>('/admin/insights'),
   audit: (limit = 200) => http<AuditEntry[]>(`/admin/audit?limit=${limit}`),
+  listBales: () => http<BaleSummary[]>('/admin/bales'),
+  getBale: (id: string) => http<BaleDetail>(`/admin/bales/${id}`),
+  createBale: (input: BaleInput) =>
+    http<{ id: string }>('/admin/bales', { method: 'POST', body: JSON.stringify(input) }),
+  updateBale: (id: string, patch: Partial<BaleInput>) =>
+    http<{ id: string }>(`/admin/bales/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteBale: (id: string) =>
+    http<{ ok: true }>(`/admin/bales/${id}`, { method: 'DELETE' }),
+  assignToBale: (id: string, itemIds: string[]) =>
+    http<{ ok: true; count: number }>(`/admin/bales/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ itemIds }),
+    }),
   presence: () => http<LivePresence>('/admin/presence'),
   presenceHistory: (hours = 48) =>
     http<VisitorHistoryPoint[]>(`/admin/presence/history?hours=${hours}`),
