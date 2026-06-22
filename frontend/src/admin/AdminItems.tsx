@@ -4,6 +4,7 @@ import {
   AdminAuthError,
   STATUSES,
   type AdminItem,
+  type BaleSummary,
   type ItemInput,
 } from './adminApi';
 import { ItemForm } from './ItemForm';
@@ -39,6 +40,10 @@ export function AdminItems({ onAuthError }: Props) {
   const [sort, setSort] = useState<Sort | null>(null);
   const [dormantOnly, setDormantOnly] = useState(false);
   const [quickDraft, setQuickDraft] = useState(false);
+  const [bales, setBales] = useState<BaleSummary[]>([]);
+  useEffect(() => {
+    adminApi.listBales().then(setBales).catch(() => {});
+  }, []);
 
   function handleError(err: unknown) {
     if (err instanceof AdminAuthError) {
@@ -149,6 +154,18 @@ export function AdminItems({ onAuthError }: Props) {
       return;
     try {
       await adminApi.bulkItems(ids, action);
+      setSelected(new Set());
+      await refresh();
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+  async function assignToBale(baleId: string) {
+    const ids = [...selected];
+    if (!baleId || ids.length === 0) return;
+    try {
+      await adminApi.assignToBale(baleId, ids);
       setSelected(new Set());
       await refresh();
     } catch (err) {
@@ -318,6 +335,21 @@ export function AdminItems({ onAuthError }: Props) {
               <button className="admin-btn" onClick={() => bulk('active')}>Activer</button>
               <button className="admin-btn" onClick={() => bulk('draft')}>Brouillon</button>
               <button className="admin-btn" onClick={() => bulk('archived')}>Archiver</button>
+              {bales.length > 0 && (
+                <select
+                  className="admin-btn admin-bulk-bale"
+                  value=""
+                  onChange={(e) => {
+                    void assignToBale(e.target.value);
+                    e.currentTarget.value = '';
+                  }}
+                >
+                  <option value="" disabled>Assigner à une balle…</option>
+                  {bales.map((b) => (
+                    <option key={b.id} value={b.id}>{b.label}</option>
+                  ))}
+                </select>
+              )}
               <button className="admin-btn admin-btn--danger" onClick={() => bulk('delete')}>Supprimer</button>
               <button className="admin-btn" onClick={() => setSelected(new Set())}>Désélectionner</button>
             </div>
