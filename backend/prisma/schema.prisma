@@ -29,11 +29,26 @@ model Item {
   category    String // T-shirts | Sweats | Polos | Vestes | Maillots | Shorts | Jeans
   status      String   @default("active") // active | draft | sold | archived
   cost        Int      @default(0) // what the shop paid for the piece (souk price); powers margin
+  baleId      String? // the wholesale bale this piece came from
+  bale        Bale?    @relation(fields: [baleId], references: [id])
   // Drop scheduling: a draft with a publishAt goes active automatically at that
   // time (and feeds the public "next drop" countdown teaser).
   publishAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// A wholesale lot ("balle") bought at one price. Member items derive their cost
+// as totalCost / member-count; the per-bale P&L is computed on read.
+model Bale {
+  id          String    @id @default(cuid())
+  label       String
+  totalCost   Int // TND, the price paid for the bale
+  supplier    String?
+  purchasedAt DateTime?
+  note        String?
+  createdAt   DateTime  @default(now())
+  items       Item[]
 }
 
 // A placed order (cash on delivery for now). Lines snapshot the piece details at
