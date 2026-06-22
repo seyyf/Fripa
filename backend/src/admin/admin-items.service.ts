@@ -4,6 +4,7 @@ import { PrismaService } from '../shop/prisma.service';
 import { CatalogueLoader } from '../shop/catalogue.loader';
 import { CATEGORIES, CONDITIONS, ITEM_STATUSES, SIZES } from '../shop/types';
 import { AuditService } from './audit.service';
+import { BaleService } from './bale.service';
 
 export interface ItemInput {
   title: string;
@@ -23,6 +24,9 @@ export interface ItemInput {
   // Drop scheduling: ISO date for the automatic draft → active promotion
   // (null clears the schedule).
   publishAt?: string | null;
+  // The wholesale bale this piece belongs to (null clears it). Setting it
+  // re-derives the bale's per-item cost.
+  baleId?: string | null;
 }
 
 const STRING_FIELDS = [
@@ -80,6 +84,7 @@ export class AdminItemsService {
     private readonly prisma: PrismaService,
     private readonly loader: CatalogueLoader,
     private readonly audit: AuditService,
+    private readonly bales: BaleService,
   ) {}
 
   // All items, every status — the admin sees drafts/archived too.
@@ -89,6 +94,7 @@ export class AdminItemsService {
 
   async create(input: ItemInput): Promise<Item> {
     const item = await this.createRaw(input);
+    if (item.baleId) await this.bales.recost(item.baleId);
     await this.loader.reload();
     this.audit.log('item.create', item.title, `${item.price} TND · ${item.status}`);
     return item;
@@ -144,12 +150,16 @@ export class AdminItemsService {
   }
 
   async update(id: string, input: Partial<ItemInput>): Promise<Item> {
-    await this.getOrThrow(id);
+    const prev = await this.getOrThrow(id);
     const data = this.validate(input, { partial: true });
     const item = await this.prisma.item.update({
       where: { id },
       data: data as Prisma.ItemUncheckedUpdateInput,
     });
+    if ('baleId' in data) {
+      if (prev.baleId && prev.baleId !== item.baleId) await this.bales.recost(prev.baleId);
+      if (item.baleId) await this.bales.recost(item.baleId);
+    }
     await this.loader.reload();
     this.audit.log('item.update', item.title, Object.keys(data).join(', '));
     return item;
@@ -314,6 +324,14 @@ export class AdminItemsService {
         }
         out.publishAt = d;
       }
+    }
+
+    // baleId: undefined → leave as-is; null → detach; string → assign.
+    if (input.baleId !== undefined) {
+      if (input.baleId === null) out.baleId = null;
+      else if (typeof input.baleId !== 'string' || !input.baleId.trim()) {
+        throw new BadRequestException('« baleId » invalide.');
+      } else out.baleId = input.baleId;
     }
 
     return out;
