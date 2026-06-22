@@ -21,6 +21,8 @@ import { AdminInsightsController } from './admin-insights.controller';
 import { AdminInsightsService } from './admin-insights.service';
 import { AuditController } from './audit.controller';
 import { AuditService } from './audit.service';
+import { BaleController } from './bale.controller';
+import { BaleService } from './bale.service';
 import { PresenceModule } from '../presence/presence.module';
 import { AdminPresenceController } from '../presence/admin-presence.controller';
 
@@ -52,6 +54,7 @@ import { AdminPresenceController } from '../presence/admin-presence.controller';
     AdminSettingsController,
     AdminInsightsController,
     AuditController,
+    BaleController,
     AdminPresenceController,
   ],
   providers: [
@@ -64,6 +67,7 @@ import { AdminPresenceController } from '../presence/admin-presence.controller';
     AdminPromosService,
     AdminInsightsService,
     AuditService,
+    BaleService,
   ],
   // Exported so later admin feature modules can reuse the guard.
   exports: [AdminGuard, JwtModule],

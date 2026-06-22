@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import type { Bale } from '@prisma/client';
+import { Prisma, type Bale } from '@prisma/client';
 import { PrismaService } from '../shop/prisma.service';
 import { SettingsService } from '../shop/settings.service';
 import { effectivePrice } from '../shop/types';
@@ -64,13 +64,18 @@ export class BaleService {
   }
 
   async create(input: BaleInput): Promise<Bale> {
-    return this.prisma.bale.create({ data: this.validate(input, false) });
+    return this.prisma.bale.create({
+      data: this.validate(input, false) as Prisma.BaleUncheckedCreateInput,
+    });
   }
 
   async update(id: string, patch: Partial<BaleInput>): Promise<Bale> {
     await this.getOrThrow(id);
     const data = this.validate(patch, true);
-    const bale = await this.prisma.bale.update({ where: { id }, data });
+    const bale = await this.prisma.bale.update({
+      where: { id },
+      data: data as Prisma.BaleUncheckedUpdateInput,
+    });
     if ('totalCost' in data) await this.recost(id); // re-average members
     return bale;
   }
