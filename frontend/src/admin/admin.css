@@ -1136,3 +1136,25 @@
     gap: 12px;
   }
 }
+
+/* Inline bale create on the item form */
+.admin-link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0 0;
+  text-align: left;
+}
+.admin-inline-bale {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.admin-inline-bale .filter-input {
+  flex: 1;
+  min-width: 120px;
+}

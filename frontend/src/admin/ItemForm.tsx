@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   adminApi,
   CATEGORIES,
@@ -6,6 +6,7 @@ import {
   SIZES,
   STATUSES,
   type AdminItem,
+  type BaleSummary,
   type ItemInput,
 } from './adminApi';
 
@@ -50,6 +51,7 @@ const EMPTY: ItemInput = {
   seller: '',
   category: 'T-shirts',
   status: 'active',
+  baleId: null,
 };
 
 export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
@@ -70,6 +72,7 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
           seller: initial.seller,
           category: initial.category,
           status: initial.status,
+          baleId: initial.baleId ?? null,
         }
       : EMPTY,
   );
@@ -80,6 +83,32 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
   // Drop scheduling (kept as the datetime-local string; converted on submit).
   const [publishLocal, setPublishLocal] = useState(() => toLocalInput(initial?.publishAt));
   const images = form.images ?? [];
+
+  // Bale assignment (the piece's wholesale lot) + inline "new bale" creation.
+  const [bales, setBales] = useState<BaleSummary[]>([]);
+  const [newBale, setNewBale] = useState<{ open: boolean; label: string; cost: number }>({
+    open: false,
+    label: '',
+    cost: 0,
+  });
+  useEffect(() => {
+    let alive = true;
+    adminApi.listBales().then((b) => alive && setBales(b)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function createBaleInline() {
+    if (!newBale.label.trim() || newBale.cost <= 0) return;
+    const { id } = await adminApi.createBale({
+      label: newBale.label.trim(),
+      totalCost: Math.round(newBale.cost),
+    });
+    setBales(await adminApi.listBales());
+    set('baleId', id);
+    setNewBale({ open: false, label: '', cost: 0 });
+  }
 
   function set<K extends keyof ItemInput>(key: K, value: ItemInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -256,6 +285,50 @@ export function ItemForm({ initial, isEdit = false, onSave, onCancel }: Props) {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+            </label>
+
+            <label className="field">
+              <span className="field__label">Balle</span>
+              <select
+                className="filter-input"
+                value={form.baleId ?? ''}
+                onChange={(e) => set('baleId', e.target.value || null)}
+              >
+                <option value="">— Aucune —</option>
+                {bales.map((b) => (
+                  <option key={b.id} value={b.id}>{b.label}</option>
+                ))}
+              </select>
+              {!newBale.open ? (
+                <button
+                  type="button"
+                  className="admin-link-btn"
+                  onClick={() => setNewBale((n) => ({ ...n, open: true }))}
+                >
+                  + Nouvelle balle
+                </button>
+              ) : (
+                <div className="admin-inline-bale">
+                  <input
+                    className="filter-input"
+                    placeholder="Libellé (ex. Balle #1)"
+                    value={newBale.label}
+                    onChange={(e) => setNewBale((n) => ({ ...n, label: e.target.value }))}
+                  />
+                  <input
+                    className="filter-input"
+                    type="number"
+                    min={1}
+                    placeholder="Coût total (TND)"
+                    value={newBale.cost || ''}
+                    onChange={(e) => setNewBale((n) => ({ ...n, cost: e.target.valueAsNumber || 0 }))}
+                  />
+                  <button type="button" className="admin-btn" onClick={createBaleInline}>Créer</button>
+                </div>
+              )}
+              {form.baleId && (
+                <span className="muted">Le coût d'achat est calculé automatiquement (coût balle ÷ nb pièces).</span>
+              )}
             </label>
 
             <label className="field">
