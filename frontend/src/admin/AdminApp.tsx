@@ -11,6 +11,8 @@ import { AdminSettings } from './AdminSettings';
 import { AdminInsightsPage } from './AdminInsights';
 import { AdminJournal } from './AdminJournal';
 import { AdminLive } from './AdminLive';
+import { AdminBales } from './AdminBales';
+import { AdminBaleDetail } from './AdminBaleDetail';
 import './admin.css';
 
 type AuthState = 'checking' | 'out' | 'in';
@@ -73,6 +75,9 @@ export default function AdminApp() {
           <NavLink to="/admin/items" className={navClass}>
             Pièces
           </NavLink>
+          <NavLink to="/admin/bales" className={navClass}>
+            Balles
+          </NavLink>
           <NavLink to="/admin/orders" className={navClass}>
             Commandes
           </NavLink>
@@ -106,6 +111,8 @@ export default function AdminApp() {
           <Route index element={<AdminOverview onAuthError={logout} />} />
           <Route path="live" element={<AdminLive onAuthError={logout} />} />
           <Route path="items" element={<AdminItems onAuthError={logout} />} />
+          <Route path="bales" element={<AdminBales onAuthError={logout} />} />
+          <Route path="bales/:id" element={<AdminBaleDetail onAuthError={logout} />} />
           <Route path="orders" element={<AdminOrders onAuthError={logout} />} />
           <Route path="customers" element={<AdminCustomers onAuthError={logout} />} />
           <Route path="insights" element={<AdminInsightsPage onAuthError={logout} />} />
