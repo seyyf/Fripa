@@ -119,7 +119,7 @@ function withClock(start: number) {
   return { s, advance: (ms: number) => (t += ms) };
 }
 
-const TTL = 10 * 60 * 1000;
+const TTL = 15 * 60 * 1000;
 
 describe('ShopService cart hold (TTL)', () => {
   it('puts an expiry timestamp on each cart line', () => {

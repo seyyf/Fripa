@@ -40,7 +40,7 @@ const LAST_CHANCE_SURFACE_RATE = 0.2;
 
 // A cart line is a soft reservation: hold a piece this long, then it's released
 // back to the floor (someone else can grab it). See "how should I handle the cart".
-const CART_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CART_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 // How many pieces a single user may hold (reserve) at once. Caps cart-spam:
 // without it a session could reserve unbounded pieces (and empty its own deck).
