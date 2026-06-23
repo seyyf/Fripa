@@ -125,6 +125,38 @@ export class ShopService {
     return item;
   }
 
+  // --- Global reservations -------------------------------------------------
+  // A swipe-keep holds a piece for CART_TTL_MS for everyone. Per-user carts stay
+  // the source of truth (single process, single-threaded), so "who holds it" is
+  // derived by scanning live holds, honouring the TTL inline. No second
+  // structure to drift; expired holds simply count as released.
+
+  // Who currently holds this piece (any user's live cart hold), or null.
+  private holderOf(itemId: string, now: number): string | null {
+    for (const [uid, st] of this.states) {
+      const at = st.cart.get(itemId);
+      if (at !== undefined && now - at < CART_TTL_MS) return uid;
+    }
+    return null;
+  }
+
+  private heldByOther(itemId: string, userId: string, now: number): boolean {
+    const holder = this.holderOf(itemId, now);
+    return holder !== null && holder !== userId;
+  }
+
+  // The set of pieces held by someone OTHER than `userId` (for deck/list filters).
+  private heldByOthers(userId: string, now: number): Set<string> {
+    const held = new Set<string>();
+    for (const [uid, st] of this.states) {
+      if (uid === userId) continue;
+      for (const [itemId, at] of st.cart) {
+        if (now - at < CART_TTL_MS) held.add(itemId);
+      }
+    }
+    return held;
+  }
+
   // An item is "fresh" for a user when they haven't decided on it yet (not
   // passed, not pending reprise, not already shown, not in cart or favorites).
   private isFresh(s: UserState, i: TShirt): boolean {
@@ -186,7 +218,8 @@ export class ShopService {
         !s.passed.has(i.id) &&
         !s.lastChancePool.has(i.id) &&
         !s.shownLastChance.has(i.id) &&
-        !s.cart.has(i.id),
+        !s.cart.has(i.id) &&
+        !this.heldByOther(i.id, userId, this.now()),
     )
       .map((i) => ({ i, sc: score(i) }))
       .filter((x) => x.sc > 0)
@@ -199,23 +232,34 @@ export class ShopService {
   getOne(userId: string, id: string): ItemDetail {
     const item = this.getItem(id); // throws NotFound if the id is unknown
     const s = this.getState(userId);
-    let status: ItemDetail['status'];
-    if (s.cart.has(id)) status = 'inCart';
-    else if (s.favorites.has(id)) status = 'inFavorites';
-    else if (s.passed.has(id) || s.lastChancePool.has(id) || s.shownLastChance.has(id))
-      status = 'gone';
-    else status = 'available';
-    return { item, status };
+    const now = this.now();
+    if (s.cart.has(id)) return { item, status: 'inCart' };
+    if (s.favorites.has(id)) return { item, status: 'inFavorites' };
+    if (s.passed.has(id) || s.lastChancePool.has(id) || s.shownLastChance.has(id)) {
+      return { item, status: 'gone' };
+    }
+    // Held by another shopper → locked with a countdown until their hold lapses.
+    const holder = this.holderOf(id, now);
+    if (holder && holder !== userId) {
+      const reservedUntil = (this.states.get(holder)!.cart.get(id) as number) + CART_TTL_MS;
+      return { item, status: 'reserved', reservedUntil };
+    }
+    return { item, status: 'available' };
   }
 
   getField(userId: string, count: number, filters: FieldFilters = {}): FieldResponse {
     const s = this.getState(userId);
+    // Pieces another shopper is currently holding never reach the deck.
+    const blocked = this.heldByOthers(userId, this.now());
 
-    const fresh = ITEMS.filter((i) => this.isFresh(s, i) && matchesFilters(i, filters));
+    const fresh = ITEMS.filter(
+      (i) => this.isFresh(s, i) && !blocked.has(i.id) && matchesFilters(i, filters),
+    );
     const reprise = ITEMS.filter(
       (i) =>
         s.lastChancePool.has(i.id) &&
         !s.shownLastChance.has(i.id) &&
+        !blocked.has(i.id) &&
         matchesFilters(i, filters),
     );
 
@@ -279,6 +323,10 @@ export class ShopService {
   // Mutates the cart without recording an undoable swipe (shared by the
   // swipe-keep and the move-from-favorites paths).
   private cartAdd(userId: string, s: UserState, itemId: string) {
+    // Global hold: refuse a piece another shopper is currently holding.
+    if (this.heldByOther(itemId, userId, this.now())) {
+      throw new ConflictException('Déjà réservé par un autre acheteur.');
+    }
     // A refresh of an existing hold is not a new "keep" signal.
     if (!s.cart.has(itemId)) this.swipeLog?.log(userId, itemId, 'keep');
     // Start (or refresh) the hold reservation for this piece.
@@ -397,7 +445,7 @@ export class ShopService {
 
   getFavorites(userId: string): FavoritesResponse {
     const s = this.getState(userId);
-    const lines: TShirt[] = [];
+    const lines: FavoritesResponse['lines'] = [];
     for (const id of s.favorites) {
       const item = this.findItem(id);
       // Drop a favourite that was sold/removed globally.
@@ -405,7 +453,13 @@ export class ShopService {
         s.favorites.delete(id);
         continue;
       }
-      lines.push(item);
+      // Flag a favourite another shopper is currently holding (shown locked).
+      const holder = this.holderOf(id, this.now());
+      if (holder && holder !== userId) {
+        lines.push({ ...item, reservedUntil: (this.states.get(holder)!.cart.get(id) as number) + CART_TTL_MS });
+      } else {
+        lines.push(item);
+      }
     }
     return { lines };
   }

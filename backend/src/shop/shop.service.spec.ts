@@ -467,3 +467,41 @@ describe('ShopService.resetSwipes', () => {
     expect(res.items.every((i) => i.lastChance === false)).toBe(true);
   });
 });
+
+describe('ShopService global reservations', () => {
+  it('blocks a second user from holding a piece already held', () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    expect(() => s.addToCart('u2', 't-001')).toThrow(/réservé par un autre/i);
+  });
+
+  it("hides a held piece from other users' decks", () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    const ids = s.getField('u2', 100).items.map((i) => i.id);
+    expect(ids).not.toContain('t-001');
+  });
+
+  it('reports reserved status + reservedUntil on the detail page for others', () => {
+    const s = new ShopService();
+    s.addToCart('u1', 't-001');
+    const d = s.getOne('u2', 't-001');
+    expect(d.status).toBe('reserved');
+    expect(d.reservedUntil).toBeGreaterThan(0);
+  });
+
+  it('blocks moving a favorite to cart when held by another', () => {
+    const s = new ShopService();
+    s.addFavorite('u2', 't-001');
+    s.addToCart('u1', 't-001');
+    expect(() => s.moveFavoriteToCart('u2', 't-001')).toThrow(/réservé par un autre/i);
+  });
+
+  it('releases the hold after the TTL — the piece is grabbable again', () => {
+    const { s, advance } = withClock(1000);
+    s.addToCart('u1', 't-001');
+    advance(TTL + 1);
+    expect(s.getField('u2', 100).items.map((i) => i.id)).toContain('t-001');
+    expect(() => s.addToCart('u2', 't-001')).not.toThrow();
+  });
+});
