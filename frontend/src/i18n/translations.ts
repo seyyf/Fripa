@@ -98,6 +98,28 @@ export const STRINGS = {
   'cat.heldCrowd': { fr: '⏱ Pris', ar: '⏱ مأخوذ', en: '⏱ Taken' },
   'cat.returnIn': { fr: 'Revient dans {time}', ar: 'يعود خلال {time}', en: 'Back in {time}' },
   'cat.tickerPrefix': { fr: '⏱ {msg}', ar: '⏱ {msg}', en: '⏱ {msg}' },
+
+  // Reservations (global hold) + first-visit "how it works" card.
+  'intro.title': { fr: 'Comment ça marche', ar: 'كيف يعمل التطبيق', en: 'How it works' },
+  'intro.swipe': {
+    fr: 'Swipe à droite = tu gardes la pièce, réservée 15 min rien que pour toi. Gauche = passer · Haut = favori.',
+    ar: 'اسحب لليمين = تحتفظ بالقطعة، محجوزة 15 دقيقة لك وحدك. لليسار = تجاوز · للأعلى = المفضلة.',
+    en: 'Swipe right = you keep the piece, reserved 15 min just for you. Left = pass · Up = favorite.',
+  },
+  'intro.cap': {
+    fr: 'Jusqu’à 10 réservations à la fois.',
+    ar: 'حتى 10 حجوزات في نفس الوقت.',
+    en: 'Up to 10 reservations at a time.',
+  },
+  'intro.cod': {
+    fr: 'Paiement à la livraison.',
+    ar: 'الدفع عند الاستلام.',
+    en: 'Cash on delivery.',
+  },
+  'intro.cta': { fr: 'C’est parti', ar: 'هيا بنا', en: "Let's go" },
+  'pd.reserved': { fr: 'Réservé', ar: 'محجوز', en: 'Reserved' },
+  'pd.reservedReturnsIn': { fr: 'Revient dans {time}', ar: 'يعود خلال {time}', en: 'Back in {time}' },
+  'fav.reserved': { fr: 'Réservé', ar: 'محجوز', en: 'Reserved' },
   'cat.emptyTitle': { fr: 'Aucune pièce ne correspond.', ar: 'لا توجد قطعة مطابقة.', en: 'Nothing matches.' },
   'cat.emptyText': {
     fr: 'Essaie d’élargir tes filtres.',
