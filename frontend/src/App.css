@@ -3562,3 +3562,11 @@ body {
   font-weight: 700;
   color: var(--accent, #e0231a);
 }
+
+/* Reserved detail: countdown badge + save-for-later, stacked */
+.pd-reserved-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}

@@ -99,8 +99,17 @@ export function ProductDetailContent({ item, status, reservedUntil, onAddToCart,
         {status === 'gone' ? (
           <div className="pd__gone">{t('pd.gone')}</div>
         ) : reserved ? (
-          <div className="pd-reserved">
-            🔒 {t('pd.reserved')} · {t('pd.reservedReturnsIn', { time: formatHold(reservedUntil! - now) })}
+          <div className="pd-reserved-block">
+            <div className="pd-reserved">
+              🔒 {t('pd.reserved')} · {t('pd.reservedReturnsIn', { time: formatHold(reservedUntil! - now) })}
+            </div>
+            <button
+              type="button"
+              className="btn btn--add btn--full"
+              onClick={() => onFavorite(item)}
+            >
+              ⭐ {t('pd.saveForLater')}
+            </button>
           </div>
         ) : (
           <>

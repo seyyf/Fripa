@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import type { FavoritesResponse } from '../types';
 import { useT } from '../i18n/LanguageContext';
+import { formatHold } from '../cart/holdTimer';
 
 interface Props {
   open: boolean;
@@ -11,6 +13,13 @@ interface Props {
 
 export function FavoritesDrawer({ open, onClose, favorites, onMoveToCart, onRemove }: Props) {
   const { t } = useT();
+  // Tick once a second while open so reserved countdowns stay live.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [open]);
   if (!open) return null;
 
   return (
@@ -31,7 +40,7 @@ export function FavoritesDrawer({ open, onClose, favorites, onMoveToCart, onRemo
             {favorites.lines.map((line) => {
               // Held by another shopper right now → lock the move-to-cart action.
               const reserved =
-                typeof line.reservedUntil === 'number' && line.reservedUntil > Date.now();
+                typeof line.reservedUntil === 'number' && line.reservedUntil > now;
               return (
                 <li key={line.id} className="cart-line">
                   <img src={line.imageUrl} alt={line.title} />
@@ -42,7 +51,9 @@ export function FavoritesDrawer({ open, onClose, favorites, onMoveToCart, onRemo
                   </div>
                   <div className="cart-line__fav-actions">
                     {reserved ? (
-                      <span className="fav-reserved">🔒 {t('fav.reserved')}</span>
+                      <span className="fav-reserved">
+                        🔒 {t('fav.reserved')} · {formatHold(line.reservedUntil! - now)}
+                      </span>
                     ) : (
                       <button
                         className="btn btn--add btn--sm"

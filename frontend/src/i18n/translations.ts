@@ -119,7 +119,13 @@ export const STRINGS = {
   'intro.cta': { fr: 'C’est parti', ar: 'هيا بنا', en: "Let's go" },
   'pd.reserved': { fr: 'Réservé', ar: 'محجوز', en: 'Reserved' },
   'pd.reservedReturnsIn': { fr: 'Revient dans {time}', ar: 'يعود خلال {time}', en: 'Back in {time}' },
+  'pd.saveForLater': { fr: 'Garder pour plus tard', ar: 'احفظها لاحقاً', en: 'Save for later' },
   'fav.reserved': { fr: 'Réservé', ar: 'محجوز', en: 'Reserved' },
+  'toast.reservedFavorited': {
+    fr: 'Déjà réservée — ajoutée à tes favoris, reviens si elle se libère !',
+    ar: 'محجوزة بالفعل — أُضيفت إلى مفضلتك، عُد إن تحررت!',
+    en: 'Already reserved — saved to your favorites, come back if it frees up!',
+  },
   'cat.emptyTitle': { fr: 'Aucune pièce ne correspond.', ar: 'لا توجد قطعة مطابقة.', en: 'Nothing matches.' },
   'cat.emptyText': {
     fr: 'Essaie d’élargir tes filtres.',

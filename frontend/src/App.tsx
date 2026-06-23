@@ -192,6 +192,20 @@ export default function App() {
       flash(t('toast.added', { title: item.title }));
     } catch (e) {
       console.error('keep failed', e);
+      // Lost the race — another shopper just reserved it. Save it to favourites
+      // so they can grab it later if it frees up, instead of a dead-end error.
+      if (e instanceof Error && e.message.includes('réservé par')) {
+        try {
+          await api.favorite(item.id);
+          if (user) await accountApi.addFavorite(item.id);
+          await refreshFavorites();
+        } catch {
+          /* best-effort save */
+        }
+        flash(t('toast.reservedFavorited', { title: item.title }));
+        void topUp(); // it's gone from the deck — pull the next card up
+        return;
+      }
       restore(item);
       flash(errMsg(e, t('toast.retry')), 'error');
       return;
