@@ -62,7 +62,9 @@ export interface CartLine extends TShirt {
 }
 
 export interface FavoritesResponse {
-  lines: TShirt[];
+  // `reservedUntil` (ms epoch) is set when this favourited piece is currently
+  // held by ANOTHER shopper — shown locked, not grabbable, until the hold lapses.
+  lines: (TShirt & { reservedUntil?: number })[];
 }
 
 export interface CustomerInfo {
@@ -82,7 +84,7 @@ export interface FieldFilters {
   category?: Category;
 }
 
-export type ItemStatus = 'available' | 'gone' | 'inCart' | 'inFavorites';
+export type ItemStatus = 'available' | 'gone' | 'inCart' | 'inFavorites' | 'reserved';
 
 // A catalogue floor item. `reservedUntil` (ms epoch) is set when the piece is
 // currently held by the user's cart — shown blurred with a countdown, not
@@ -101,4 +103,6 @@ export interface CatalogueResponse {
 export interface ItemDetail {
   item: TShirt;
   status: ItemStatus;
+  // Set only when status === 'reserved': ms epoch when the other shopper's hold lapses.
+  reservedUntil?: number;
 }
