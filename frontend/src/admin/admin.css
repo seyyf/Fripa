@@ -1174,6 +1174,13 @@
 .admin-bale-row {
   cursor: pointer;
 }
+.admin-bale-detail {
+  display: grid;
+  gap: 16px;
+}
+.admin-bale-detail .admin-items__head {
+  margin-bottom: 0;
+}
 .admin-recoup {
   position: relative;
   display: inline-flex;
