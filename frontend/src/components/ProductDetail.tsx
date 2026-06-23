@@ -72,6 +72,7 @@ export function ProductDetail({ onAddToCart, onFavorite }: Props) {
       <ProductDetailContent
         item={detail.item}
         status={detail.status}
+        reservedUntil={detail.reservedUntil}
         onAddToCart={add}
         onFavorite={fav}
       />

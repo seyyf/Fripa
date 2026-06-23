@@ -3538,3 +3538,17 @@ body {
 .intro-card__cta {
   width: 100%;
 }
+
+/* Reserved-by-another badge on the product detail page */
+.pd-reserved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fdeceb;
+  color: var(--accent, #e0231a);
+  border: 1px solid #f1d3d0;
+  border-radius: 999px;
+  padding: 8px 15px;
+  font-weight: 700;
+  font-size: 14px;
+}

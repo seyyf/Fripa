@@ -2,24 +2,36 @@ import { useEffect, useState } from 'react';
 import type { ItemStatus, TShirt } from '../types';
 import { effectivePrice, isOnSale } from '../types';
 import { useT } from '../i18n/LanguageContext';
+import { formatHold } from '../cart/holdTimer';
 import { shareItem } from '../util/share';
 import { addRecent } from '../util/recentlyViewed';
 
 interface Props {
   item: TShirt;
   status: ItemStatus;
+  // Set when status === 'reserved': ms epoch when the other shopper's hold lapses.
+  reservedUntil?: number;
   onAddToCart: (item: TShirt) => void;
   onFavorite: (item: TShirt) => void;
 }
 
 // Presentational detail layout, shared by the standalone /piece/:id page and
 // the catalogue quick-look modal.
-export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: Props) {
+export function ProductDetailContent({ item, status, reservedUntil, onAddToCart, onFavorite }: Props) {
   const { t } = useT();
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   const [sel, setSel] = useState(0);
   const [zoom, setZoom] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const gallery = [item.imageUrl, ...(item.images ?? [])];
+
+  // Held by another shopper → show a live countdown until it returns.
+  const reserved = status === 'reserved' && typeof reservedUntil === 'number' && reservedUntil > now;
+  useEffect(() => {
+    if (!reserved) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [reserved]);
 
   useEffect(() => {
     addRecent(item);
@@ -86,6 +98,10 @@ export function ProductDetailContent({ item, status, onAddToCart, onFavorite }: 
 
         {status === 'gone' ? (
           <div className="pd__gone">{t('pd.gone')}</div>
+        ) : reserved ? (
+          <div className="pd-reserved">
+            🔒 {t('pd.reserved')} · {t('pd.reservedReturnsIn', { time: formatHold(reservedUntil! - now) })}
+          </div>
         ) : (
           <>
             {status === 'inCart' && <p className="pd__note">{t('pd.inCart')}</p>}
