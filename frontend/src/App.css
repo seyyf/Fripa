@@ -3552,3 +3552,13 @@ body {
   font-weight: 700;
   font-size: 14px;
 }
+
+/* Reserved (held by another) favourite line */
+.fav-reserved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent, #e0231a);
+}

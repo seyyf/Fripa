@@ -28,31 +28,40 @@ export function FavoritesDrawer({ open, onClose, favorites, onMoveToCart, onRemo
           </div>
         ) : (
           <ul className="cart-list">
-            {favorites.lines.map((line) => (
-              <li key={line.id} className="cart-line">
-                <img src={line.imageUrl} alt={line.title} />
-                <div className="cart-line__info">
-                  <strong>{line.title}</strong>
-                  <span className="muted">{line.size} · {line.condition}</span>
-                  <span className="cart-line__price">{line.price} TND</span>
-                </div>
-                <div className="cart-line__fav-actions">
-                  <button
-                    className="btn btn--add btn--sm"
-                    onClick={() => onMoveToCart(line.id)}
-                  >
-                    {t('fav.toCart')}
-                  </button>
-                  <button
-                    className="icon-btn"
-                    onClick={() => onRemove(line.id)}
-                    aria-label={t('fav.removeAria')}
-                  >
-                    🗑
-                  </button>
-                </div>
-              </li>
-            ))}
+            {favorites.lines.map((line) => {
+              // Held by another shopper right now → lock the move-to-cart action.
+              const reserved =
+                typeof line.reservedUntil === 'number' && line.reservedUntil > Date.now();
+              return (
+                <li key={line.id} className="cart-line">
+                  <img src={line.imageUrl} alt={line.title} />
+                  <div className="cart-line__info">
+                    <strong>{line.title}</strong>
+                    <span className="muted">{line.size} · {line.condition}</span>
+                    <span className="cart-line__price">{line.price} TND</span>
+                  </div>
+                  <div className="cart-line__fav-actions">
+                    {reserved ? (
+                      <span className="fav-reserved">🔒 {t('fav.reserved')}</span>
+                    ) : (
+                      <button
+                        className="btn btn--add btn--sm"
+                        onClick={() => onMoveToCart(line.id)}
+                      >
+                        {t('fav.toCart')}
+                      </button>
+                    )}
+                    <button
+                      className="icon-btn"
+                      onClick={() => onRemove(line.id)}
+                      aria-label={t('fav.removeAria')}
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </aside>
