@@ -30,7 +30,7 @@ const MIN_FLOOR = 6; // the crowd never holds below this many available pieces
 const MAX_CROWD_HOLDS = 6; // at most this many crowd-held pieces at once
 const SNATCH_MIN = 4500;
 const SNATCH_MAX = 9000;
-const CART_HOLD_MS = 10 * 60 * 1000; // mirrors the backend cart TTL
+const CART_HOLD_MS = 15 * 60 * 1000; // mirrors the backend cart TTL
 const CROWD_HOLD_MS = 30 * 1000; // a phantom shopper holds a piece this long
 
 type Hold = { by: 'you' | 'crowd'; until: number };

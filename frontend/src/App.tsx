@@ -94,7 +94,10 @@ export default function App() {
   function flash(msg: string, tone: 'info' | 'error' = 'info') {
     const entry = { text: msg, tone };
     setToast(entry);
-    setTimeout(() => setToast((t) => (t === entry ? null : t)), tone === 'error' ? 4500 : 2200);
+    // Long enough to actually read — longer messages get more time.
+    const base = tone === 'error' ? 6000 : 4500;
+    const ms = msg.length > 70 ? base + 2000 : base;
+    setTimeout(() => setToast((t) => (t === entry ? null : t)), ms);
   }
 
   const refreshCart = useCallback(async () => setCart(await api.cart()), []);
@@ -192,18 +195,12 @@ export default function App() {
       flash(t('toast.added', { title: item.title }));
     } catch (e) {
       console.error('keep failed', e);
-      // Lost the race — another shopper just reserved it. Save it to favourites
-      // so they can grab it later if it frees up, instead of a dead-end error.
+      // Lost the race — another shopper just reserved it. Put the card back and
+      // suggest the shopper swipe it up to favourites themselves (don't do it
+      // for them) so they can grab it later if it frees up.
       if (e instanceof Error && e.message.includes('réservé par')) {
-        try {
-          await api.favorite(item.id);
-          if (user) await accountApi.addFavorite(item.id);
-          await refreshFavorites();
-        } catch {
-          /* best-effort save */
-        }
-        flash(t('toast.reservedFavorited', { title: item.title }));
-        void topUp(); // it's gone from the deck — pull the next card up
+        restore(item);
+        flash(t('toast.reservedHeld', { title: item.title }), 'error');
         return;
       }
       restore(item);

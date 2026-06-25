@@ -121,10 +121,10 @@ export const STRINGS = {
   'pd.reservedReturnsIn': { fr: 'Revient dans {time}', ar: 'يعود خلال {time}', en: 'Back in {time}' },
   'pd.saveForLater': { fr: 'Garder pour plus tard', ar: 'احفظها لاحقاً', en: 'Save for later' },
   'fav.reserved': { fr: 'Réservé', ar: 'محجوز', en: 'Reserved' },
-  'toast.reservedFavorited': {
-    fr: 'Déjà réservée — ajoutée à tes favoris, reviens si elle se libère !',
-    ar: 'محجوزة بالفعل — أُضيفت إلى مفضلتك، عُد إن تحررت!',
-    en: 'Already reserved — saved to your favorites, come back if it frees up!',
+  'toast.reservedHeld': {
+    fr: 'Déjà réservée par un autre acheteur — swipe vers le haut ⭐ pour la garder en favori et la récupérer si elle se libère.',
+    ar: 'محجوزة من مشترٍ آخر — اسحب للأعلى ⭐ لإضافتها إلى المفضلة واستعادتها إن تحررت.',
+    en: 'Already reserved by another buyer — swipe up ⭐ to save it to favorites and grab it if it frees up.',
   },
   'cat.emptyTitle': { fr: 'Aucune pièce ne correspond.', ar: 'لا توجد قطعة مطابقة.', en: 'Nothing matches.' },
   'cat.emptyText': {
@@ -282,9 +282,9 @@ export const STRINGS = {
   },
   'checkout.emptyTitle': { fr: 'Ton panier est vide.', ar: 'سلتك فارغة.', en: 'Your cart is empty.' },
   'checkout.emptyText': {
-    fr: 'Ajoute des pièces pour commander — les réservations expirent après 10 min.',
-    ar: 'أضف قطعاً للطلب — تنتهي الحجوزات بعد 10 دقائق.',
-    en: 'Add pieces to order — holds expire after 10 min.',
+    fr: 'Ajoute des pièces pour commander — les réservations expirent après 15 min.',
+    ar: 'أضف قطعاً للطلب — تنتهي الحجوزات بعد 15 دقيقة.',
+    en: 'Add pieces to order — holds expire after 15 min.',
   },
   'checkout.seeRack': { fr: 'Voir le rayon', ar: 'تصفّح الرواق', en: 'Browse the rack' },
 

@@ -18,7 +18,7 @@ import { SAMPLE_ITEMS } from './sampleItems';
 // ShopService closely enough to exercise the whole UI (swipe deck, catalogue,
 // cart holds, favorites, a fake checkout) with NO server. Resets on reload.
 
-const CART_TTL_MS = 10 * 60 * 1000;
+const CART_TTL_MS = 15 * 60 * 1000;
 const MAX_CART_HOLDS = 10;
 const LAST_CHANCE_PROB = 0.1;
 const LAST_CHANCE_SURFACE = 0.2;
