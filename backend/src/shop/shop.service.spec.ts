@@ -475,11 +475,12 @@ describe('ShopService global reservations', () => {
     expect(() => s.addToCart('u2', 't-001')).toThrow(/réservé par un autre/i);
   });
 
-  it("hides a held piece from other users' decks", () => {
+  it("keeps a held piece in other users' decks, tagged reserved", () => {
     const s = new ShopService();
     s.addToCart('u1', 't-001');
-    const ids = s.getField('u2', 100).items.map((i) => i.id);
-    expect(ids).not.toContain('t-001');
+    const card = s.getField('u2', 200).items.find((i) => i.id === 't-001');
+    expect(card).toBeDefined();
+    expect(card?.reservedUntil).toBeGreaterThan(0);
   });
 
   it('reports reserved status + reservedUntil on the detail page for others', () => {

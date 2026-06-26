@@ -145,16 +145,17 @@ export class ShopService {
     return holder !== null && holder !== userId;
   }
 
-  // The set of pieces held by someone OTHER than `userId` (for deck/list filters).
-  private heldByOthers(userId: string, now: number): Set<string> {
-    const held = new Set<string>();
+  // itemId -> hold expiry (ms epoch), for pieces held by someone OTHER than
+  // `userId`. Drives the locked "Réservé" cards in everyone else's deck.
+  private heldByOthersMap(userId: string, now: number): Map<string, number> {
+    const map = new Map<string, number>();
     for (const [uid, st] of this.states) {
       if (uid === userId) continue;
       for (const [itemId, at] of st.cart) {
-        if (now - at < CART_TTL_MS) held.add(itemId);
+        if (now - at < CART_TTL_MS) map.set(itemId, at + CART_TTL_MS);
       }
     }
-    return held;
+    return map;
   }
 
   // An item is "fresh" for a user when they haven't decided on it yet (not
@@ -249,33 +250,39 @@ export class ShopService {
 
   getField(userId: string, count: number, filters: FieldFilters = {}): FieldResponse {
     const s = this.getState(userId);
-    // Pieces another shopper is currently holding never reach the deck.
-    const blocked = this.heldByOthers(userId, this.now());
+    // Held pieces stay in the deck as locked cards (tagged with reservedUntil),
+    // rather than disappearing.
+    const heldUntil = this.heldByOthersMap(userId, this.now());
 
-    const fresh = ITEMS.filter(
-      (i) => this.isFresh(s, i) && !blocked.has(i.id) && matchesFilters(i, filters),
-    );
+    const fresh = ITEMS.filter((i) => this.isFresh(s, i) && matchesFilters(i, filters));
     const reprise = ITEMS.filter(
       (i) =>
         s.lastChancePool.has(i.id) &&
         !s.shownLastChance.has(i.id) &&
-        !blocked.has(i.id) &&
         matchesFilters(i, filters),
     );
 
-    const items: (TShirt & { lastChance: boolean })[] = [];
+    const items: (TShirt & { lastChance: boolean; reservedUntil?: number })[] = [];
 
     // Occasionally sneak one last-chance reprise into the batch.
     if (reprise.length > 0 && this.rng() < LAST_CHANCE_SURFACE_RATE) {
       const chosen = reprise[Math.floor(this.rng() * reprise.length)];
       s.lastChancePool.delete(chosen.id);
       s.shownLastChance.add(chosen.id);
-      items.push({ ...chosen, lastChance: true });
+      items.push({
+        ...chosen,
+        lastChance: true,
+        ...(heldUntil.has(chosen.id) ? { reservedUntil: heldUntil.get(chosen.id) } : {}),
+      });
     }
 
     for (const item of this.shuffle([...fresh])) {
       if (items.length >= count) break;
-      items.push({ ...item, lastChance: false });
+      items.push({
+        ...item,
+        lastChance: false,
+        ...(heldUntil.has(item.id) ? { reservedUntil: heldUntil.get(item.id) } : {}),
+      });
     }
 
     const remaining = fresh.length + reprise.length - items.length;

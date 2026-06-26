@@ -51,7 +51,9 @@ export function effectivePrice(item: { price: number; salePrice?: number | null 
 }
 
 export interface FieldResponse {
-  items: (TShirt & { lastChance: boolean })[];
+  // `reservedUntil` is set when another shopper currently holds the piece — it
+  // stays in the deck as a locked card.
+  items: (TShirt & { lastChance: boolean; reservedUntil?: number })[];
   remaining: number;
 }
 
