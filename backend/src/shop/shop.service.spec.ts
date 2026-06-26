@@ -505,4 +505,19 @@ describe('ShopService global reservations', () => {
     expect(s.getField('u2', 100).items.map((i) => i.id)).toContain('t-001');
     expect(() => s.addToCart('u2', 't-001')).not.toThrow();
   });
+
+  it('never surfaces a held piece as a last-chance reprise (and does not burn it)', () => {
+    const s = new ShopService();
+    const store = s as unknown as { rng: () => number; now: () => number };
+    let t = 1000;
+    store.now = () => t;
+    store.rng = () => 0.05; // forces reprise eligibility + reprise surfacing
+    s.pass('u2', 't-001'); // t-001 -> u2's last-chance pool
+    s.addToCart('u1', 't-001'); // u1 now holds it
+    // While held, it must NOT be offered as a last-chance card.
+    expect(s.getField('u2', 200).items.find((i) => i.id === 't-001')).toBeUndefined();
+    // The reprise wasn't burned: once the hold frees, it can resurface.
+    t += TTL + 1;
+    expect(s.getField('u2', 200).items.find((i) => i.id === 't-001')?.lastChance).toBe(true);
+  });
 });

@@ -259,6 +259,9 @@ export class ShopService {
       (i) =>
         s.lastChancePool.has(i.id) &&
         !s.shownLastChance.has(i.id) &&
+        // A "last chance" must be grabbable — don't burn it on a held piece;
+        // it stays in the pool and can resurface once the hold frees.
+        !heldUntil.has(i.id) &&
         matchesFilters(i, filters),
     );
 
