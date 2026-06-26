@@ -479,6 +479,9 @@ export default function App() {
                   onKeep={handleKeep}
                   onPass={handlePass}
                   onFavorite={handleFavorite}
+                  onReservedBlock={(item) =>
+                    flash(t('toast.reservedHeld', { title: item.title }), 'error')
+                  }
                 />
               )}
               {!showEmpty && (

@@ -3,6 +3,7 @@ import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'fra
 import { effectivePrice, isOnSale, type FieldItem } from '../types';
 import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
 import { haptic } from '../util/haptic';
+import { formatHold } from '../cart/holdTimer';
 import { useT } from '../i18n/LanguageContext';
 
 interface Props {
@@ -18,6 +19,8 @@ interface Props {
   // Fired on a non-committing interaction (drag attempt, photo tap) so the deck
   // can reset its idle re-nudge timer.
   onInteract?: () => void;
+  // Fired when the shopper tries to KEEP a piece held by another shopper.
+  onReservedBlock?: (item: FieldItem) => void;
 }
 
 const THRESHOLDS: SwipeThresholds = { right: 110, left: 110, up: 110 };
@@ -33,10 +36,19 @@ const THROW_Y = typeof window !== 'undefined' ? Math.max(760, window.innerHeight
 // forwardRef: AnimatePresence mode="popLayout" measures the exiting card via
 // this ref to pin it absolutely while it flies out of the deck's flex flow.
 export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
-  { item, onKeep, onPass, onFavorite, reducedMotion = false, demo = false, onDemoEnd, onInteract }: Props,
+  { item, onKeep, onPass, onFavorite, reducedMotion = false, demo = false, onDemoEnd, onInteract, onReservedBlock }: Props,
   ref,
 ) {
   const { t } = useT();
+
+  // Held by another shopper → locked card (can't keep), with a live countdown.
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  const reserved = typeof item.reservedUntil === 'number' && item.reservedUntil > nowTs;
+  useEffect(() => {
+    if (!reserved) return;
+    const id = window.setInterval(() => setNowTs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [reserved]);
 
   // --- Photo angles (Tinder pattern: tap to change angle, drag to decide) ---
   // Cover first, then the extra angles; empty/duplicate URLs dropped.
@@ -157,6 +169,13 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
   // Report the decision immediately — the parent removes the card and the
   // `exit` variant below throws it off-screen from wherever the drag left it.
   function fire(action: SwipeAction) {
+    // A held piece can't be grabbed — notify and bounce back, but favorite/pass
+    // still work so the shopper can save it for later or skip it.
+    if (action === 'keep' && reserved) {
+      onReservedBlock?.(item);
+      springBack();
+      return;
+    }
     haptic();
     if (action === 'keep') onKeep(item);
     else if (action === 'pass') onPass(item);
@@ -192,7 +211,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
   return (
     <motion.div
       ref={ref}
-      className={`swipe-card ${item.lastChance ? 'swipe-card--last-chance' : ''}`}
+      className={`swipe-card ${item.lastChance ? 'swipe-card--last-chance' : ''} ${reserved ? 'swipe-card--reserved' : ''}`}
       style={{ x, y, rotate, rotateX, rotateY }}
       drag
       dragMomentum={false}
@@ -252,6 +271,12 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
         <span className="swipe-card__demo-hand" aria-hidden="true">
           👆
         </span>
+      )}
+
+      {reserved && (
+        <div className="swipe-card__reserved" aria-hidden="true">
+          🔒 {t('pd.reserved')} · {formatHold(item.reservedUntil! - nowTs)}
+        </div>
       )}
 
       {item.lastChance && (

@@ -3570,3 +3570,25 @@ body {
   align-items: flex-start;
   gap: 12px;
 }
+
+/* Locked (held by another shopper) deck card */
+.swipe-card--reserved .swipe-card__image,
+.swipe-card--reserved .swipe-card__body {
+  filter: grayscale(0.5) brightness(0.92);
+}
+.swipe-card__reserved {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(20, 16, 10, 0.82);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}

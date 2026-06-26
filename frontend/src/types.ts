@@ -34,6 +34,8 @@ export function effectivePrice(item: { price: number; salePrice?: number | null 
 
 export interface FieldItem extends TShirt {
   lastChance: boolean;
+  // Set when another shopper currently holds this piece — shown as a locked card.
+  reservedUntil?: number;
 }
 
 export interface FieldResponse {

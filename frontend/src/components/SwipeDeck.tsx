@@ -22,6 +22,8 @@ interface Props {
   onKeep: (item: FieldItem) => void;
   onPass: (item: FieldItem) => void;
   onFavorite: (item: FieldItem) => void;
+  // Fired when the shopper tries to keep a piece held by another shopper.
+  onReservedBlock?: (item: FieldItem) => void;
 }
 
 // Graduated depth for the blank cards peeking behind the active one — a tactile
@@ -32,7 +34,7 @@ const PEEK_DEPTH = [
   { scale: 0.9, y: 32, opacity: 0.7 },
 ];
 
-export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: Props) {
+export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite, onReservedBlock }: Props) {
   const top = deck[0];
   const peeks = deck.slice(1, 1 + PEEK_DEPTH.length);
 
@@ -171,6 +173,7 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite }: P
             demo={demo}
             onDemoEnd={endDemo}
             onInteract={noteInteraction}
+            onReservedBlock={onReservedBlock}
             onKeep={(i) => decide('keep', i)}
             onPass={(i) => decide('pass', i)}
             onFavorite={(i) => decide('favorite', i)}
