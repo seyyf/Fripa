@@ -36,11 +36,13 @@ import { FilterDrawer } from './components/FilterDrawer';
 import { Header } from './components/Header';
 import { EmptyState } from './components/EmptyState';
 import { IntroCard } from './components/IntroCard';
+import { detectFreedFavorites, reservedIdsOf } from './favorites/freedAlert';
 import { usePresenceHeartbeat } from './presence/usePresenceHeartbeat';
 import { bumpSwipe } from './presence/presenceState';
 
 const BATCH = 60; // how many items we ask the backend for per refill
 const LOW_WATER = 6; // refill the deck when it drops to this many cards
+const FREED_POLL_MS = 20_000; // how often we re-check held favourites
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Prefer a human-readable server message (e.g. the cart-hold cap); fall back to
@@ -106,6 +108,33 @@ export default function App() {
   const refreshFavorites = useCallback(async () => {
     setFavorites(user ? await accountApi.favorites() : await api.favorites());
   }, [user]);
+
+  // Toast when a favorited held piece becomes available again.
+  const prevReservedFav = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const now = Date.now();
+    const freed = detectFreedFavorites(prevReservedFav.current, favorites.lines, now);
+    if (freed.length === 1) {
+      const line = favorites.lines.find((l) => l.id === freed[0]);
+      flash(t('toast.favAvailable', { title: line?.title ?? '' }));
+    } else if (freed.length > 1) {
+      flash(t('toast.favAvailableN', { n: freed.length }));
+    }
+    prevReservedFav.current = reservedIdsOf(favorites.lines, now);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favorites]);
+
+  // Light poll while ≥1 favourite is held, so we catch an early drop too.
+  useEffect(() => {
+    const hasReserved = favorites.lines.some(
+      (l) => typeof l.reservedUntil === 'number' && l.reservedUntil > Date.now(),
+    );
+    if (!hasReserved) return;
+    const id = window.setInterval(() => {
+      if (!document.hidden) void refreshFavorites();
+    }, FREED_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [favorites, refreshFavorites]);
 
   // On login, push the anonymous favourites up to the account once, then reload.
   useEffect(() => {

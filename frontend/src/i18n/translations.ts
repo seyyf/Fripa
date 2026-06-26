@@ -126,6 +126,16 @@ export const STRINGS = {
     ar: 'محجوزة من مشترٍ آخر — اسحب للأعلى ⭐ لإضافتها إلى المفضلة واستعادتها إن تحررت.',
     en: 'Already reserved by another buyer — swipe up ⭐ to save it to favorites and grab it if it frees up.',
   },
+  'toast.favAvailable': {
+    fr: '⭐ {title} est de nouveau disponible !',
+    ar: '⭐ {title} متاحة من جديد!',
+    en: '⭐ {title} is available again!',
+  },
+  'toast.favAvailableN': {
+    fr: '⭐ {n} favoris sont de nouveau disponibles !',
+    ar: '⭐ {n} من المفضلة متاحة من جديد!',
+    en: '⭐ {n} favorites are available again!',
+  },
   'cat.emptyTitle': { fr: 'Aucune pièce ne correspond.', ar: 'لا توجد قطعة مطابقة.', en: 'Nothing matches.' },
   'cat.emptyText': {
     fr: 'Essaie d’élargir tes filtres.',
