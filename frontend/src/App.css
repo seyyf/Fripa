@@ -2434,12 +2434,17 @@ body {
   background: var(--ink-grad);
   color: #fff;
   padding: 13px 20px;
-  border-radius: 999px;
+  /* Rounded rectangle, not a full pill — a multi-line message in a 999px pill
+     curls into a tall blob and squeezes the text. */
+  border-radius: 16px;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
   z-index: 60;
   box-shadow: var(--e4), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  max-width: min(92vw, 460px);
+  width: max-content;
+  max-width: min(94vw, 480px);
 }
 .toast__dot {
   flex: none;
