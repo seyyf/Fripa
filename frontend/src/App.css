@@ -3641,30 +3641,43 @@ body {
   letter-spacing: 0.2px;
 }
 
-/* Tappable cart thumbnail → photo lightbox */
-.cart-line__zoom {
-  position: relative;
-  padding: 0;
-  border: none;
-  background: none;
+/* Tappable cart piece (photo + details) → photo lightbox */
+.cart-line__tap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   cursor: zoom-in;
+  text-align: left;
   border-radius: 12px;
-  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.cart-line__tap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.cart-line__thumb {
+  position: relative;
+  flex: none;
   line-height: 0;
 }
-.cart-line__zoom img {
-  display: block;
-}
-.cart-line__zoom-hint {
+/* A clear "tap to enlarge" affordance on the thumbnail. */
+.cart-line__zoom-badge {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
-  background: rgba(20, 16, 10, 0.7);
+  right: -6px;
+  bottom: -6px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--ink, #251d15);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
-  padding: 3px 5px;
-  border-radius: 6px;
+  border-radius: 50%;
+  border: 2px solid var(--paper, #fffdf9);
+  box-shadow: var(--e2);
   pointer-events: none;
 }
 

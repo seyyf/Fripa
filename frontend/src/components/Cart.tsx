@@ -91,27 +91,38 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
               }
               transition={reduce ? { duration: 0.15 } : { type: 'spring', stiffness: 460, damping: 38 }}
             >
-              <button
-                type="button"
-                className="cart-line__zoom"
+              {/* The whole piece (photo + details) opens the photo lightbox;
+                  the delete button is a separate sibling. */}
+              <div
+                className="cart-line__tap"
+                role="button"
+                tabIndex={0}
                 onClick={() => setZoomLine(line)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setZoomLine(line);
+                  }
+                }}
                 aria-label={t('cart.zoomAria', { title: line.title })}
               >
-                <img src={line.imageUrl} alt={line.title} loading="lazy" decoding="async" />
-                <span className="cart-line__zoom-hint" aria-hidden="true">⤢</span>
-              </button>
-              <div className="cart-line__info">
-                <strong>{line.title}</strong>
-                <span className="muted">{line.size} · {line.condition}</span>
-                <span className="cart-line__price">
-                  {isOnSale(line) && <span className="price-old">{line.price}</span>}
-                  {effectivePrice(line)} TND
+                <span className="cart-line__thumb">
+                  <img src={line.imageUrl} alt={line.title} loading="lazy" decoding="async" />
+                  <span className="cart-line__zoom-badge" aria-hidden="true">🔍</span>
                 </span>
-                <span
-                  className={`cart-line__hold ${phase === 'warning' ? 'cart-line__hold--warn' : ''}`}
-                >
-                  {t('cart.reserved', { time: formatHold(remainingMs) })}
-                </span>
+                <div className="cart-line__info">
+                  <strong>{line.title}</strong>
+                  <span className="muted">{line.size} · {line.condition}</span>
+                  <span className="cart-line__price">
+                    {isOnSale(line) && <span className="price-old">{line.price}</span>}
+                    {effectivePrice(line)} TND
+                  </span>
+                  <span
+                    className={`cart-line__hold ${phase === 'warning' ? 'cart-line__hold--warn' : ''}`}
+                  >
+                    {t('cart.reserved', { time: formatHold(remainingMs) })}
+                  </span>
+                </div>
               </div>
               <button className="icon-btn" onClick={() => onRemove(line.id)} aria-label={t('common.remove')}>
                 🗑
