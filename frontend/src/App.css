@@ -2637,6 +2637,43 @@ body {
   }
 }
 
+/* Desktop / large screens: the swipe deck is mobile-first, so without this the
+   card balloons to its natural height and the page scrolls. Lock the shop
+   screen to the viewport (only the deck route has .stage) and let flex size a
+   comfortably-capped, vertically-centred card. */
+@media (min-width: 601px) {
+  .app:has(.stage) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .stage {
+    justify-content: center; /* centre the deck vertically in the leftover space */
+    gap: 12px;
+  }
+  /* The deck takes the leftover column height, capped, and the card fills it. */
+  .deck {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 680px;
+    width: min(420px, 90vw);
+  }
+  /* Stacked peeks assume a fixed-ratio card; with a flexible-height card they
+     poke out, so drop them here (as on mobile). */
+  .deck__peek {
+    display: none;
+  }
+  .swipe-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .swipe-card__image {
+    aspect-ratio: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
 /* ---------- Account / login ---------- */
 .login-modal {
   width: 100%;
