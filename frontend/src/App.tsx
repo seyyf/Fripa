@@ -459,6 +459,7 @@ export default function App() {
           path="/shop"
           element={
             <main className="stage">
+              <div className="stage__rail">
               <div className="shop-toolbar">
                 <button
                   type="button"
@@ -479,6 +480,8 @@ export default function App() {
               </div>
 
               <QuickFilters filters={filters} onApply={applyFilters} />
+              </div>
+              <div className="stage__main">
               <SizePrompt />
 
               {showEmpty ? (
@@ -516,6 +519,7 @@ export default function App() {
               {!showEmpty && (
                 <p className="hint">{t('deck.hint')}</p>
               )}
+              </div>
             </main>
           }
         />

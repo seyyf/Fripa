@@ -288,6 +288,12 @@ body {
   align-items: center;
   gap: 14px;
 }
+/* Wrappers for the desktop two-column rail. Invisible to layout by default so
+   phones/tablets render exactly as before; the ≥1100px block turns them on. */
+.stage__rail,
+.stage__main {
+  display: contents;
+}
 .hint {
   font-size: 12px;
   color: var(--muted);
@@ -3660,4 +3666,74 @@ body {
   padding: 3px 5px;
   border-radius: 6px;
   pointer-events: none;
+}
+
+/* ≥1100px: a left control rail in the empty margin, deck centred and taller. */
+@media (min-width: 1100px) {
+  .app:has(.stage) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .stage {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 36px;
+    padding: 24px;
+  }
+  /* Turn the wrappers into real flex containers. */
+  .stage__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 220px;
+    flex: 0 0 220px;
+    align-self: center;
+  }
+  .stage__main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 0 1 460px;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* Rail: stack the toolbar buttons and the quick-chips vertically. */
+  .stage__rail .shop-toolbar {
+    flex-direction: column;
+    gap: 8px;
+    max-width: none;
+  }
+  .stage__rail .toolbar-btn {
+    width: 100%;
+  }
+  .quickfilters__chips {
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .quickfilters__sep {
+    display: none; /* a horizontal divider is meaningless in a vertical list */
+  }
+  /* Deck fills the main column's height (capped), card fills the deck. */
+  .deck {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 700px;
+    width: min(440px, 100%);
+  }
+  .deck__peek {
+    display: none;
+  }
+  .swipe-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .swipe-card__image {
+    aspect-ratio: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 }
