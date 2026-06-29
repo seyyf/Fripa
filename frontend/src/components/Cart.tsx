@@ -8,6 +8,7 @@ import { useShopConfig } from '../hooks/useShopConfig';
 import { useT } from '../i18n/LanguageContext';
 import { CheckoutForm } from './CheckoutForm';
 import { WhatsAppConfirm } from './WhatsAppConfirm';
+import { Lightbox } from './Lightbox';
 
 interface Props {
   open: boolean;
@@ -29,6 +30,8 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
   // Two-step flow inside the one drawer: review the cart, then fill the form.
   const [step, setStep] = useState<'cart' | 'pay'>('cart');
   const [done, setDone] = useState<CheckoutResult | null>(null);
+  // Which cart line's photos are open in the lightbox (null = closed).
+  const [zoomLine, setZoomLine] = useState<CartResponse['lines'][number] | null>(null);
 
   // Tick once a second while open so the hold countdowns update.
   useEffect(() => {
@@ -88,7 +91,15 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
               }
               transition={reduce ? { duration: 0.15 } : { type: 'spring', stiffness: 460, damping: 38 }}
             >
-              <img src={line.imageUrl} alt={line.title} loading="lazy" decoding="async" />
+              <button
+                type="button"
+                className="cart-line__zoom"
+                onClick={() => setZoomLine(line)}
+                aria-label={t('cart.zoomAria', { title: line.title })}
+              >
+                <img src={line.imageUrl} alt={line.title} loading="lazy" decoding="async" />
+                <span className="cart-line__zoom-hint" aria-hidden="true">⤢</span>
+              </button>
               <div className="cart-line__info">
                 <strong>{line.title}</strong>
                 <span className="muted">{line.size} · {line.condition}</span>
@@ -176,6 +187,13 @@ export function Cart({ open, onClose, cart, onRemove, onPlaceOrder }: Props) {
           </div>
         )}
       </aside>
+      {zoomLine && (
+        <Lightbox
+          images={[zoomLine.imageUrl, ...(zoomLine.images ?? [])]}
+          alt={zoomLine.title}
+          onClose={() => setZoomLine(null)}
+        />
+      )}
     </div>
   );
 }

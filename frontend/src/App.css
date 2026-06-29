@@ -3634,3 +3634,30 @@ body {
   font-weight: 800;
   letter-spacing: 0.2px;
 }
+
+/* Tappable cart thumbnail → photo lightbox */
+.cart-line__zoom {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  border-radius: 12px;
+  overflow: hidden;
+  line-height: 0;
+}
+.cart-line__zoom img {
+  display: block;
+}
+.cart-line__zoom-hint {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  background: rgba(20, 16, 10, 0.7);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 6px;
+  pointer-events: none;
+}

@@ -187,6 +187,11 @@ export const STRINGS = {
   'cart.track': { fr: 'Suivre ma commande →', ar: 'تتبّع طلبي →', en: 'Track my order →' },
   'cart.continue': { fr: 'Continuer à chiner', ar: 'مواصلة التنقيب', en: 'Keep thrifting' },
   'cart.reserved': { fr: '⏳ Réservé · {time}', ar: '⏳ محجوز · {time}', en: '⏳ Held · {time}' },
+  'cart.zoomAria': {
+    fr: 'Agrandir les photos de {title}',
+    ar: 'تكبير صور {title}',
+    en: 'Enlarge photos of {title}',
+  },
   'cart.freeOne': {
     fr: '🚚 Plus que {n} pièce pour la livraison offerte !',
     ar: '🚚 باقٍ {n} قطعة فقط للتوصيل المجاني!',
