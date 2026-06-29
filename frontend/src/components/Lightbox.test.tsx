@@ -33,4 +33,17 @@ describe('Lightbox', () => {
     fireEvent.click(container.querySelector('.lightbox')!);
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('does not bubble its close click to an ancestor (e.g. the cart backdrop)', () => {
+    const parentClick = vi.fn();
+    const onClose = vi.fn();
+    const { container } = render(
+      <div onClick={parentClick}>
+        <Lightbox images={['a.jpg']} alt="x" onClose={onClose} />
+      </div>,
+    );
+    fireEvent.click(container.querySelector('.lightbox')!);
+    expect(onClose).toHaveBeenCalled();
+    expect(parentClick).not.toHaveBeenCalled();
+  });
 });

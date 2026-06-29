@@ -30,9 +30,16 @@ export function Lightbox({ images, alt, initialIndex = 0, onClose }: Props) {
 
   if (photos.length === 0) return null;
 
+  // Stop clicks from bubbling to ancestors (e.g. the cart drawer's backdrop,
+  // which would otherwise close the cart when the lightbox is dismissed).
+  const close = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    onClose();
+  };
+
   return (
-    <div className="lightbox" onClick={onClose}>
-      <button className="lightbox__close" aria-label={t('common.close')} onClick={onClose}>
+    <div className="lightbox" onClick={close}>
+      <button className="lightbox__close" aria-label={t('common.close')} onClick={close}>
         ✕
       </button>
       {many && (
