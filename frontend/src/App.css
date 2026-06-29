@@ -3674,21 +3674,25 @@ body {
     height: 100dvh;
     overflow: hidden;
   }
+  /* Grid with symmetric side tracks so the CARD is centred on the screen; the
+     rail lives in the left track and doesn't push the card off-centre. */
   .stage {
-    flex-direction: row;
-    align-items: stretch;
-    justify-content: center;
-    gap: 36px;
+    display: grid;
+    grid-template-columns: 1fr minmax(0, 460px) 1fr;
+    grid-template-rows: minmax(0, 1fr);
     padding: 24px;
   }
-  /* The rail reads as a tidy filter panel, not bare pills on the background. */
+  /* The rail reads as a tidy filter panel, not bare pills on the background.
+     It sits at the inner edge of the left track, near the centred card. */
   .stage__rail {
+    grid-column: 1;
+    justify-self: end;
+    align-self: center;
+    margin-right: 40px;
     display: flex;
     flex-direction: column;
     gap: 14px;
     width: 244px;
-    flex: 0 0 244px;
-    align-self: center;
     padding: 18px 16px;
     background: var(--paper);
     border: 1px solid var(--line);
@@ -3696,10 +3700,10 @@ body {
     box-shadow: var(--e2);
   }
   .stage__main {
+    grid-column: 2;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    flex: 0 1 460px;
     min-width: 0;
     min-height: 0;
   }
