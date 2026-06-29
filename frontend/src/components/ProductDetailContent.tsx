@@ -5,6 +5,7 @@ import { useT } from '../i18n/LanguageContext';
 import { formatHold } from '../cart/holdTimer';
 import { shareItem } from '../util/share';
 import { addRecent } from '../util/recentlyViewed';
+import { Lightbox } from './Lightbox';
 
 interface Props {
   item: TShirt;
@@ -137,39 +138,12 @@ export function ProductDetailContent({ item, status, reservedUntil, onAddToCart,
       </div>
 
       {zoom && (
-        <div className="lightbox" onClick={() => setZoom(false)}>
-          <button className="lightbox__close" aria-label={t('common.close')}>✕</button>
-          {gallery.length > 1 && (
-            <button
-              className="lightbox__nav lightbox__nav--prev"
-              aria-label={t('pd.prev')}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSel((s) => (s - 1 + gallery.length) % gallery.length);
-              }}
-            >
-              ‹
-            </button>
-          )}
-          <img
-            className="lightbox__img"
-            src={gallery[sel] ?? item.imageUrl}
-            alt={item.title}
-            onClick={(e) => e.stopPropagation()}
-          />
-          {gallery.length > 1 && (
-            <button
-              className="lightbox__nav lightbox__nav--next"
-              aria-label={t('pd.next')}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSel((s) => (s + 1) % gallery.length);
-              }}
-            >
-              ›
-            </button>
-          )}
-        </div>
+        <Lightbox
+          images={gallery}
+          alt={item.title}
+          initialIndex={sel}
+          onClose={() => setZoom(false)}
+        />
       )}
     </div>
   );
