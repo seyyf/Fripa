@@ -3747,11 +3747,12 @@ body {
     margin: 4px 0;
     background: var(--line);
   }
-  /* Deck fills the main column's height (capped), card fills the deck. */
+  /* Explicit height so the card's height:100% resolves through the grid→flex
+     chain (otherwise the flex-fill image collapses to 0 and shows blank). */
   .deck {
-    flex: 1 1 auto;
-    min-height: 0;
-    max-height: 700px;
+    flex: 0 0 auto;
+    align-self: center;
+    height: min(700px, calc(100dvh - 140px));
     width: min(440px, 100%);
   }
   .deck__peek {
