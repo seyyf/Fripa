@@ -3829,3 +3829,63 @@ body {
     min-height: 0;
   }
 }
+
+/* Floating deck controls — only rendered on /shop; shown on the mobile deck. */
+.deck-overlay {
+  display: none;
+}
+.deck-overlay__tl,
+.deck-overlay__tr {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  z-index: 40;
+  display: flex;
+  gap: 10px;
+}
+.deck-overlay__tl {
+  left: calc(12px + env(safe-area-inset-left));
+}
+.deck-overlay__tr {
+  right: calc(12px + env(safe-area-inset-right));
+}
+.deck-fab {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(20, 14, 8, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.5);
+}
+.deck-fab--active {
+  background: var(--accent-grad, #e0231a);
+}
+.deck-fab__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  background: var(--accent, #e0231a);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 2px solid var(--paper, #fffdf9);
+}
+@media (max-width: 600px) {
+  .app:has(.stage) .deck-overlay {
+    display: block;
+  }
+}

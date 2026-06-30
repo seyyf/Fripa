@@ -482,6 +482,46 @@ export default function App() {
               <QuickFilters filters={filters} onApply={applyFilters} />
               </div>
               <div className="stage__main">
+              <div className="deck-overlay" aria-label="Actions">
+                <div className="deck-overlay__tl">
+                  <button
+                    type="button"
+                    className={`deck-fab ${filterCount > 0 ? 'deck-fab--active' : ''}`}
+                    onClick={() => setFilterOpen(true)}
+                    aria-label={t('deck.filter')}
+                  >
+                    ⚙{filterCount > 0 && <span className="deck-fab__badge">{filterCount}</span>}
+                  </button>
+                  {historyCount > 0 && (
+                    <button
+                      type="button"
+                      className="deck-fab"
+                      onClick={handleUndo}
+                      aria-label={t('deck.undo')}
+                    >
+                      ↩
+                    </button>
+                  )}
+                </div>
+                <div className="deck-overlay__tr">
+                  <button
+                    type="button"
+                    className="deck-fab"
+                    onClick={() => setFavOpen(true)}
+                    aria-label={t('a11y.favorites')}
+                  >
+                    ⭐{favCount > 0 && <span className="deck-fab__badge">{favCount}</span>}
+                  </button>
+                  <button
+                    type="button"
+                    className="deck-fab"
+                    onClick={() => setCartOpen(true)}
+                    aria-label={t('a11y.cart')}
+                  >
+                    🛒{cartCount > 0 && <span className="deck-fab__badge">{cartCount}</span>}
+                  </button>
+                </div>
+              </div>
               <SizePrompt />
 
               {showEmpty ? (
