@@ -2642,78 +2642,10 @@ body {
     padding: 0 16px;
   }
 
-  /* ---- App-like immersive deck (mobile /shop only) ---- */
-  /* No header / toolbar / inline chips — controls float instead. */
-  .app:has(.stage) .app-header {
-    display: none;
-  }
-  .app:has(.stage) .shop-toolbar,
+  /* Hide the inline quick-filter chips on mobile to give the card more room —
+     filtering stays available via the toolbar's "Filtrer" button (full drawer). */
   .app:has(.stage) .quickfilters {
     display: none;
-  }
-  .app:has(.stage) .stage {
-    padding: 0;
-    gap: 0;
-  }
-  /* Photo fills the whole card; info + buttons overlay the bottom. */
-  .swipe-card {
-    justify-content: flex-end; /* push the in-flow body/actions to the bottom */
-    border-radius: 0;
-  }
-  .swipe-card__image {
-    position: absolute;
-    inset: 0;
-    flex: none;
-    border-radius: 0;
-  }
-  .swipe-card__body {
-    position: relative;
-    z-index: 2;
-    color: #fff;
-    padding: 64px 18px 6px;
-    background: linear-gradient(to top, rgba(18, 11, 5, 0.82), rgba(18, 11, 5, 0));
-  }
-  .swipe-card__actions {
-    position: relative;
-    z-index: 2;
-    background: rgba(18, 11, 5, 0.82);
-    border-top: none;
-    padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
-  }
-  .swipe-card__title {
-    color: #fff;
-  }
-  .swipe-card__brand {
-    color: rgba(255, 255, 255, 0.82);
-  }
-  .swipe-card__seller {
-    display: none; /* full info lives on the detail view */
-  }
-  .swipe-card__meta .chip {
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
-    border-color: transparent;
-  }
-  /* Price inline with the title: title + brand stack on the left, price right. */
-  .swipe-card__title-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
-  .swipe-card__price {
-    bottom: 118px;
-    right: 16px;
-    left: auto;
-    top: auto;
-  }
-  /* The gesture hint is redundant on the immersive deck (buttons + demo cover it). */
-  .app:has(.stage) .hint {
-    display: none;
-  }
-  /* Keep toasts clear of the bottom action buttons — float them near the top. */
-  .app:has(.stage) .toast {
-    top: calc(64px + env(safe-area-inset-top));
-    bottom: auto;
   }
 }
 
@@ -3844,62 +3776,3 @@ body {
   }
 }
 
-/* Floating deck controls — only rendered on /shop; shown on the mobile deck. */
-.deck-overlay {
-  display: none;
-}
-.deck-overlay__tl,
-.deck-overlay__tr {
-  position: fixed;
-  top: calc(12px + env(safe-area-inset-top));
-  z-index: 40;
-  display: flex;
-  gap: 10px;
-}
-.deck-overlay__tl {
-  left: calc(12px + env(safe-area-inset-left));
-}
-.deck-overlay__tr {
-  right: calc(12px + env(safe-area-inset-right));
-}
-.deck-fab {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  font-size: 18px;
-  line-height: 1;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  color: #fff;
-  background: rgba(20, 14, 8, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.5);
-}
-.deck-fab--active {
-  background: var(--accent-grad, #e0231a);
-}
-.deck-fab__badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  display: grid;
-  place-items: center;
-  background: var(--accent, #e0231a);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  border-radius: 999px;
-  border: 2px solid var(--paper, #fffdf9);
-}
-@media (max-width: 600px) {
-  .app:has(.stage) .deck-overlay {
-    display: block;
-  }
-}
