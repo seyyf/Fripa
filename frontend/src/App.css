@@ -2694,12 +2694,26 @@ body {
     color: #fff;
     border-color: transparent;
   }
-  /* Lift the price chip just above the overlaid title (tune `bottom` on device). */
+  /* Price inline with the title: title + brand stack on the left, price right. */
+  .swipe-card__title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
   .swipe-card__price {
-    bottom: 132px;
+    bottom: 118px;
     right: 16px;
     left: auto;
     top: auto;
+  }
+  /* The gesture hint is redundant on the immersive deck (buttons + demo cover it). */
+  .app:has(.stage) .hint {
+    display: none;
+  }
+  /* Keep toasts clear of the bottom action buttons — float them near the top. */
+  .app:has(.stage) .toast {
+    top: calc(64px + env(safe-area-inset-top));
+    bottom: auto;
   }
 }
 
