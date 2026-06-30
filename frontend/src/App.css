@@ -2641,6 +2641,66 @@ body {
   .home-wrap {
     padding: 0 16px;
   }
+
+  /* ---- App-like immersive deck (mobile /shop only) ---- */
+  /* No header / toolbar / inline chips — controls float instead. */
+  .app:has(.stage) .app-header {
+    display: none;
+  }
+  .app:has(.stage) .shop-toolbar,
+  .app:has(.stage) .quickfilters {
+    display: none;
+  }
+  .app:has(.stage) .stage {
+    padding: 0;
+    gap: 0;
+  }
+  /* Photo fills the whole card; info + buttons overlay the bottom. */
+  .swipe-card {
+    justify-content: flex-end; /* push the in-flow body/actions to the bottom */
+    border-radius: 0;
+  }
+  .swipe-card__image {
+    position: absolute;
+    inset: 0;
+    flex: none;
+    border-radius: 0;
+  }
+  .swipe-card__body {
+    position: relative;
+    z-index: 2;
+    color: #fff;
+    padding: 64px 18px 6px;
+    background: linear-gradient(to top, rgba(18, 11, 5, 0.82), rgba(18, 11, 5, 0));
+  }
+  .swipe-card__actions {
+    position: relative;
+    z-index: 2;
+    background: rgba(18, 11, 5, 0.82);
+    border-top: none;
+    padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .swipe-card__title {
+    color: #fff;
+  }
+  .swipe-card__brand {
+    color: rgba(255, 255, 255, 0.82);
+  }
+  .swipe-card__seller {
+    display: none; /* full info lives on the detail view */
+  }
+  .swipe-card__meta .chip {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    border-color: transparent;
+  }
+  /* Lift the price chip just above the overlaid title (tune `bottom` on device). */
+  .swipe-card__price {
+    bottom: 132px;
+    right: 16px;
+    left: auto;
+    top: auto;
+  }
 }
 
 /* Desktop / large screens: the swipe deck is mobile-first, so without this the
