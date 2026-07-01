@@ -20,15 +20,11 @@ function renderHeader() {
 }
 
 describe('Header navigation', () => {
-  it('links to the shop (deck) page', () => {
+  // Single-page app: no nav bar. The only link is the logo, which returns home.
+  it('has no redundant nav links, only the logo', () => {
     renderHeader();
-    expect(screen.getByRole('link', { name: /Boutique/i })).toHaveAttribute('href', '/shop');
-  });
-
-  // Home + catalogue nav links are intentionally hidden — the app focuses on
-  // the swipe deck, and those routes redirect to /shop.
-  it('does not show the catalogue grid link', () => {
-    renderHeader();
+    expect(screen.queryByRole('link', { name: /Boutique/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /Catalogue/i })).toBeNull();
+    expect(screen.getByRole('link', { name: /Fripa/i })).toHaveAttribute('href', '/');
   });
 });

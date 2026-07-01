@@ -37,16 +37,7 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
         </div>
       </NavLink>
 
-      {/* Home + catalogue nav hidden — the app focuses on the swipe deck. */}
-      <nav className="app-nav">
-        <NavLink
-          to="/shop"
-          className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`}
-        >
-          {t('nav.shop')}
-        </NavLink>
-      </nav>
-
+      {/* Single-page app: no nav needed — all space goes to the deck. */}
       <div className="header-actions">
         <LanguageSwitcher />
         <button className="ghost-btn" onClick={onReset} title={t('a11y.reset')} aria-label={t('a11y.reset')}>
