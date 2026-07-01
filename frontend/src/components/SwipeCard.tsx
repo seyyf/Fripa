@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { effectivePrice, isOnSale, type FieldItem } from '../types';
 import { decideSwipe, type SwipeAction, type SwipeThresholds } from '../swipe/decideSwipe';
+import { LuX, LuStar, LuShoppingBag } from 'react-icons/lu';
 import { haptic } from '../util/haptic';
 import { formatHold } from '../cart/holdTimer';
 import { useT } from '../i18n/LanguageContext';
@@ -373,7 +374,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
           transition={btnTransition}
           {...press}
         >
-          ✕
+          <LuX aria-hidden="true" />
         </motion.button>
         <motion.button
           type="button"
@@ -383,7 +384,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
           transition={btnTransition}
           {...press}
         >
-          ⭐
+          <LuStar aria-hidden="true" />
         </motion.button>
         <motion.button
           type="button"
@@ -393,7 +394,7 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
           transition={btnTransition}
           {...press}
         >
-          🛒
+          <LuShoppingBag aria-hidden="true" />
         </motion.button>
       </div>
     </motion.div>

@@ -3776,3 +3776,18 @@ body {
   }
 }
 
+
+/* react-icons sizing/centering in the action + header buttons */
+.round-btn > svg {
+  width: 26px;
+  height: 26px;
+}
+.round-btn--favorite > svg {
+  fill: currentColor;
+}
+.cart-btn > svg,
+.ghost-btn > svg {
+  width: 21px;
+  height: 21px;
+  display: block;
+}

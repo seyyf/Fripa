@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { NavLink } from 'react-router-dom';
+import { LuStar, LuShoppingBag, LuRotateCcw } from 'react-icons/lu';
 import { useT } from '../i18n/LanguageContext';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
@@ -48,11 +49,11 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
 
       <div className="header-actions">
         <LanguageSwitcher />
-        <button className="ghost-btn" onClick={onReset} title={t('a11y.reset')}>
-          ↻
+        <button className="ghost-btn" onClick={onReset} title={t('a11y.reset')} aria-label={t('a11y.reset')}>
+          <LuRotateCcw aria-hidden="true" />
         </button>
         <button className="cart-btn" onClick={onFavorites} aria-label={t('a11y.favorites')}>
-          ⭐
+          <LuStar aria-hidden="true" />
           <AnimatePresence>
             {favCount > 0 && (
               <motion.span
@@ -65,7 +66,7 @@ export function Header({ cartCount, favCount, onCart, onFavorites, onReset }: Pr
           </AnimatePresence>
         </button>
         <button className="cart-btn" onClick={onCart} aria-label={t('a11y.cart')}>
-          🛒
+          <LuShoppingBag aria-hidden="true" />
           <AnimatePresence>
             {cartCount > 0 && (
               <motion.span className="cart-btn__badge" {...badgeMotion(cartCount)}>
