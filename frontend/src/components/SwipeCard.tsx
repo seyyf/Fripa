@@ -375,7 +375,6 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
           <span className="chip">{item.condition}</span>
           <span className="chip">{item.color}</span>
         </div>
-        <div className="swipe-card__seller">📍 {item.seller}</div>
       </div>
 
       <div className="swipe-card__actions">

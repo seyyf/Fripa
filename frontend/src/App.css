@@ -3791,6 +3791,10 @@ body {
   height: 21px;
   display: block;
 }
+/* Favoris + cart icons wear the logo red. */
+.cart-btn > svg {
+  color: var(--accent);
+}
 
 /* Brand splash on app launch */
 .splash {

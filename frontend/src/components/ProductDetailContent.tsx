@@ -95,7 +95,6 @@ export function ProductDetailContent({ item, status, reservedUntil, onAddToCart,
         </div>
 
         <p className="pd__desc">{item.description}</p>
-        <p className="pd__seller">📍 {item.seller}</p>
 
         {status === 'gone' ? (
           <div className="pd__gone">{t('pd.gone')}</div>

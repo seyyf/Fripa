@@ -47,7 +47,6 @@ describe('ProductDetail', () => {
     renderDetail();
     expect(await screen.findByRole('heading', { name: /Vintage Nike Swoosh/i })).toBeInTheDocument();
     expect(screen.getByText(/28 TND/)).toBeInTheDocument();
-    expect(screen.getByText(/Souk El Jemaa/)).toBeInTheDocument();
   });
 
   it('adds to cart when available', async () => {
