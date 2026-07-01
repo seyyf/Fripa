@@ -3791,3 +3791,45 @@ body {
   height: 21px;
   display: block;
 }
+
+/* Brand splash on app launch */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background:
+    radial-gradient(760px 480px at 50% 32%, #ffe6c9 0%, transparent 62%),
+    var(--paper, #f7f1e7);
+}
+.splash__mark {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  border-radius: 26px;
+  background: var(--accent-grad, #e0231a);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 36px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 22px 54px -16px rgba(224, 35, 26, 0.5);
+}
+.splash__word {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 42px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.splash__slogan {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}

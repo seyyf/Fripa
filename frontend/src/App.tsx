@@ -36,6 +36,7 @@ import { FilterDrawer } from './components/FilterDrawer';
 import { Header } from './components/Header';
 import { EmptyState } from './components/EmptyState';
 import { IntroCard } from './components/IntroCard';
+import { SplashScreen } from './components/SplashScreen';
 import { detectFreedFavorites, reservedIdsOf } from './favorites/freedAlert';
 import { usePresenceHeartbeat } from './presence/usePresenceHeartbeat';
 import { bumpSwipe } from './presence/presenceState';
@@ -430,6 +431,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <SplashScreen />
       <IntroCard />
       <Header
         cartCount={cartCount}
