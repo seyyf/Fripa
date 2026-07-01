@@ -3806,12 +3806,30 @@ body {
     radial-gradient(760px 480px at 50% 32%, #ffe6c9 0%, transparent 62%),
     var(--paper, #f7f1e7);
 }
+.splash__stage {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+}
+.splash__ghost {
+  position: absolute;
+  width: 88px;
+  height: 96px;
+  border-radius: 24px;
+  background: var(--paper, #fffdf9);
+  border: 1px solid rgba(33, 25, 19, 0.1);
+  box-shadow: 0 14px 34px -18px rgba(33, 25, 19, 0.5);
+}
 .splash__mark {
+  position: relative;
   width: 96px;
   height: 96px;
   display: grid;
   place-items: center;
   border-radius: 26px;
+  overflow: hidden;
   background: var(--accent-grad, #e0231a);
   color: #fff;
   font-family: var(--display);
@@ -3820,13 +3838,33 @@ body {
   letter-spacing: 0.5px;
   box-shadow: 0 22px 54px -16px rgba(224, 35, 26, 0.5);
 }
+.splash__shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  transform: skewX(-18deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  pointer-events: none;
+}
 .splash__word {
   margin: 0;
+  display: flex;
   font-family: var(--display);
   font-weight: 800;
   font-size: 42px;
   letter-spacing: -0.02em;
   color: var(--ink);
+}
+.splash__word > span {
+  display: inline-block;
+  white-space: pre;
 }
 .splash__slogan {
   margin: 0;
