@@ -516,9 +516,9 @@ export const STRINGS = {
     en: 'Saved for later — {title} ⭐',
   },
   'toast.undoLimited': {
-    fr: '↩ Reviens : une seule fois par heure. À tout à l’heure !',
-    ar: '↩ تراجع: مرة واحدة في الساعة. إلى اللقاء!',
-    en: '↩ Undo: once per hour. See you soon!',
+    fr: '↩ Reviens : 3 fois par 10 min max. À tout à l’heure !',
+    ar: '↩ تراجع: 3 مرات كل 10 دقائق كحد أقصى. إلى اللقاء!',
+    en: '↩ Undo: up to 3 times per 10 min. See you soon!',
   },
   'toast.undone': { fr: 'Reviens ! — {title}', ar: 'عادت! — {title}', en: 'It’s back! — {title}' },
   'toast.movedToCart': { fr: 'Déplacé au panier. 🛒', ar: 'نُقلت إلى السلة. 🛒', en: 'Moved to cart. 🛒' },

@@ -466,7 +466,7 @@ export default function App() {
                   className="toolbar-btn"
                   onClick={handleUndo}
                   disabled={historyCount === 0}
-                  title="Reprends la dernière pièce passée (swipe gauche) — 1 fois par heure"
+                  title="Reprends la dernière pièce passée (swipe gauche) — 3 fois par 10 min"
                 >
                   {t('deck.undo')}
                 </button>

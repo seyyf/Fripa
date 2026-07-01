@@ -408,24 +408,30 @@ describe('ShopService.undo', () => {
     expect(s.getFavorites('u1').lines.some((l) => l.id === 't-004')).toBe(true);
   });
 
-  it('allows one undo, then rate-limits within the hour', () => {
+  it('allows three undos, then rate-limits within 10 minutes', () => {
     const { s } = withClock(0);
-    s.pass('u1', 't-001');
-    expect(s.undo('u1').undone?.action).toBe('pass');
-    s.pass('u1', 't-002');
-    const second = s.undo('u1');
-    expect(second.undone).toBeNull();
-    expect(second.rateLimited).toBe(true);
-    expect(second.retryAfterMs).toBeGreaterThan(0);
+    for (let i = 1; i <= 3; i++) {
+      s.pass('u1', id(i));
+      expect(s.undo('u1').undone?.action).toBe('pass');
+    }
+    s.pass('u1', 't-004');
+    const fourth = s.undo('u1');
+    expect(fourth.undone).toBeNull();
+    expect(fourth.rateLimited).toBe(true);
+    expect(fourth.retryAfterMs).toBeGreaterThan(0);
   });
 
-  it('allows undo again after an hour', () => {
+  it('allows undo again after the 10-minute window clears', () => {
     const { s, advance } = withClock(0);
-    s.pass('u1', 't-001');
-    s.undo('u1');
-    s.pass('u1', 't-002');
-    advance(60 * 60 * 1000 + 1);
-    expect(s.undo('u1').undone?.action).toBe('pass');
+    for (let i = 1; i <= 3; i++) {
+      s.pass('u1', id(i));
+      s.undo('u1');
+    }
+    s.pass('u1', 't-005');
+    expect(s.undo('u1').undone).toBeNull(); // 4th within the window → blocked
+    advance(10 * 60 * 1000 + 1);
+    s.pass('u1', 't-006');
+    expect(s.undo('u1').undone?.action).toBe('pass'); // window cleared
   });
 
   it('does not consume the hourly allowance when there is nothing to undo', () => {

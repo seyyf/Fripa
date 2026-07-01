@@ -50,7 +50,9 @@ export const MAX_CART_HOLDS = 10;
 // "Reviens !" (undo) is allowed once per hour per user.
 // NOTE: tracked in memory only — move to DB-backed per-user storage when
 // auth/persistence lands (it currently resets on server restart).
-const UNDO_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+// "Reviens !" rate limit: at most UNDO_MAX_PER_WINDOW undos per UNDO_WINDOW_MS.
+const UNDO_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const UNDO_MAX_PER_WINDOW = 3;
 
 type SwipeAction = 'pass' | 'keep' | 'favorite';
 interface HistoryEntry {
@@ -68,8 +70,9 @@ interface UserState {
   favorites: Set<string>;
   // Stack of undoable swipe actions, most recent last. Powers "Reviens !".
   history: HistoryEntry[];
-  // When the user last used "Reviens !" — enforces the once-per-hour limit.
-  lastUndoAt?: number;
+  // Timestamps (ms epoch) of recent "Reviens !" uses — enforces the
+  // 3-per-10-minutes limit (older ones are pruned on each attempt).
+  undoTimes?: number[];
 }
 
 @Injectable()
@@ -377,9 +380,11 @@ export class ShopService {
   } {
     const s = this.getState(userId);
     const now = this.now();
-    // Once per hour per user.
-    if (s.lastUndoAt != null && now - s.lastUndoAt < UNDO_COOLDOWN_MS) {
-      return { undone: null, rateLimited: true, retryAfterMs: s.lastUndoAt + UNDO_COOLDOWN_MS - now };
+    // At most 3 undos per rolling 10-minute window.
+    s.undoTimes = (s.undoTimes ?? []).filter((t) => now - t < UNDO_WINDOW_MS);
+    if (s.undoTimes.length >= UNDO_MAX_PER_WINDOW) {
+      const oldest = Math.min(...s.undoTimes);
+      return { undone: null, rateLimited: true, retryAfterMs: oldest + UNDO_WINDOW_MS - now };
     }
     const last = s.history.pop(); // history only ever records passes
     if (!last) return { undone: null };
@@ -388,7 +393,7 @@ export class ShopService {
     s.passed.delete(itemId);
     s.lastChancePool.delete(itemId);
     s.shownLastChance.delete(itemId);
-    s.lastUndoAt = now; // start the hourly cooldown
+    s.undoTimes.push(now); // count this successful undo toward the window
     return { undone: { action, item: this.getItem(itemId) } };
   }
 
