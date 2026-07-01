@@ -60,3 +60,21 @@ describe('SwipeDeck keyboard', () => {
     document.body.removeChild(backdrop);
   });
 });
+
+describe('SwipeDeck loading skeleton', () => {
+  const noop = vi.fn();
+
+  it('shows the skeleton when the deck is empty and loading', () => {
+    const { container } = render(
+      <SwipeDeck deck={[]} reducedMotion loading onKeep={noop} onPass={noop} onFavorite={noop} />,
+    );
+    expect(container.querySelector('.skeleton-card')).not.toBeNull();
+  });
+
+  it('does not show the skeleton once cards are present', () => {
+    const { container } = render(
+      <SwipeDeck deck={[item('a')]} reducedMotion loading onKeep={noop} onPass={noop} onFavorite={noop} />,
+    );
+    expect(container.querySelector('.skeleton-card')).toBeNull();
+  });
+});

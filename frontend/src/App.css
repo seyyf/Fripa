@@ -3871,3 +3871,85 @@ body {
   color: var(--muted);
   font-size: 15px;
 }
+
+/* --- Loading skeleton (deck placeholder while the first batch loads) --- */
+.skeleton-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: var(--paper);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--e4);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+.skeleton-card__image {
+  aspect-ratio: 3 / 4;
+}
+.skeleton-card__body {
+  padding: 16px 18px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.skeleton-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.skeleton-card__chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.skeleton-card__actions {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  padding: 6px 0 20px;
+}
+/* Neutral block used for every shimmering piece. */
+.sk-shimmer {
+  position: relative;
+  background: rgba(33, 25, 19, 0.09);
+  overflow: hidden;
+}
+.sk-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent
+  );
+  animation: sk-sweep 1.3s ease-in-out infinite;
+}
+.sk-line {
+  height: 14px;
+  border-radius: 7px;
+  display: block;
+}
+.sk-line--title { width: 55%; height: 20px; }
+.sk-line--brand { width: 22%; }
+.sk-line--desc { width: 100%; }
+.sk-line--short { width: 70%; }
+.sk-chip {
+  width: 58px;
+  height: 24px;
+  border-radius: 999px;
+}
+.sk-dot {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+@keyframes sk-sweep {
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-shimmer::after { animation: none; }
+}

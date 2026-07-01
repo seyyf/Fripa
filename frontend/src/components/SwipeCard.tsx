@@ -22,6 +22,10 @@ interface Props {
   onInteract?: () => void;
   // Fired when the shopper tries to KEEP a piece held by another shopper.
   onReservedBlock?: (item: FieldItem) => void;
+  // 'undo' → this card was just brought back by the undo button, so it should
+  // fly IN from the left (the mirror of the swipe-left throw) instead of the
+  // default pop-in.
+  entrance?: 'undo';
 }
 
 const THRESHOLDS: SwipeThresholds = { right: 110, left: 110, up: 110 };
@@ -37,7 +41,7 @@ const THROW_Y = typeof window !== 'undefined' ? Math.max(760, window.innerHeight
 // forwardRef: AnimatePresence mode="popLayout" measures the exiting card via
 // this ref to pin it absolutely while it flies out of the deck's flex flow.
 export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
-  { item, onKeep, onPass, onFavorite, reducedMotion = false, demo = false, onDemoEnd, onInteract, onReservedBlock }: Props,
+  { item, onKeep, onPass, onFavorite, reducedMotion = false, demo = false, onDemoEnd, onInteract, onReservedBlock, entrance }: Props,
   ref,
 ) {
   const { t } = useT();
@@ -225,7 +229,12 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
       initial={
         reducedMotion
           ? { opacity: 0 }
-          : { opacity: 0, scale: 0.92, y: 26, rotateY: -10 }
+          : entrance === 'undo'
+            ? // Mirror of the swipe-left throw: parked off the left edge on a
+              // rising arc, so undo visibly "un-swipes" the card back in. The
+              // z-rotation comes for free (it's derived from x).
+              { opacity: 0, x: -THROW_X, y: -90, scale: 0.95 }
+            : { opacity: 0, scale: 0.92, y: 26, rotateY: -10 }
       }
       // x/y: 0 matter when an exit is INTERRUPTED — e.g. a keep that the server
       // refuses (cart full) restores the card mid-throw, and AnimatePresence
@@ -237,7 +246,11 @@ export const SwipeCard = forwardRef<HTMLDivElement, Props>(function SwipeCard(
           ? { opacity: 1, x: 0, y: 0 }
           : { opacity: 1, scale: 1, x: 0, y: 0, rotateY: 0 }
       }
-      transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+      transition={
+        entrance === 'undo' && !reducedMotion
+          ? { duration: 0.5, ease: FLY_EASE }
+          : { type: 'spring', stiffness: 360, damping: 26 }
+      }
       variants={{
         // The throw. `custom` (the decided action) arrives from the deck's
         // AnimatePresence, and the animation starts from the dragged position

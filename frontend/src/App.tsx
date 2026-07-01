@@ -70,6 +70,12 @@ export default function App() {
   const [toast, setToast] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
   const [outOfCards, setOutOfCards] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
+  // True while the first batch (or a post-filter reload) is in flight and the
+  // deck is empty — drives the skeleton placeholder.
+  const [loading, setLoading] = useState(true);
+  // Id of the card just brought back by undo, so the deck can fly it back in
+  // from the left (reverse of a swipe-left).
+  const [undoneId, setUndoneId] = useState<string | null>(null);
   // A piece just removed from the cart → returned to the floor. Consumed by the
   // catalogue (currently hidden); the setter still runs so a revert is trivial.
   const [, setReturned] = useState<{ item: TShirt; tick: number } | null>(null);
@@ -154,6 +160,8 @@ export default function App() {
   const topUp = useCallback(async () => {
     if (fetching.current || deckRef.current.length > LOW_WATER) return;
     fetching.current = true;
+    // Empty deck + a fetch in flight → show the skeleton until cards land.
+    if (deckRef.current.length === 0) setLoading(true);
     try {
       const res = await api.field(BATCH, filtersRef.current);
       setDeck((prev) => {
@@ -167,6 +175,7 @@ export default function App() {
       console.error('topUp failed', e);
     } finally {
       fetching.current = false;
+      setLoading(false);
     }
   }, []);
 
@@ -286,8 +295,10 @@ export default function App() {
       }
       const { item } = res.undone; // always a pass — keeps/favorites aren't undoable
       setHistoryCount((c) => Math.max(0, c - 1));
-      // The piece is available again — drop it back on top of the deck.
+      // The piece is available again — drop it back on top of the deck and
+      // flag it so the deck flies it back in from the left (reverse swipe).
       restore({ ...item, lastChance: false });
+      setUndoneId(item.id);
       setOutOfCards(false);
       flash(t('toast.undone', { title: item.title }));
     } catch (e) {
@@ -510,6 +521,8 @@ export default function App() {
                 <SwipeDeck
                   deck={deck}
                   reducedMotion={reducedMotion}
+                  loading={loading}
+                  undoneId={undoneId}
                   onKeep={handleKeep}
                   onPass={handlePass}
                   onFavorite={handleFavorite}

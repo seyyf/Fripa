@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { FieldItem } from '../types';
 import { SwipeCard } from './SwipeCard';
+import { SkeletonCard } from './SkeletonCard';
 import { SwipeBurstEngine, type BurstAction } from '../fx/swipeBurst';
 import { playSwipeSound } from '../fx/swipeSound';
 import { useIdleNudge } from '../swipe/useIdleNudge';
@@ -24,6 +25,10 @@ interface Props {
   onFavorite: (item: FieldItem) => void;
   // Fired when the shopper tries to keep a piece held by another shopper.
   onReservedBlock?: (item: FieldItem) => void;
+  // Deck is empty because the first batch is still loading → show a skeleton.
+  loading?: boolean;
+  // Id of the card just brought back by undo → it flies in from the left.
+  undoneId?: string | null;
 }
 
 // Graduated depth for the blank cards peeking behind the active one — a tactile
@@ -34,7 +39,7 @@ const PEEK_DEPTH = [
   { scale: 0.9, y: 32, opacity: 0.7 },
 ];
 
-export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite, onReservedBlock }: Props) {
+export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite, onReservedBlock, loading, undoneId }: Props) {
   const top = deck[0];
   const peeks = deck.slice(1, 1 + PEEK_DEPTH.length);
 
@@ -171,6 +176,7 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite, onR
             item={top}
             reducedMotion={reducedMotion}
             demo={demo}
+            entrance={top.id === undoneId ? 'undo' : undefined}
             onDemoEnd={endDemo}
             onInteract={noteInteraction}
             onReservedBlock={onReservedBlock}
@@ -180,6 +186,9 @@ export function SwipeDeck({ deck, reducedMotion, onKeep, onPass, onFavorite, onR
           />
         )}
       </AnimatePresence>
+
+      {/* First load with nothing in the deck yet: a shimmering placeholder. */}
+      {!top && loading && <SkeletonCard />}
 
       {/* Particle bursts paint above the cards; never intercepts input. */}
       <canvas ref={canvasRef} className="deck__fx" aria-hidden="true" />
